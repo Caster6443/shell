@@ -21,7 +21,6 @@ Item {
     opacity: shouldBeActive ? 1 : 0
 
     Loader {
-        asynchronous: true
         anchors.fill: parent
         active: root.opacity > 0 && Config.background.visualiser.blur
 
@@ -43,7 +42,6 @@ Item {
         layer.enabled: true
 
         Loader {
-            asynchronous: true
             anchors.fill: parent
             anchors.topMargin: root.offset
             anchors.bottomMargin: -root.offset

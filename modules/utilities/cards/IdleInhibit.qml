@@ -70,7 +70,6 @@ StyledRect {
     Loader {
         id: activeChip
 
-        asynchronous: true
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.topMargin: Appearance.spacing.larger

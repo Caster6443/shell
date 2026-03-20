@@ -39,7 +39,6 @@ ColumnLayout {
         color: "transparent"
 
         Loader {
-            asynchronous: true
             anchors.centerIn: parent
             active: opacity > 0
             opacity: Notifs.list.length > 0 && !Config.lock.hideNotifs ? 0 : 1

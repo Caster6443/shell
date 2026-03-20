@@ -311,6 +311,43 @@ Item {
             implicitWidth: 280
             implicitHeight: Appearance.padding.normal * 3
 
+            background: Rectangle {
+                x: slider.leftPadding
+                y: slider.topPadding + slider.availableHeight / 2 - height / 2
+                implicitWidth: 200
+                implicitHeight: 6
+                width: slider.availableWidth
+                height: implicitHeight
+                radius: 3
+                color: Colours.palette.m3surfaceVariant
+
+                Rectangle {
+                    width: slider.visualPosition * parent.width
+                    height: parent.height
+                    color: Colours.palette.m3primary
+                    radius: 3
+                }
+            }
+
+            handle: Item {
+                x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
+                y: slider.topPadding + slider.availableHeight / 2 - height / 2
+                implicitWidth: 24
+                implicitHeight: 24
+
+                AnimatedImage {
+                    anchors.centerIn: parent
+                    width: 32
+                    height: 32
+
+                    source: "file:///home/caster/.config/quickshell/caelestia/assets/doroRun.gif"
+
+                    asynchronous: true
+                    fillMode: AnimatedImage.PreserveAspectFit
+                    playing: Players.active?.isPlaying ?? false
+                }
+            }
+
             onMoved: {
                 const active = Players.active;
                 if (active?.canSeek && active?.positionSupported)
@@ -332,9 +369,8 @@ Item {
                     const active = Players.active;
                     if (!active?.canSeek || !active?.positionSupported)
                         return;
-
                     event.accepted = true;
-                    const delta = event.angleDelta.y > 0 ? 10 : -10;    // Time 10 seconds
+                    const delta = event.angleDelta.y > 0 ? 10 : -10;
                     Qt.callLater(() => {
                         active.position = Math.max(0, Math.min(active.length, active.position + delta));
                     });
@@ -398,7 +434,7 @@ Item {
                 height: visualiser.height * 0.75
 
                 playing: Players.active?.isPlaying ?? false
-                speed: Audio.beatTracker.bpm / Appearance.anim.mediaGifSpeedAdjustment // qmllint disable unresolved-type
+                speed: (Audio.beatTracker.bpm / Appearance.anim.mediaGifSpeedAdjustment) * 2 // qmllint disable unresolved-type
                 source: Paths.absolutePath(Config.paths.mediaGif)
                 asynchronous: true
                 fillMode: AnimatedImage.PreserveAspectFit

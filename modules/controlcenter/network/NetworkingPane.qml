@@ -120,7 +120,6 @@ Item {
 
                         Loader {
                             Layout.fillWidth: true
-                            asynchronous: true
                             sourceComponent: Component {
                                 VpnList {
                                     session: root.session
@@ -139,7 +138,6 @@ Item {
 
                         Loader {
                             Layout.fillWidth: true
-                            asynchronous: true
                             sourceComponent: Component {
                                 EthernetList {
                                     session: root.session
@@ -158,7 +156,6 @@ Item {
 
                         Loader {
                             Layout.fillWidth: true
-                            asynchronous: true
                             sourceComponent: Component {
                                 WirelessList {
                                     session: root.session

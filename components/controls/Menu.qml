@@ -83,7 +83,6 @@ Elevation {
                         }
 
                         Loader {
-                            asynchronous: true
                             Layout.alignment: Qt.AlignVCenter
                             active: item.modelData.trailingIcon.length > 0
                             visible: active

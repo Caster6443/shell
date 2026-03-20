@@ -117,7 +117,6 @@ ColumnLayout {
         }
 
         Loader {
-            asynchronous: true
             active: root.client?.lastIpcObject.floating
             Layout.fillWidth: active
             Layout.leftMargin: active ? 0 : -parent.spacing

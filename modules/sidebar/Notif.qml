@@ -154,7 +154,6 @@ StyledRect {
     component WrappedLoader: Loader {
         required property bool shouldBeActive
 
-        asynchronous: true
         opacity: shouldBeActive ? 1 : 0
         active: opacity > 0
 

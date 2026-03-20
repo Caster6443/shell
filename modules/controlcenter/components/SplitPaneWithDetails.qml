@@ -53,7 +53,6 @@ Item {
 
                     anchors.fill: parent
 
-                    asynchronous: true
                     opacity: 1
                     scale: 1
                     transformOrigin: Item.Center
@@ -87,7 +86,6 @@ Item {
         id: overlayLoader
 
         anchors.fill: parent
-        asynchronous: true
         z: 1000
         sourceComponent: root.overlayComponent
         active: root.overlayComponent !== null

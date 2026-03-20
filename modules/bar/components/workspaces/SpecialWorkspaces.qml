@@ -164,8 +164,6 @@ Item {
             Loader {
                 id: label
 
-                asynchronous: true
-
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 Layout.preferredHeight: Config.bar.sizes.innerWidth - Appearance.padding.small * 2
 
@@ -193,8 +191,6 @@ Item {
 
             Loader {
                 id: windows
-
-                asynchronous: true
 
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillHeight: true
@@ -297,7 +293,6 @@ Item {
     }
 
     Loader {
-        asynchronous: true
         active: Config.bar.workspaces.activeIndicator
         anchors.fill: parent
 

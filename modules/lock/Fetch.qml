@@ -162,7 +162,6 @@ ColumnLayout {
     }
 
     component WrappedLoader: Loader {
-        asynchronous: true
         visible: active
     }
 

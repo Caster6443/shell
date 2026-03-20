@@ -55,8 +55,6 @@ ColumnLayout {
     Loader {
         id: windows
 
-        asynchronous: true
-
         Layout.alignment: Qt.AlignHCenter
         Layout.fillHeight: true
         Layout.topMargin: -Config.bar.sizes.innerWidth / 10

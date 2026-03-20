@@ -28,7 +28,6 @@ CollapsibleSection {
         Loader {
             Layout.fillWidth: true
             Layout.preferredHeight: item ? Math.min(item.contentHeight, 300) : 0
-            asynchronous: true
             active: sansFontSection.expanded
 
             sourceComponent: StyledListView {
@@ -82,7 +81,6 @@ CollapsibleSection {
                         }
 
                         Loader {
-                            asynchronous: true
                             active: isCurrent
 
                             sourceComponent: MaterialIcon {
@@ -109,7 +107,6 @@ CollapsibleSection {
         Loader {
             Layout.fillWidth: true
             Layout.preferredHeight: item ? Math.min(item.contentHeight, 300) : 0
-            asynchronous: true
             active: monoFontSection.expanded
 
             sourceComponent: StyledListView {
@@ -163,7 +160,6 @@ CollapsibleSection {
                         }
 
                         Loader {
-                            asynchronous: true
                             active: isCurrent
 
                             sourceComponent: MaterialIcon {
@@ -191,7 +187,6 @@ CollapsibleSection {
             id: materialFontLoader
             Layout.fillWidth: true
             Layout.preferredHeight: item ? Math.min(item.contentHeight, 300) : 0
-            asynchronous: true
             active: materialFontSection.expanded
 
             sourceComponent: StyledListView {
@@ -245,7 +240,6 @@ CollapsibleSection {
                         }
 
                         Loader {
-                            asynchronous: true
                             active: isCurrent
 
                             sourceComponent: MaterialIcon {

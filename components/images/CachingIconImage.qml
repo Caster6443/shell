@@ -18,7 +18,6 @@ Item {
     Loader {
         id: loader
 
-        asynchronous: true
         anchors.fill: parent
         sourceComponent: root.source ? root.source.toString().startsWith("image://icon/") ? iconImage : cachingImage : null
     }

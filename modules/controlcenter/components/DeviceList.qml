@@ -32,7 +32,6 @@ ColumnLayout {
         id: headerLoader
 
         Layout.fillWidth: true
-        asynchronous: true
         sourceComponent: root.headerComponent
         visible: root.headerComponent !== null && root.showHeader
     }
@@ -51,7 +50,6 @@ ColumnLayout {
         }
 
         Loader {
-            asynchronous: true
             sourceComponent: root.titleSuffix
             visible: root.titleSuffix !== null
         }

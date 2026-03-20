@@ -37,7 +37,6 @@ Column {
     }
 
     Loader {
-        asynchronous: true
         anchors.horizontalCenter: parent.horizontalCenter
 
         active: PowerProfiles.degradationReason !== PerformanceDegradationReason.None

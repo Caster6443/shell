@@ -163,7 +163,6 @@ ColumnLayout {
         }
 
         Loader {
-            asynchronous: true
             anchors.centerIn: parent
 
             opacity: list.count === 0 ? 1 : 0

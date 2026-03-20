@@ -40,7 +40,6 @@ Item {
         }
 
         Loader {
-            asynchronous: true
             anchors.fill: parent
             active: root.blurEnabled
 
@@ -102,7 +101,6 @@ Item {
                 }
 
                 Loader {
-                    asynchronous: true
                     Layout.alignment: Qt.AlignTop
                     Layout.topMargin: Appearance.padding.large * 1.4 * root.scale
 

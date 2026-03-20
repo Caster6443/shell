@@ -194,7 +194,6 @@ ColumnLayout {
             return null;
         }
 
-        asynchronous: true
         Layout.alignment: Qt.AlignHCenter
 
         // Cursed ahh thing to add padding to first and last enabled components

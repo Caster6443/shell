@@ -1,24 +1,24 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Shapes
+import Quickshell
+import Quickshell.Services.Mpris
+import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
-import qs.config
-import Caelestia.Services
-import Quickshell
-import Quickshell.Services.Mpris
-import QtQuick
-import QtQuick.Layouts
-import QtQuick.Shapes
 
 Item {
     id: root
 
-    required property PersistentProperties visibilities
+    required property DrawerVisibilities visibilities
     readonly property bool needsKeyboard: lyricMenuOpen
 
-    readonly property real nonAnimHeight: Math.max(cover.implicitHeight + Config.dashboard.sizes.mediaVisualiserSize * 2, lyricMenuOpen ? lyricMenu.implicitHeight : details.implicitHeight, bongocat.implicitHeight) + Appearance.padding.large * 2
+    readonly property real nonAnimHeight: Math.max(cover.implicitHeight + Tokens.sizes.dashboard.mediaVisualiserSize * 2, lyricMenuOpen ? lyricMenu.implicitHeight : details.implicitHeight, bongocat.implicitHeight) + Tokens.padding.large * 2
     readonly property real detailsHeightWithoutLyrics: details.implicitHeight - lyricsViewInDetails.implicitHeight
 
     property bool lyricMenuOpen: false
@@ -27,7 +27,7 @@ Item {
 
     property real playerProgress: {
         const active = Players.active;
-        return active?.length ? active.position / active.length : 0;
+        return active?.length ? (active.position % active.length) / active.length : 0;
     }
 
     function lengthStr(length: int): string {
@@ -52,7 +52,7 @@ Item {
         }
     }
 
-    implicitWidth: cover.implicitWidth + Config.dashboard.sizes.mediaVisualiserSize * 2 + details.implicitWidth + details.anchors.leftMargin + bongocat.implicitWidth + bongocat.anchors.leftMargin * 2 + Appearance.padding.large * 2
+    implicitWidth: cover.implicitWidth + Tokens.sizes.dashboard.mediaVisualiserSize * 2 + details.implicitWidth + details.anchors.leftMargin + bongocat.implicitWidth + bongocat.anchors.leftMargin * 2 + Tokens.padding.large * 2
     implicitHeight: nonAnimHeight
 
     Behavior on implicitHeight {
@@ -61,13 +61,13 @@ Item {
 
     Behavior on playerProgress {
         Anim {
-            duration: Appearance.anim.durations.large
+            type: Anim.StandardLarge
         }
     }
 
     Timer {
         running: Players.active?.isPlaying ?? false
-        interval: Config.dashboard.mediaUpdateInterval
+        interval: GlobalConfig.dashboard.mediaUpdateInterval
         triggeredOnStart: true
         repeat: true
         onTriggered: {
@@ -80,15 +80,17 @@ Item {
 
     Timer {
         id: lyricsHideDelay
+
         interval: 300
         repeat: false
     }
 
     Connections {
-        target: lyricsHideDelay
         function onTriggered() {
             root.lyricsShowingDebounced = false;
         }
+
+        target: lyricsHideDelay
     }
 
     ServiceRef {
@@ -104,12 +106,12 @@ Item {
 
         readonly property real centerX: width / 2
         readonly property real centerY: height / 2
-        readonly property real innerX: cover.implicitWidth / 2 + Appearance.spacing.small
-        readonly property real innerY: cover.implicitHeight / 2 + Appearance.spacing.small
+        readonly property real innerX: cover.implicitWidth / 2 + Tokens.spacing.small
+        readonly property real innerY: cover.implicitHeight / 2 + Tokens.spacing.small
         property color colour: Colours.palette.m3primary
 
         anchors.fill: cover
-        anchors.margins: -Config.dashboard.sizes.mediaVisualiserSize
+        anchors.margins: -Tokens.sizes.dashboard.mediaVisualiserSize
 
         asynchronous: true
         preferredRendererType: Shape.CurveRenderer
@@ -120,7 +122,7 @@ Item {
         id: visualiserBars
 
         model: Array.from({
-            length: Config.services.visualiserBars
+            length: GlobalConfig.services.visualiserBars
         }, (_, i) => i)
 
         ShapePath {
@@ -129,13 +131,13 @@ Item {
             required property int modelData
             readonly property real value: Math.max(1e-3, Math.min(1, Audio.cava.values[modelData]))
 
-            readonly property real angle: modelData * 2 * Math.PI / Config.services.visualiserBars
-            readonly property real magnitude: value * Config.dashboard.sizes.mediaVisualiserSize
+            readonly property real angle: modelData * 2 * Math.PI / GlobalConfig.services.visualiserBars
+            readonly property real magnitude: value * root.Tokens.sizes.dashboard.mediaVisualiserSize
             readonly property real cos: Math.cos(angle)
             readonly property real sin: Math.sin(angle)
 
-            capStyle: Appearance.rounding.scale === 0 ? ShapePath.SquareCap : ShapePath.RoundCap
-            strokeWidth: 360 / Config.services.visualiserBars - Appearance.spacing.small / 4
+            capStyle: root.Tokens.rounding.scale === 0 ? ShapePath.SquareCap : ShapePath.RoundCap
+            strokeWidth: 360 / GlobalConfig.services.visualiserBars - root.Tokens.spacing.small / 4
             strokeColor: Colours.palette.m3primary
 
             startX: visualiser.centerX + (visualiser.innerX + strokeWidth / 2) * cos
@@ -157,10 +159,10 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        anchors.leftMargin: Appearance.padding.large + Config.dashboard.sizes.mediaVisualiserSize
+        anchors.leftMargin: Tokens.padding.large + Tokens.sizes.dashboard.mediaVisualiserSize
 
-        implicitWidth: Config.dashboard.sizes.mediaCoverArtSize
-        implicitHeight: Config.dashboard.sizes.mediaCoverArtSize
+        implicitWidth: Tokens.sizes.dashboard.mediaCoverArtSize
+        implicitHeight: Tokens.sizes.dashboard.mediaCoverArtSize
 
         color: Colours.tPalette.m3surfaceContainerHigh
         radius: Infinity
@@ -179,7 +181,7 @@ Item {
 
             anchors.fill: parent
 
-            source: Players.active?.trackArtUrl ?? "" // qmllint disable incompatible-type
+            source: Players.getArtUrl(Players.active)
             asynchronous: true
             fillMode: Image.PreserveAspectCrop
             sourceSize.width: width
@@ -199,9 +201,9 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: visualiser.right
-        anchors.leftMargin: Appearance.spacing.normal
+        anchors.leftMargin: Tokens.spacing.normal
 
-        spacing: Appearance.spacing.small
+        spacing: Tokens.spacing.small
 
         StyledText {
             id: title
@@ -213,7 +215,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             text: (Players.active?.trackTitle ?? qsTr("No media")) || qsTr("Unknown title")
             color: Players.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
-            font.pointSize: Appearance.font.size.normal
+            font.pointSize: Tokens.font.size.normal
             elide: Text.ElideRight
         }
 
@@ -228,7 +230,7 @@ Item {
             visible: !!Players.active
             text: Players.active?.trackAlbum || qsTr("Unknown album")
             color: Colours.palette.m3outline
-            font.pointSize: Appearance.font.size.small
+            font.pointSize: Tokens.font.size.small
             elide: Text.ElideRight
         }
 
@@ -248,6 +250,7 @@ Item {
 
         LyricsView {
             id: lyricsViewInDetails
+
             Layout.fillWidth: true
             Layout.preferredHeight: 200
         }
@@ -256,15 +259,15 @@ Item {
             id: controls
 
             Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Appearance.spacing.small
-            Layout.bottomMargin: Appearance.spacing.smaller
+            Layout.topMargin: Tokens.spacing.small
+            Layout.bottomMargin: Tokens.spacing.smaller
 
-            spacing: Appearance.spacing.small
+            spacing: Tokens.spacing.small
 
             PlayerControl {
                 type: IconButton.Text
                 icon: Players.active?.shuffle ? "shuffle_on" : "shuffle"
-                font.pointSize: Math.round(Appearance.font.size.large)
+                font.pointSize: Math.round(Tokens.font.size.large)
                 disabled: !Players.active?.shuffleSupported
                 onClicked: Players.active.shuffle = !Players.active?.shuffle
             }
@@ -272,7 +275,7 @@ Item {
             PlayerControl {
                 type: IconButton.Text
                 icon: "skip_previous"
-                font.pointSize: Math.round(Appearance.font.size.large * 1.5)
+                font.pointSize: Math.round(Tokens.font.size.large * 1.5)
                 disabled: !Players.active?.canGoPrevious
                 onClicked: Players.active?.previous()
             }
@@ -281,9 +284,9 @@ Item {
                 icon: Players.active?.isPlaying ? "pause" : "play_arrow"
                 label.animate: true
                 toggle: true
-                padding: Appearance.padding.small / 2
+                padding: Tokens.padding.small / 2
                 checked: Players.active?.isPlaying ?? false
-                font.pointSize: Math.round(Appearance.font.size.large * 1.5)
+                font.pointSize: Math.round(Tokens.font.size.large * 1.5)
                 disabled: !Players.active?.canTogglePlaying
                 onClicked: Players.active?.togglePlaying()
             }
@@ -291,7 +294,7 @@ Item {
             PlayerControl {
                 type: IconButton.Text
                 icon: "skip_next"
-                font.pointSize: Math.round(Appearance.font.size.large * 1.5)
+                font.pointSize: Math.round(Tokens.font.size.large * 1.5)
                 disabled: !Players.active?.canGoNext
                 onClicked: Players.active?.next()
             }
@@ -299,7 +302,7 @@ Item {
             PlayerControl {
                 type: IconButton.Text
                 icon: "lyrics"
-                font.pointSize: Math.round(Appearance.font.size.large)
+                font.pointSize: Math.round(Tokens.font.size.large)
                 onClicked: root.lyricMenuOpen = !root.lyricMenuOpen
             }
         }
@@ -309,44 +312,7 @@ Item {
 
             enabled: !!Players.active
             implicitWidth: 280
-            implicitHeight: Appearance.padding.normal * 3
-
-            background: Rectangle {
-                x: slider.leftPadding
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                implicitWidth: 200
-                implicitHeight: 6
-                width: slider.availableWidth
-                height: implicitHeight
-                radius: 3
-                color: Colours.palette.m3surfaceVariant
-
-                Rectangle {
-                    width: slider.visualPosition * parent.width
-                    height: parent.height
-                    color: Colours.palette.m3primary
-                    radius: 3
-                }
-            }
-
-            handle: Item {
-                x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                implicitWidth: 24
-                implicitHeight: 24
-
-                AnimatedImage {
-                    anchors.centerIn: parent
-                    width: 32
-                    height: 32
-
-                    source: "file:///home/caster/.config/quickshell/caelestia/assets/doroRun.gif"
-
-                    asynchronous: true
-                    fillMode: AnimatedImage.PreserveAspectFit
-                    playing: Players.active?.isPlaying ?? false
-                }
-            }
+            implicitHeight: Tokens.padding.normal * 3
 
             onMoved: {
                 const active = Players.active;
@@ -362,19 +328,20 @@ Item {
             }
 
             CustomMouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.NoButton
-
                 function onWheel(event: WheelEvent) {
                     const active = Players.active;
                     if (!active?.canSeek || !active?.positionSupported)
                         return;
+
                     event.accepted = true;
-                    const delta = event.angleDelta.y > 0 ? 10 : -10;
+                    const delta = event.angleDelta.y > 0 ? 10 : -10;    // Time 10 seconds
                     Qt.callLater(() => {
                         active.position = Math.max(0, Math.min(active.length, active.position + delta));
                     });
                 }
+
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
             }
         }
 
@@ -387,9 +354,9 @@ Item {
 
                 anchors.left: parent.left
 
-                text: root.lengthStr(Players.active?.position ?? -1)
+                text: root.lengthStr(Players.active ? Players.active.position % Players.active.length : -1)
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -399,7 +366,7 @@ Item {
 
                 text: root.lengthStr(Players.active?.length ?? -1)
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
         }
     }
@@ -410,13 +377,14 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: playerChanger.parent == leftSection ? -playerChanger.height : 0
         anchors.left: details.right
-        anchors.leftMargin: Appearance.spacing.normal
+        anchors.leftMargin: Tokens.spacing.normal
 
         visible: lyricMenu.height === 0 || opacity > 0
         opacity: lyricMenu.height === 0 ? 1 : 0
+
         Behavior on opacity {
             NumberAnimation {
-                duration: Appearance.anim.durations.normal
+                duration: Tokens.anim.durations.normal
                 easing.type: Easing.OutCubic
             }
         }
@@ -434,7 +402,7 @@ Item {
                 height: visualiser.height * 0.75
 
                 playing: Players.active?.isPlaying ?? false
-                speed: (Audio.beatTracker.bpm / Appearance.anim.mediaGifSpeedAdjustment) * 2 // qmllint disable unresolved-type
+                speed: Audio.beatTracker.bpm / Config.general.mediaGifSpeedAdjustment // qmllint disable unresolved-type
                 source: Paths.absolutePath(Config.paths.mediaGif)
                 asynchronous: true
                 fillMode: AnimatedImage.PreserveAspectFit
@@ -448,16 +416,17 @@ Item {
         anchors.top: parent.top
         anchors.left: details.right
         anchors.right: parent.right
-        anchors.leftMargin: Appearance.spacing.normal
+        anchors.leftMargin: Tokens.spacing.normal
 
-        contentHeight: !root.lyricsShowingDebounced ? root.detailsHeightWithoutLyrics + Appearance.padding.large * 5 : root.detailsHeightWithoutLyrics + lyricsViewInDetails.implicitHeight
+        contentHeight: !root.lyricsShowingDebounced ? root.detailsHeightWithoutLyrics + Tokens.padding.large * 5 : root.detailsHeightWithoutLyrics + lyricsViewInDetails.implicitHeight
 
         visible: root.lyricMenuOpen || height > 0
         height: root.lyricMenuOpen ? implicitHeight : 0
         clip: true
+
         Behavior on height {
             NumberAnimation {
-                duration: Appearance.anim.durations.normal
+                duration: Tokens.anim.durations.normal
                 easing.type: Easing.OutCubic
             }
         }
@@ -465,16 +434,17 @@ Item {
 
     RowLayout {
         id: playerChanger
+
         parent: !root.lyricsShowingDebounced ? details : leftSection
         Layout.alignment: Qt.AlignHCenter
-        spacing: Appearance.spacing.small
+        spacing: Tokens.spacing.small
 
         PlayerControl {
             type: IconButton.Text
             icon: "move_up"
             inactiveOnColour: Colours.palette.m3secondary
-            padding: Appearance.padding.small
-            font.pointSize: Appearance.font.size.large
+            padding: Tokens.padding.small
+            font.pointSize: Tokens.font.size.large
             disabled: !Players.active?.canRaise
             onClicked: {
                 Players.active?.raise();
@@ -512,8 +482,8 @@ Item {
             type: IconButton.Text
             icon: "delete"
             inactiveOnColour: Colours.palette.m3error
-            padding: Appearance.padding.small
-            font.pointSize: Appearance.font.size.large
+            padding: Tokens.padding.small
+            font.pointSize: Tokens.font.size.large
             disabled: !Players.active?.canQuit
             onClicked: Players.active?.quit()
         }
@@ -528,15 +498,14 @@ Item {
     }
 
     component PlayerControl: IconButton {
-        Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Appearance.padding.large : internalChecked ? Appearance.padding.smaller : 0)
-        radius: stateLayer.pressed ? Appearance.rounding.small / 2 : internalChecked ? Appearance.rounding.small : implicitHeight / 2
-        radiusAnim.duration: Appearance.anim.durations.expressiveFastSpatial
-        radiusAnim.easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+        Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Tokens.padding.large : internalChecked ? Tokens.padding.smaller : 0)
+        radius: stateLayer.pressed ? Tokens.rounding.small / 2 : internalChecked ? Tokens.rounding.small : implicitHeight / 2
+        radiusAnim.duration: Tokens.anim.durations.expressiveFastSpatial
+        radiusAnim.easing: Tokens.anim.expressiveFastSpatial
 
         Behavior on Layout.preferredWidth {
             Anim {
-                duration: Appearance.anim.durations.expressiveFastSpatial
-                easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                type: Anim.FastSpatial
             }
         }
     }

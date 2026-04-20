@@ -1,13 +1,13 @@
 pragma Singleton
 
-import qs.components.misc
-import qs.config
-import Caelestia
-import Caelestia.Internal
+import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
-import QtQuick
+import Caelestia
+import Caelestia.Config
+import Caelestia.Internal
+import qs.components.misc
 
 Singleton {
     id: root
@@ -93,7 +93,7 @@ Singleton {
     Component.onCompleted: reloadDynamicConfs()
 
     onCapsLockChanged: {
-        if (!Config.utilities.toasts.capsLockChanged)
+        if (!GlobalConfig.utilities.toasts.capsLockChanged)
             return;
 
         if (capsLock)
@@ -103,7 +103,7 @@ Singleton {
     }
 
     onNumLockChanged: {
-        if (!Config.utilities.toasts.numLockChanged)
+        if (!GlobalConfig.utilities.toasts.numLockChanged)
             return;
 
         if (numLock)
@@ -113,15 +113,13 @@ Singleton {
     }
 
     onKbLayoutFullChanged: {
-        if (hadKeyboard && Config.utilities.toasts.kbLayoutChanged)
+        if (hadKeyboard && GlobalConfig.utilities.toasts.kbLayoutChanged)
             Toaster.toast(qsTr("Keyboard layout changed"), qsTr("Layout changed to: %1").arg(kbLayoutFull), "keyboard");
 
         hadKeyboard = !!keyboard;
     }
 
     Connections {
-        target: Hyprland
-
         function onRawEvent(event: HyprlandEvent): void {
             const n = event.name;
             if (n.endsWith("v2"))
@@ -144,11 +142,11 @@ Singleton {
                 Hyprland.refreshToplevels();
             }
         }
+
+        target: Hyprland
     }
 
     Connections {
-        target: root.focusedMonitor
-
         function onLastIpcObjectChanged(): void {
             const specialName = root.focusedMonitor.lastIpcObject.specialWorkspace.name;
 
@@ -156,6 +154,8 @@ Singleton {
                 root.lastSpecialWorkspace = specialName;
             }
         }
+
+        target: root.focusedMonitor
     }
 
     FileView {
@@ -192,8 +192,6 @@ Singleton {
     }
 
     IpcHandler {
-        target: "hypr"
-
         function refreshDevices(): void {
             extras.refreshDevices();
         }
@@ -205,9 +203,13 @@ Singleton {
         function listSpecialWorkspaces(): string {
             return root.workspaces.values.filter(w => w.name.startsWith("special:") && w.lastIpcObject.windows > 0).map(w => w.name).join("\n");
         }
+
+        target: "hypr"
     }
 
+    // qmllint disable unresolved-type
     CustomShortcut {
+        // qmllint enable unresolved-type
         name: "refreshDevices"
         description: "Reload devices"
         onPressed: extras.refreshDevices()

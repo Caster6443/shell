@@ -1,9 +1,9 @@
 pragma Singleton
 
-import qs.config
+import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
-import QtQuick
+import Caelestia.Config
 
 Singleton {
     id: root
@@ -107,7 +107,7 @@ Singleton {
     }
 
     function getAppCategoryIcon(name: string, fallback: string): string {
-        for (const iconConfig of Config.bar.workspaces.windowIcons)
+        for (const iconConfig of GlobalConfig.bar.workspaces.windowIcons)
             if (matchIconConfig(name, iconConfig))
                 return iconConfig.icon;
 
@@ -212,7 +212,7 @@ Singleton {
     function getSpecialWsIcon(name: string): string {
         name = name.toLowerCase().slice("special:".length);
 
-        for (const iconConfig of Config.bar.workspaces.specialWorkspaceIcons)
+        for (const iconConfig of GlobalConfig.bar.workspaces.specialWorkspaceIcons)
             if (matchIconConfig(name, iconConfig))
                 return iconConfig.icon;
 
@@ -230,7 +230,7 @@ Singleton {
     }
 
     function getTrayIcon(id: string, icon: string): string {
-        for (const sub of Config.bar.tray.iconSubs)
+        for (const sub of GlobalConfig.bar.tray.iconSubs)
             if (sub.id === id)
                 return sub.image ? Qt.resolvedUrl(sub.image) : Quickshell.iconPath(sub.icon);
 
@@ -239,5 +239,25 @@ Singleton {
             icon = Qt.resolvedUrl(`${path}/${name.slice(name.lastIndexOf("/") + 1)}`);
         }
         return icon;
+    }
+
+    function getBatteryIcon(charge: int): string {
+        if (charge > 0 && charge < 5)
+            return "battery_0_bar";
+        if (charge >= 5 && charge < 20)
+            return "battery_1_bar";
+        if (charge >= 20 && charge < 35)
+            return "battery_2_bar";
+        if (charge >= 35 && charge < 50)
+            return "battery_3_bar";
+        if (charge >= 50 && charge < 65)
+            return "battery_4_bar";
+        if (charge >= 65 && charge < 80)
+            return "battery_5_bar";
+        if (charge >= 80 && charge < 95)
+            return "battery_6_bar";
+        if (charge >= 95)
+            return "battery_full";
+        return "battery_alert";
     }
 }

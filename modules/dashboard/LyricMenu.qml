@@ -1,54 +1,92 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
+import QtQuick.Layouts
+import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.config
-import QtQuick
-import QtQuick.Layouts
 
 StyledRect {
     id: root
 
     required property real contentHeight
 
-    implicitHeight: contentHeight
-
-    radius: Appearance.rounding.large
-    color: Colours.tPalette.m3surfaceContainer
-
     function searchCandidates(title, artist) {
         LyricsService.currentRequestId++;
         LyricsService.fetchNetEaseCandidates(title, artist, LyricsService.currentRequestId);
     }
 
+    implicitHeight: contentHeight
+
+    radius: Tokens.rounding.large
+    color: Colours.tPalette.m3surfaceContainer
+
     Loader {
+        asynchronous: true
         anchors.fill: parent
         active: root.height > 0
 
         sourceComponent: ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Appearance.padding.large
-            spacing: Appearance.spacing.normal
+            anchors.margins: Tokens.padding.large
+            spacing: Tokens.spacing.normal
 
-            // Header: icon, backend name, refresh, toggle
+            // Header: icon, backend selector, refresh, toggle
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Appearance.padding.small
+                spacing: Tokens.padding.small
 
                 MaterialIcon {
                     text: "lyrics"
                     fill: 1
                     color: Colours.palette.m3primary
-                    font.pointSize: Appearance.spacing.large
+                    font.pointSize: Tokens.spacing.large
                 }
 
-                StyledText {
+                Rectangle {
+                    Layout.preferredHeight: 24
+                    Layout.preferredWidth: 80
+                    radius: Tokens.rounding.small
+                    color: Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.15)
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: LyricsService.preferredBackend
+                        font.pointSize: Tokens.font.size.small
+                        color: Colours.palette.m3primary
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const backends = ["Auto", "Local", "NetEase"];
+                            const currentIndex = backends.indexOf(LyricsService.preferredBackend);
+                            const nextIndex = (currentIndex + 1) % backends.length;
+                            LyricsService.preferredBackend = backends[nextIndex];
+                            LyricsService.loadLyrics();
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 24
+                    Layout.preferredWidth: 60
+                    radius: Tokens.rounding.small
+                    visible: LyricsService.preferredBackend === "Auto"
+                    color: LyricsService.backend === "Local" ? Qt.rgba(Colours.palette.m3tertiary.r, Colours.palette.m3tertiary.g, Colours.palette.m3tertiary.b, 0.15) : Qt.rgba(Colours.palette.m3secondary.r, Colours.palette.m3secondary.g, Colours.palette.m3secondary.b, 0.15)
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: LyricsService.backend
+                        font.pointSize: Tokens.font.size.small
+                        color: LyricsService.backend === "Local" ? Colours.palette.m3tertiary : Colours.palette.m3secondary
+                    }
+                }
+
+                Item {
                     Layout.fillWidth: true
-                    text: LyricsService.backend
-                    font.pointSize: Appearance.font.size.normal
-                    color: Colours.palette.m3secondary
-                    elide: Text.ElideRight
                 }
 
                 IconButton {
@@ -65,127 +103,175 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: "Fetched Candidates:"
+                text: LyricsService.preferredBackend === "Local" ? "Loaded File:" : "Fetched Candidates:"
                 color: Colours.palette.m3outline
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
                 elide: Text.ElideRight
+                visible: LyricsService.preferredBackend === "Local" ? LyricsService.loadedLocalFile.length > 0 : LyricsService.candidatesModel.count > 0
+            }
+
+            // Local file info (shown in Local mode)
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                visible: LyricsService.preferredBackend === "Local" && LyricsService.loadedLocalFile.length > 0
+                radius: Tokens.rounding.small
+                color: Qt.rgba(Colours.palette.m3tertiary.r, Colours.palette.m3tertiary.g, Colours.palette.m3tertiary.b, 0.1)
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.small
+                    spacing: 0
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: {
+                            const path = LyricsService.loadedLocalFile;
+                            const parts = path.split('/');
+                            return parts[parts.length - 1];
+                        }
+                        font.pointSize: Tokens.font.size.small
+                        color: Colours.palette.m3tertiary
+                        elide: Text.ElideMiddle
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: {
+                            const path = LyricsService.loadedLocalFile;
+                            const parts = path.split('/');
+                            if (parts.length > 2) {
+                                return parts.slice(-3, -1).join('/');
+                            }
+                            return "";
+                        }
+                        font.pointSize: Tokens.font.size.small
+                        color: Colours.palette.m3outline
+                        elide: Text.ElideMiddle
+                    }
+                }
             }
 
             // Candidates list
-            ListView {
-                id: candidatesView
-
+            Loader {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                visible: LyricsService.candidatesModel.count > 0
-                model: LyricsService.candidatesModel
-                clip: true
-                spacing: Appearance.spacing.small
+                active: LyricsService.preferredBackend !== "Local"
 
-                opacity: visible ? 1 : 0
-                // Behavior on opacity {
-                //     NumberAnimation { duration: Appearance.anim.durations.normal }
-                // }
+                sourceComponent: ListView {
+                    id: candidatesView
 
-                delegate: Item {
-                    id: delegateRoot
-                    width: ListView.view.width * 0.98
-                    height: 70
-                    anchors.horizontalCenter: parent?.horizontalCenter
+                    model: LyricsService.candidatesModel
+                    clip: true
+                    spacing: Tokens.spacing.small
+                    visible: LyricsService.candidatesModel.count > 0
+                    opacity: visible ? 1 : 0
 
-                    required property real id
-                    required property string title
-                    required property string artist
+                    delegate: Item {
+                        id: delegateRoot
 
-                    property bool hovered: false
-                    property bool pressed: false
+                        required property real id
+                        required property string title
+                        required property string artist
 
-                    scale: hovered ? 1.02 : 1.0
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: Appearance.anim.durations.small
-                            easing.type: Easing.OutCubic
-                        }
-                    }
+                        property bool hovered: false
+                        property bool pressed: false
 
-                    Rectangle {
-                        id: background
-                        anchors.fill: parent
-                        radius: Appearance.rounding.small
+                        width: ListView.view.width * 0.98
+                        height: 70
 
-                        color: delegateRoot.pressed ? Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.25) : delegateRoot.hovered ? Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.06) : Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.03)
+                        anchors.horizontalCenter: parent?.horizontalCenter
+                        scale: hovered ? 1.02 : 1.0
 
-                        border.width: delegateRoot.hovered ? 1 : 0
-                        border.color: Colours.palette.m3primary
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: Appearance.anim.durations.small
-                            }
-                        }
-                        Behavior on border.width {
+                        Behavior on scale {
                             NumberAnimation {
-                                duration: Appearance.anim.durations.small
+                                duration: Tokens.anim.durations.small
+                                easing.type: Easing.OutCubic
                             }
                         }
-                    }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-
-                        onEntered: delegateRoot.hovered = true
-                        onExited: delegateRoot.hovered = false
-                        onPressed: delegateRoot.pressed = true
-                        onReleased: delegateRoot.pressed = false
-                        onClicked: LyricsService.selectCandidate(delegateRoot.id)
-                    }
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: Appearance.padding.normal
-                        spacing: Appearance.spacing.small
-
-                        // Active indicator bar
                         Rectangle {
-                            width: 4
-                            height: parent.height * 0.6
-                            radius: 2
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: LyricsService.currentSongId === delegateRoot.id ? Colours.palette.m3primary : "transparent"
+                            id: background
+
+                            anchors.fill: parent
+                            radius: Tokens.rounding.small
+
+                            color: delegateRoot.pressed ? Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.25) : delegateRoot.hovered ? Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.06) : Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.03)
+
+                            border.width: delegateRoot.hovered ? 1 : 0
+                            border.color: Colours.palette.m3primary
+
                             Behavior on color {
                                 ColorAnimation {
-                                    duration: Appearance.anim.durations.small
+                                    duration: Tokens.anim.durations.small
+                                }
+                            }
+                            Behavior on border.width {
+                                NumberAnimation {
+                                    duration: Tokens.anim.durations.small
                                 }
                             }
                         }
 
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - 30
-                            spacing: 4
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
 
-                            Text {
-                                text: delegateRoot.title
-                                font.pointSize: Appearance.font.size.normal
-                                font.bold: true
-                                color: delegateRoot.hovered ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                                width: parent.width
-                                elide: Text.ElideRight
+                            onEntered: delegateRoot.hovered = true
+                            onExited: delegateRoot.hovered = false
+                            onPressed: delegateRoot.pressed = true
+                            onReleased: delegateRoot.pressed = false
+                            onClicked: LyricsService.selectCandidate(delegateRoot.id)
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.normal
+                            spacing: Tokens.spacing.small
+
+                            // Active indicator bar
+                            Rectangle {
+                                width: 4
+                                height: parent.height * 0.6
+                                radius: 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: LyricsService.currentSongId === delegateRoot.id ? Colours.palette.m3primary : "transparent"
+
                                 Behavior on color {
                                     ColorAnimation {
-                                        duration: Appearance.anim.durations.small
+                                        duration: Tokens.anim.durations.small
                                     }
                                 }
                             }
 
-                            Text {
-                                text: delegateRoot.artist
-                                font.pointSize: Appearance.font.size.small
-                                color: Colours.palette.m3onSurfaceVariant
-                                elide: Text.ElideRight
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 30
+                                spacing: 4
+
+                                Text {
+                                    text: delegateRoot.title
+                                    font.pointSize: Tokens.font.size.normal
+                                    font.bold: true
+                                    color: delegateRoot.hovered ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                    width: parent.width
+                                    elide: Text.ElideRight
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: Tokens.anim.durations.small
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: delegateRoot.artist
+                                    font.pointSize: Tokens.font.size.small
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    elide: Text.ElideRight
+                                }
                             }
                         }
                     }
@@ -194,28 +280,29 @@ StyledRect {
 
             Item {
                 Layout.fillHeight: true
-                visible: LyricsService.candidatesModel.count == 0
+                visible: LyricsService.candidatesModel.count == 0 && LyricsService.preferredBackend !== "Local"
             }
 
             // Manual search
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Appearance.padding.small
+                spacing: Tokens.padding.small
 
                 StyledText {
                     Layout.fillWidth: true
                     text: "Manual Search"
-                    font.pointSize: Appearance.font.size.small
+                    font.pointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                     elide: Text.ElideRight
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Appearance.padding.small
+                    spacing: Tokens.padding.small
 
                     StyledInputField {
                         id: searchTitle
+
                         Layout.fillWidth: true
                         horizontalAlignment: TextInput.AlignLeft
 
@@ -228,6 +315,7 @@ StyledRect {
 
                     StyledInputField {
                         id: searchArtist
+
                         Layout.fillWidth: true
                         horizontalAlignment: TextInput.AlignLeft
 
@@ -248,18 +336,18 @@ StyledRect {
             // Offset controls
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Appearance.padding.small
+                spacing: Tokens.padding.small
 
                 MaterialIcon {
                     text: "contrast_square"
-                    font.pointSize: Appearance.font.size.large
+                    font.pointSize: Tokens.font.size.large
                     color: Colours.palette.m3secondary
                 }
 
                 StyledText {
                     text: "Offset"
                     color: Colours.palette.m3outline
-                    font.pointSize: Appearance.font.size.normal
+                    font.pointSize: Tokens.font.size.normal
                 }
 
                 Item {
@@ -277,26 +365,12 @@ StyledRect {
 
                 TextInput {
                     id: offsetInput
+
                     horizontalAlignment: TextInput.AlignHCenter
                     color: Colours.palette.m3secondary
-                    font.pointSize: Appearance.font.size.normal
+                    font.pointSize: Tokens.font.size.normal
                     selectByMouse: true
                     text: (LyricsService.offset >= 0 ? "+" : "") + LyricsService.offset.toFixed(1) + "s"
-
-                    Binding {
-                        target: offsetInput
-                        property: "text"
-                        value: (LyricsService.offset >= 0 ? "+" : "") + LyricsService.offset.toFixed(1) + "s"
-                        when: !offsetInput.activeFocus
-                    }
-
-                    Connections {
-                        target: LyricsService
-                        function onCurrentRequestIdChanged() {
-                            offsetInput.focus = false;
-                        }
-                    }
-
                     onEditingFinished: {
                         let cleaned = offsetInput.text.replace(/[+s]/g, "").trim();
                         let val = parseFloat(cleaned);
@@ -306,6 +380,21 @@ StyledRect {
                         } else {
                             offsetInput.text = (LyricsService.offset >= 0 ? "+" : "") + LyricsService.offset.toFixed(1) + "s";
                         }
+                    }
+
+                    Binding {
+                        target: offsetInput
+                        property: "text"
+                        value: (LyricsService.offset >= 0 ? "+" : "") + LyricsService.offset.toFixed(1) + "s"
+                        when: !offsetInput.activeFocus
+                    }
+
+                    Connections {
+                        function onCurrentRequestIdChanged() {
+                            offsetInput.focus = false;
+                        }
+
+                        target: LyricsService
                     }
                 }
 

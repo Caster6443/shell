@@ -1,34 +1,33 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Bluetooth
+import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.config
-import qs.modules.controlcenter
-import Quickshell
-import Quickshell.Bluetooth
-import QtQuick
-import QtQuick.Layouts
+import qs.modules.bar.popouts as BarPopouts
 
 StyledRect {
     id: root
 
-    required property var visibilities
-    required property Item popouts
+    required property DrawerVisibilities visibilities
+    required property BarPopouts.Wrapper popouts
 
     readonly property var quickToggles: {
         const seenIds = new Set();
 
         return Config.utilities.quickToggles.filter(item => {
-            if (!item.enabled)
+            if (!(item.enabled ?? true))
                 return false;
-            
+
             if (seenIds.has(item.id)) {
                 return false;
             }
 
             if (item.id === "vpn") {
-                return Config.utilities.vpn.provider.some(p => 
-                    typeof p === "object" ? (p.enabled === true) : false
-                );
+                return GlobalConfig.utilities.vpn.provider.some(p => typeof p === "object" ? (p.enabled === true) : false);
             }
 
             seenIds.add(item.id);
@@ -39,38 +38,38 @@ StyledRect {
     readonly property bool needExtraRow: quickToggles.length > 6
 
     Layout.fillWidth: true
-    implicitHeight: layout.implicitHeight + Appearance.padding.large * 2
+    implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
 
-    radius: Appearance.rounding.normal
+    radius: Tokens.rounding.normal
     color: Colours.tPalette.m3surfaceContainer
 
     ColumnLayout {
         id: layout
 
         anchors.fill: parent
-        anchors.margins: Appearance.padding.large
-        spacing: Appearance.spacing.normal
+        anchors.margins: Tokens.padding.large
+        spacing: Tokens.spacing.normal
 
         StyledText {
             text: qsTr("Quick Toggles")
-            font.pointSize: Appearance.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
 
-        ToggleRow {
+        QuickToggleRow {
             rowModel: root.needExtraRow ? root.quickToggles.slice(0, root.splitIndex) : root.quickToggles
         }
 
-        ToggleRow {
+        QuickToggleRow {
             visible: root.needExtraRow
             rowModel: root.needExtraRow ? root.quickToggles.slice(root.splitIndex) : []
         }
     }
 
-    component ToggleRow: RowLayout {
+    component QuickToggleRow: RowLayout {
         property var rowModel: []
 
         Layout.fillWidth: true
-        spacing: Appearance.spacing.small
+        spacing: Tokens.spacing.small
 
         Repeater {
             model: parent.rowModel
@@ -90,9 +89,9 @@ StyledRect {
                     roleValue: "bluetooth"
                     delegate: Toggle {
                         icon: "bluetooth"
-                        checked: Bluetooth.defaultAdapter?.enabled ?? false
+                        checked: Bluetooth.defaultAdapter?.enabled ?? false // qmllint disable unresolved-type
                         onClicked: {
-                            const adapter = Bluetooth.defaultAdapter;
+                            const adapter = Bluetooth.defaultAdapter; // qmllint disable unresolved-type
                             if (adapter)
                                 adapter.enabled = !adapter.enabled;
                         }
@@ -142,8 +141,10 @@ StyledRect {
                     roleValue: "vpn"
                     delegate: Toggle {
                         icon: "vpn_key"
-                        checked: VPN.connected
+                        checked: VPN.connected && VPN.status.state !== "needs-auth" && VPN.status.state !== "error"
                         enabled: !VPN.connecting
+                        toggle: VPN.status.state !== "needs-auth" && VPN.status.state !== "error"
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
                         onClicked: VPN.toggle()
                     }
                 }
@@ -153,17 +154,16 @@ StyledRect {
 
     component Toggle: IconButton {
         Layout.fillWidth: true
-        Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Appearance.padding.large : internalChecked ? Appearance.padding.smaller : 0)
-        radius: stateLayer.pressed ? Appearance.rounding.small / 2 : internalChecked ? Appearance.rounding.small : Appearance.rounding.normal
+        Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Tokens.padding.large : internalChecked ? Tokens.padding.smaller : 0)
+        radius: stateLayer.pressed ? Tokens.rounding.small / 2 : internalChecked ? Tokens.rounding.small : Tokens.rounding.normal
         inactiveColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
         toggle: true
-        radiusAnim.duration: Appearance.anim.durations.expressiveFastSpatial
-        radiusAnim.easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+        radiusAnim.duration: Tokens.anim.durations.expressiveFastSpatial
+        radiusAnim.easing: Tokens.anim.expressiveFastSpatial
 
         Behavior on Layout.preferredWidth {
             Anim {
-                duration: Appearance.anim.durations.expressiveFastSpatial
-                easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                type: Anim.FastSpatial
             }
         }
     }

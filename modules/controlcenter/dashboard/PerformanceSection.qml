@@ -3,9 +3,9 @@ import "../components"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.UPower
+import Caelestia.Config
 import qs.components
 import qs.components.controls
-import qs.config
 import qs.services
 
 SectionContainer {
@@ -22,7 +22,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Performance Resources")
-        font.pointSize: Appearance.font.size.normal
+        font.pointSize: Tokens.font.size.normal
     }
 
     ConnectedButtonGroup {

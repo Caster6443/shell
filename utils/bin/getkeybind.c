@@ -91,6 +91,12 @@ int main(int argc, char *argv[]) {
     char *marker_ptr = strstr(line, "#@");
     if (marker_ptr == NULL)
       continue;
+
+    char *temp_check = strstr(line, "bind");
+    temp_check--;
+    if (*temp_check == '#')
+      continue;
+
     int idx = -1;
 
     if (strncmp(marker_ptr, "#@app", 5) == 0)
@@ -113,6 +119,7 @@ int main(int argc, char *argv[]) {
     *key_ptr = '\0';
     key_ptr = strstr(line, "=");
     key_ptr++;
+
     get_key(target->list, key_ptr, target->count);
     target->count++;
 

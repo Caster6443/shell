@@ -1,10 +1,10 @@
 pragma Singleton
 
-import qs.config
-import qs.utils
-import Caelestia
-import Quickshell
 import QtQuick
+import Quickshell
+import Caelestia
+import Caelestia.Config
+import qs.utils
 
 Singleton {
     id: root
@@ -17,17 +17,17 @@ Singleton {
 
     readonly property string icon: cc ? Icons.getWeatherIcon(cc.weatherCode) : "cloud_alert"
     readonly property string description: cc?.weatherDesc ?? qsTr("No weather")
-    readonly property string temp: Config.services.useFahrenheit ? `${cc?.tempF ?? 0}°F` : `${cc?.tempC ?? 0}°C`
-    readonly property string feelsLike: Config.services.useFahrenheit ? `${cc?.feelsLikeF ?? 0}°F` : `${cc?.feelsLikeC ?? 0}°C`
+    readonly property string temp: GlobalConfig.services.useFahrenheit ? `${cc?.tempF ?? 0}°F` : `${cc?.tempC ?? 0}°C`
+    readonly property string feelsLike: GlobalConfig.services.useFahrenheit ? `${cc?.feelsLikeF ?? 0}°F` : `${cc?.feelsLikeC ?? 0}°C`
     readonly property int humidity: cc?.humidity ?? 0
     readonly property real windSpeed: cc?.windSpeed ?? 0
-    readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), Config.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
-    readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), Config.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
 
     readonly property var cachedCities: new Map()
 
     function reload(): void {
-        const configLocation = Config.services.weatherLocation;
+        const configLocation = GlobalConfig.services.weatherLocation;
 
         if (configLocation) {
             if (configLocation.indexOf(",") !== -1 && !isNaN(parseFloat(configLocation.split(",")[0]))) {
@@ -121,14 +121,14 @@ Singleton {
                 humidity: json.current.relative_humidity_2m,
                 windSpeed: json.current.wind_speed_10m,
                 isDay: json.current.is_day,
-                sunrise: json.daily.sunrise[0],
-                sunset: json.daily.sunset[0]
+                sunrise: json.daily.sunrise[0].replace("T", " "),
+                sunset: json.daily.sunset[0].replace("T", " ")
             };
 
             const forecastList = [];
             for (let i = 0; i < json.daily.time.length; i++)
                 forecastList.push({
-                    date: json.daily.time[i],
+                    date: json.daily.time[i].replace(/-/g, "/"),
                     maxTempC: Math.round(json.daily.temperature_2m_max[i]),
                     maxTempF: Math.round(toFahrenheit(json.daily.temperature_2m_max[i])),
                     minTempC: Math.round(json.daily.temperature_2m_min[i]),
@@ -141,7 +141,8 @@ Singleton {
             const hourlyList = [];
             const now = new Date();
             for (let i = 0; i < json.hourly.time.length; i++) {
-                const time = new Date(json.hourly.time[i]);
+                const time = new Date(json.hourly.time[i].replace("T", " "));
+
                 if (time < now)
                     continue;
 
@@ -210,13 +211,13 @@ Singleton {
     onLocChanged: fetchWeatherData()
 
     Connections {
-        target: Config.services
         function onWeatherLocationChanged(): void {
             root.reload();
         }
+
+        target: GlobalConfig.services
     }
 
-    // Refresh current location hourly
     Timer {
         interval: 3600000 // 1 hour
         running: true

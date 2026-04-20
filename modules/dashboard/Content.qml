@@ -1,17 +1,17 @@
 pragma ComponentBehavior: Bound
 
-import qs.components
-import qs.components.filedialog
-import qs.config
-import Quickshell
-import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Widgets
+import Caelestia.Config
+import qs.components
+import qs.components.filedialog
 
 Item {
     id: root
 
-    required property PersistentProperties visibilities
+    required property DrawerVisibilities visibilities
     readonly property bool needsKeyboard: {
         const count = repeater.count;
         for (let i = 0; i < count; i++) {
@@ -21,7 +21,7 @@ Item {
         }
         return false;
     }
-    required property PersistentProperties state
+    required property DashboardState dashState
     required property FileDialog facePicker
 
     readonly property var dashboardTabs: {
@@ -66,11 +66,11 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: Appearance.padding.normal
-        anchors.margins: Appearance.padding.large
+        anchors.topMargin: Tokens.padding.normal
+        anchors.margins: Tokens.padding.large
 
         nonAnimWidth: root.nonAnimWidth - anchors.margins * 2
-        state: root.state
+        dashState: root.dashState
         tabs: root.dashboardTabs
     }
 
@@ -81,15 +81,15 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: Appearance.padding.large
+        anchors.margins: Tokens.padding.large
 
-        radius: Appearance.rounding.normal
+        radius: Tokens.rounding.normal
         color: "transparent"
 
         Flickable {
             id: view
 
-            readonly property int currentIndex: root.state.currentTab
+            readonly property int currentIndex: root.dashState.currentTab
             readonly property Item currentItem: {
                 repeater.count; // Trigger update on count change
                 return repeater.itemAt(currentIndex);
@@ -112,9 +112,9 @@ Item {
 
                 const x = contentX - currentItem.x;
                 if (x > currentItem.implicitWidth / 2)
-                    root.state.currentTab = Math.min(root.state.currentTab + 1, tabs.count - 1);
+                    root.dashState.currentTab = Math.min(root.dashState.currentTab + 1, tabs.count - 1);
                 else if (x < -currentItem.implicitWidth / 2)
-                    root.state.currentTab = Math.max(root.state.currentTab - 1, 0);
+                    root.dashState.currentTab = Math.max(root.dashState.currentTab - 1, 0);
             }
 
             onDragEnded: {
@@ -123,9 +123,9 @@ Item {
 
                 const x = contentX - currentItem.x;
                 if (x > currentItem.implicitWidth / 10)
-                    root.state.currentTab = Math.min(root.state.currentTab + 1, tabs.count - 1);
+                    root.dashState.currentTab = Math.min(root.dashState.currentTab + 1, tabs.count - 1);
                 else if (x < -currentItem.implicitWidth / 10)
-                    root.state.currentTab = Math.max(root.state.currentTab - 1, 0);
+                    root.dashState.currentTab = Math.max(root.dashState.currentTab - 1, 0);
                 else
                     contentX = Qt.binding(() => currentItem?.x ?? 0);
             }
@@ -163,15 +163,17 @@ Item {
 
             Component {
                 id: dashComponent
+
                 Dash {
                     visibilities: root.visibilities
-                    state: root.state
+                    dashState: root.dashState
                     facePicker: root.facePicker
                 }
             }
 
             Component {
                 id: mediaComponent
+
                 MediaWrapper {
                     visibilities: root.visibilities
                 }
@@ -179,12 +181,14 @@ Item {
 
             Component {
                 id: performanceComponent
+
                 Performance {}
             }
 
             Component {
                 id: weatherComponent
-                Weather {}
+
+                WeatherTab {}
             }
 
             Behavior on contentX {
@@ -195,15 +199,13 @@ Item {
 
     Behavior on implicitWidth {
         Anim {
-            duration: Appearance.anim.durations.large
-            easing.bezierCurve: Appearance.anim.curves.emphasized
+            type: Anim.EmphasizedLarge
         }
     }
 
     Behavior on implicitHeight {
         Anim {
-            duration: Appearance.anim.durations.large
-            easing.bezierCurve: Appearance.anim.curves.emphasized
+            type: Anim.EmphasizedLarge
         }
     }
 }

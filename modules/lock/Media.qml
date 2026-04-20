@@ -1,11 +1,11 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
+import QtQuick.Layouts
+import Caelestia.Config
 import qs.components
 import qs.components.effects
 import qs.services
-import qs.config
-import QtQuick
-import QtQuick.Layouts
 
 Item {
     id: root
@@ -18,7 +18,7 @@ Item {
 
     Image {
         anchors.fill: parent
-        source: Players.active?.trackArtUrl ?? ""
+        source: Players.getArtUrl(Players.active)
 
         asynchronous: true
         fillMode: Image.PreserveAspectCrop
@@ -34,7 +34,7 @@ Item {
 
         Behavior on opacity {
             Anim {
-                duration: Appearance.anim.durations.extraLarge
+                type: Anim.StandardExtraLarge
             }
         }
     }
@@ -69,14 +69,14 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Appearance.padding.large
+        anchors.margins: Tokens.padding.large
 
         StyledText {
-            Layout.topMargin: Appearance.padding.large
-            Layout.bottomMargin: Appearance.spacing.larger
+            Layout.topMargin: Tokens.padding.large
+            Layout.bottomMargin: Tokens.spacing.larger
             text: qsTr("Now playing")
             color: Colours.palette.m3onSurfaceVariant
-            font.family: Appearance.font.family.mono
+            font.family: Tokens.font.family.mono
             font.weight: 500
         }
 
@@ -86,8 +86,8 @@ Item {
             text: Players.active?.trackArtist ?? qsTr("No media")
             color: Colours.palette.m3primary
             horizontalAlignment: Text.AlignHCenter
-            font.pointSize: Appearance.font.size.large
-            font.family: Appearance.font.family.mono
+            font.pointSize: Tokens.font.size.large
+            font.family: Tokens.font.family.mono
             font.weight: 600
             elide: Text.ElideRight
         }
@@ -97,22 +97,21 @@ Item {
             animate: true
             text: Players.active?.trackTitle ?? qsTr("No media")
             horizontalAlignment: Text.AlignHCenter
-            font.pointSize: Appearance.font.size.larger
-            font.family: Appearance.font.family.mono
+            font.pointSize: Tokens.font.size.larger
+            font.family: Tokens.font.family.mono
             elide: Text.ElideRight
         }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Appearance.spacing.large * 1.2
-            Layout.bottomMargin: Appearance.padding.large
+            Layout.topMargin: Tokens.spacing.large * 1.2
+            Layout.bottomMargin: Tokens.padding.large
 
-            spacing: Appearance.spacing.large
+            spacing: Tokens.spacing.large
 
             PlayerControl {
                 icon: "skip_previous"
-
-                function onClicked(): void {
+                onClicked: {
                     if (Players.active?.canGoPrevious)
                         Players.active.previous();
                 }
@@ -124,8 +123,7 @@ Item {
                 colour: "Primary"
                 level: active ? 2 : 1
                 active: Players.active?.isPlaying ?? false
-
-                function onClicked(): void {
+                onClicked: {
                     if (Players.active?.canTogglePlaying)
                         Players.active.togglePlaying();
                 }
@@ -133,8 +131,7 @@ Item {
 
             PlayerControl {
                 icon: "skip_next"
-
-                function onClicked(): void {
+                onClicked: {
                     if (Players.active?.canGoNext)
                         Players.active.next();
                 }
@@ -151,15 +148,14 @@ Item {
         property string colour: "Secondary"
         property int level: 1
 
-        function onClicked(): void {
-        }
+        signal clicked
 
-        Layout.preferredWidth: implicitWidth + (controlState.pressed ? Appearance.padding.normal * 2 : active ? Appearance.padding.small * 2 : 0)
-        implicitWidth: controlIcon.implicitWidth + Appearance.padding.large * 2
-        implicitHeight: controlIcon.implicitHeight + Appearance.padding.normal * 2
+        Layout.preferredWidth: implicitWidth + (controlState.pressed ? Tokens.padding.normal * 2 : active ? Tokens.padding.small * 2 : 0)
+        implicitWidth: controlIcon.implicitWidth + Tokens.padding.large * 2
+        implicitHeight: controlIcon.implicitHeight + Tokens.padding.normal * 2
 
         color: active ? Colours.palette[`m3${colour.toLowerCase()}`] : Colours.palette[`m3${colour.toLowerCase()}Container`]
-        radius: active || controlState.pressed ? Appearance.rounding.normal : Math.min(implicitWidth, implicitHeight) / 2 * Math.min(1, Appearance.rounding.scale)
+        radius: active || controlState.pressed ? Tokens.rounding.normal : Math.min(implicitWidth, implicitHeight) / 2 * Math.min(1, Tokens.rounding.scale)
 
         Elevation {
             anchors.fill: parent
@@ -172,10 +168,7 @@ Item {
             id: controlState
 
             color: control.active ? Colours.palette[`m3on${control.colour}`] : Colours.palette[`m3on${control.colour}Container`]
-
-            function onClicked(): void {
-                control.onClicked();
-            }
+            onClicked: control.clicked()
         }
 
         MaterialIcon {
@@ -183,7 +176,7 @@ Item {
 
             anchors.centerIn: parent
             color: control.active ? Colours.palette[`m3on${control.colour}`] : Colours.palette[`m3on${control.colour}Container`]
-            font.pointSize: Appearance.font.size.large
+            font.pointSize: Tokens.font.size.large
             fill: control.active ? 1 : 0
 
             Behavior on fill {
@@ -193,15 +186,13 @@ Item {
 
         Behavior on Layout.preferredWidth {
             Anim {
-                duration: Appearance.anim.durations.expressiveFastSpatial
-                easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                type: Anim.FastSpatial
             }
         }
 
         Behavior on radius {
             Anim {
-                duration: Appearance.anim.durations.expressiveFastSpatial
-                easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                type: Anim.FastSpatial
             }
         }
     }

@@ -25,6 +25,22 @@ FloatingWindow {
         onActivated: root.visible = false
     }
 
+    Item {
+        focus: true
+
+        onActiveFocusChanged: {
+            if (!activeFocus) {
+                root.visible = false;
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        root.visible = true;
+
+        //root.requestActivate();
+    }
+
     Process {
         id: toggleWatcher
         command: ["bash", "-c", "touch /tmp/cheatsheet_toggle && inotifywait -e close_write /tmp/cheatsheet_toggle"]
@@ -77,8 +93,8 @@ FloatingWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: root.themeColours.surface ? ("#" + root.themeColours.surface) : '#1e1e2e'
-        opacity: 0.5
+        color: root.themeColours.crust ? ("#" + root.themeColours.crust) : '#0b0d11'
+        opacity: 0.75
         radius: 18
 
         Column {
@@ -134,7 +150,10 @@ FloatingWindow {
                                         width: 220
 
                                         Repeater {
-                                            model: kb.key ? kb.key.split(" ") : []
+                                            id: keyRepeater
+
+                                            model: kb.key ? kb.key.split(" ").filter(k => k.trim() !== "") : []
+
                                             delegate: Row {
                                                 required property string modelData
                                                 required property int index
@@ -144,18 +163,22 @@ FloatingWindow {
                                                 Rectangle {
                                                     color: root.themeColours.primary ? ("#" + root.themeColours.primary) : "#cdd6f4"
                                                     radius: 5
-                                                    width: innerBg.width + 4
-                                                    height: innerBg.height + 6
+                                                    implicitWidth: keyFace.implicitWidth + 2
+                                                    implicitHeight: keyFace.implicitHeight + 4
 
                                                     Rectangle {
-                                                        id: innerBg
-                                                        color: root.themeColours.surface ? ("#" + root.themeColours.surface) : "#1e1e2e"
-                                                        radius: 4
-                                                        width: keyText.implicitWidth + 14
-                                                        height: keyText.implicitHeight + 8
-                                                        anchors.horizontalCenter: parent.horizontalCenter
-                                                        anchors.top: parent.top
+                                                        id: keyFace
+                                                        anchors.fill: parent
                                                         anchors.topMargin: 1
+                                                        anchors.leftMargin: 2
+                                                        anchors.rightMargin: 1
+                                                        anchors.bottomMargin: 4
+
+                                                        implicitWidth: keyText.implicitWidth + 14
+                                                        implicitHeight: keyText.implicitHeight + 8
+
+                                                        color: root.themeColours.surfaceContainerLow ? ("#" + root.themeColours.surfaceContainerLow) : "#1e1e2e"
+                                                        radius: 4
 
                                                         Text {
                                                             id: keyText
@@ -170,7 +193,7 @@ FloatingWindow {
                                                 }
                                                 Text {
                                                     text: "+"
-                                                    visible: index < (kb.key.split(" ").length - 1)
+                                                    visible: index < (keyRepeater.count - 1)
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     font.pixelSize: 14
                                                     color: root.themeColours.primary ? ("#" + root.themeColours.primary) : "#cdd6f4"

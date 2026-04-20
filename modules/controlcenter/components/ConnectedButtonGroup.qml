@@ -1,11 +1,11 @@
 import ".."
+import QtQuick
+import QtQuick.Layouts
+import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.components.effects
 import qs.services
-import qs.config
-import QtQuick
-import QtQuick.Layouts
 
 StyledRect {
     id: root
@@ -16,8 +16,8 @@ StyledRect {
     property int rows: 1 // Number of rows
 
     Layout.fillWidth: true
-    implicitHeight: layout.implicitHeight + Appearance.padding.large * 2
-    radius: Appearance.rounding.normal
+    implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+    radius: Tokens.rounding.normal
     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
     clip: true
 
@@ -29,37 +29,39 @@ StyledRect {
         id: layout
 
         anchors.fill: parent
-        anchors.margins: Appearance.padding.large
-        spacing: Appearance.spacing.normal
+        anchors.margins: Tokens.padding.large
+        spacing: Tokens.spacing.normal
 
         StyledText {
             visible: root.title !== ""
             text: root.title
-            font.pointSize: Appearance.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
 
         GridLayout {
             id: buttonGrid
+
             Layout.alignment: Qt.AlignHCenter
-            rowSpacing: Appearance.spacing.small
-            columnSpacing: Appearance.spacing.small
+            rowSpacing: Tokens.spacing.small
+            columnSpacing: Tokens.spacing.small
             rows: root.rows
             columns: Math.ceil(root.options.length / root.rows)
 
             Repeater {
                 id: repeater
+
                 model: root.options
 
                 delegate: TextButton {
                     id: button
+
                     required property int index
                     required property var modelData
 
-                    Layout.fillWidth: true
-                    text: modelData.label
-
                     property bool _checked: false
 
+                    Layout.fillWidth: true
+                    text: modelData.label
                     checked: _checked
                     toggle: false
                     type: TextButton.Tonal
@@ -68,8 +70,7 @@ StyledRect {
                     Component.onCompleted: {
                         if (modelData.state !== undefined && modelData.state) {
                             _checked = modelData.state;
-                        }
-                        else if (root.rootItem && modelData.propertyName) {
+                        } else if (root.rootItem && modelData.propertyName) {
                             const propName = modelData.propertyName;
                             const rootItem = root.rootItem;
                             _checked = Qt.binding(function () {
@@ -80,13 +81,13 @@ StyledRect {
 
                     // Match utilities Toggles radius styling
                     // Each button has full rounding (not connected) since they have spacing
-                    radius: stateLayer.pressed ? Appearance.rounding.small / 2 : internalChecked ? Appearance.rounding.small : Appearance.rounding.normal
+                    radius: stateLayer.pressed ? Tokens.rounding.small / 2 : internalChecked ? Tokens.rounding.small : Tokens.rounding.normal
 
                     // Match utilities Toggles inactive color
                     inactiveColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
 
                     // Adjust width similar to utilities toggles
-                    Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Appearance.padding.large : internalChecked ? Appearance.padding.smaller : 0)
+                    Layout.preferredWidth: implicitWidth + (stateLayer.pressed ? Tokens.padding.large : internalChecked ? Tokens.padding.smaller : 0)
 
                     onClicked: {
                         if (modelData.onToggled && root.rootItem && modelData.propertyName) {
@@ -97,15 +98,13 @@ StyledRect {
 
                     Behavior on Layout.preferredWidth {
                         Anim {
-                            duration: Appearance.anim.durations.expressiveFastSpatial
-                            easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                            type: Anim.FastSpatial
                         }
                     }
 
                     Behavior on radius {
                         Anim {
-                            duration: Appearance.anim.durations.expressiveFastSpatial
-                            easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
+                            type: Anim.FastSpatial
                         }
                     }
                 }

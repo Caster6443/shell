@@ -1,0 +1,8 @@
+# 忽略所有隐藏文件（但排除 .gitignore 自己）
+.*
+!.gitignore
+
+# 忽略临时文件和日志
+*.log
+*.qslog
+.DS_Store

@@ -96,8 +96,8 @@ FloatingWindow {
 
 				width: scroll.width
 				columns: Math.max(1, Math.floor(scroll.width / 480))
-				columnSpacing: 60
-				rowSpacing: 50
+				columnSpacing: 66
+				rowSpacing: 56
 
 				Repeater {
 					model: KeybindsData.data
@@ -106,7 +106,7 @@ FloatingWindow {
 						required property var modelData
 
 						width: 460
-						spacing: 20
+						spacing: 22
 						visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
 
 						Text {
@@ -118,7 +118,7 @@ FloatingWindow {
 						}
 
 						Column {
-							spacing: 14
+							spacing: 16
 
 							Repeater {
 								model: modelData && modelData.keybinds ? modelData.keybinds : []
@@ -127,7 +127,7 @@ FloatingWindow {
 									required property var modelData
 
 									width: 460
-									height: Math.max(34, descText.implicitHeight)
+									height: Math.max(36, descText.implicitHeight)
 
 									// 键帽区：固定 260px，裁剪溢出，防止长组合键挤进描述区
 									Item {
@@ -144,12 +144,13 @@ FloatingWindow {
 
 											anchors.left: parent.left
 											anchors.verticalCenter: parent.verticalCenter
-											spacing: 4
+											spacing: 5
 
 											Repeater {
 												id: keyRepeater
 
-												model: modelData.key ? modelData.key.split(" ").filter(k => k.trim() !== "") : []
+												// 只把真正的键名画成键帽；"+" 分隔符是纯字符，不进模型
+												model: modelData.key ? modelData.key.split(" ").filter(k => k.trim() !== "" && k !== "+") : []
 
 												delegate: Row {
 													required property string modelData

@@ -73,6 +73,7 @@ FloatingWindow {
 				horizontalAlignment: Text.AlignHCenter
 				font.pixelSize: 32
 				font.bold: true
+				font.family: "PingFang SC"
 				color: CheatsheetTheme.primary
 			}
 
@@ -98,6 +99,7 @@ FloatingWindow {
 							text: (modelData ? modelData.category : "").charAt(0).toUpperCase() + (modelData ? modelData.category : "").slice(1)
 							font.pixelSize: 22
 							font.bold: true
+							font.family: "PingFang SC"
 							color: CheatsheetTheme.primary
 						}
 
@@ -107,80 +109,96 @@ FloatingWindow {
 							Repeater {
 								model: modelData && modelData.keybinds ? modelData.keybinds : []
 
-								delegate: Row {
+								delegate: Item {
 									required property var modelData
 
-									property var kb: modelData
 									width: 400
-									spacing: 15
+									height: Math.max(28, descText.implicitHeight)
 
-									Row {
-										spacing: 6
+									// 键帽区：固定 220px，裁剪溢出，防止长组合键挤进描述区
+									Item {
+										id: keysClip
+
+										anchors.left: parent.left
 										anchors.verticalCenter: parent.verticalCenter
 										width: 220
+										height: keysRow.implicitHeight
+										clip: true
 
-										Repeater {
-											id: keyRepeater
+										Row {
+											id: keysRow
 
-											model: kb.key ? kb.key.split(" ").filter(k => k.trim() !== "") : []
+											anchors.left: parent.left
+											anchors.verticalCenter: parent.verticalCenter
+											spacing: 4
 
-											delegate: Row {
-												required property string modelData
-												required property int index
+											Repeater {
+												id: keyRepeater
 
-												spacing: 6
-												anchors.verticalCenter: parent.verticalCenter
+												model: modelData.key ? modelData.key.split(" ").filter(k => k.trim() !== "") : []
 
-												Rectangle {
-													color: CheatsheetTheme.primary
-													radius: 5
-													implicitWidth: keyFace.implicitWidth + 2
-													implicitHeight: keyFace.implicitHeight + 4
+												delegate: Row {
+													required property string modelData
+													required property int index
+
+													spacing: 4
+													anchors.verticalCenter: parent.verticalCenter
 
 													Rectangle {
-														id: keyFace
+														color: CheatsheetTheme.primary
+														radius: 5
+														implicitWidth: keyFace.implicitWidth + 2
+														implicitHeight: keyFace.implicitHeight + 4
 
-														anchors.fill: parent
-														anchors.topMargin: 1
-														anchors.leftMargin: 2
-														anchors.rightMargin: 1
-														anchors.bottomMargin: 4
+														Rectangle {
+															id: keyFace
 
-														implicitWidth: keyText.implicitWidth + 14
-														implicitHeight: keyText.implicitHeight + 8
-														color: CheatsheetTheme.surface
-														radius: 4
+															anchors.fill: parent
+															anchors.topMargin: 1
+															anchors.leftMargin: 2
+															anchors.rightMargin: 1
+															anchors.bottomMargin: 4
 
-														Text {
-															id: keyText
+															implicitWidth: keyText.implicitWidth + 14
+															implicitHeight: keyText.implicitHeight + 8
+															color: CheatsheetTheme.surface
+															radius: 4
 
-															text: modelData
-															anchors.centerIn: parent
-															font.pixelSize: 12
-															font.bold: true
-															color: CheatsheetTheme.primary
+															Text {
+																id: keyText
+
+																text: modelData
+																anchors.centerIn: parent
+																font.pixelSize: 12
+																font.bold: true
+																color: CheatsheetTheme.primary
+															}
 														}
 													}
-												}
 
-												Text {
-													text: "+"
-													visible: index < (keyRepeater.count - 1)
-													anchors.verticalCenter: parent.verticalCenter
-													font.pixelSize: 14
-													color: CheatsheetTheme.primary
-													opacity: 0.7
+													Text {
+														text: "+"
+														visible: index < (keyRepeater.count - 1)
+														anchors.verticalCenter: parent.verticalCenter
+														font.pixelSize: 11
+														color: CheatsheetTheme.textColor
+														opacity: 0.55
+													}
 												}
 											}
 										}
 									}
 
 									Text {
-										text: kb.desc
+										id: descText
+
+										x: 240
+										width: 160
 										anchors.verticalCenter: parent.verticalCenter
+										text: modelData.desc
 										font.pixelSize: 13
-										color: CheatsheetTheme.onSurface
-										width: parent.width - 220 - parent.spacing
+										font.family: "PingFang SC"
+										color: CheatsheetTheme.textColor
 										wrapMode: Text.WordWrap
 									}
 								}

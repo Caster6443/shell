@@ -17,8 +17,7 @@ Singleton {
 
 	readonly property color background: colour("surfaceContainerLow", "#1e1e2e")
 	readonly property color surface: colour("surface", "#11111b")
-	readonly property color onSurface: colour("onSurface", "#cdd6f4")
-	readonly property color onSurfaceVariant: colour("onSurfaceVariant", "#a6adc8")
+	readonly property color textColor: colour("onSurface", "#cdd6f4")
 	readonly property color primary: colour("primary", "#89b4fa")
 	readonly property color outline: colour("outline", "#6c7086")
 

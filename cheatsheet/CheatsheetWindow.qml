@@ -5,8 +5,8 @@ import QtQuick.Window
 import Quickshell
 import qs.cheatsheet
 
-// 居中的快捷键速查弹窗。普通窗口（非 layer shell），只在显示时参与输入；
-// Escape / q / 点击外部失焦都会关闭，不会卡住任何输入。
+// 快捷键速查弹窗。渲染结构照搬旧版 cheatsheet：分类区块（标题在上）+ 每行"键帽 | 描述"。
+// 普通窗口（非 layer shell），Escape / q / 失焦关闭。
 FloatingWindow {
 	id: root
 
@@ -32,7 +32,6 @@ FloatingWindow {
 			focusCatcher.forceActiveFocus();
 	}
 
-	// 失焦自动关闭（点击窗口外部即收起）
 	Item {
 		id: focusCatcher
 
@@ -61,41 +60,27 @@ FloatingWindow {
 		border.width: 1
 		clip: true
 
-		Text {
-			id: title
+		Column {
+			anchors.fill: parent
+			anchors.margins: 40
+			spacing: 30
 
-			text: "Caelestia Cheatsheet"
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.topMargin: 36
-			anchors.leftMargin: 36
-			anchors.rightMargin: 36
-			horizontalAlignment: Text.AlignHCenter
-			font.pixelSize: 30
-			font.bold: true
-			color: CheatsheetTheme.primary
-		}
+			Text {
+				id: title
 
-		Flickable {
-			id: scroll
-
-			anchors.top: title.bottom
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: parent.bottom
-			anchors.topMargin: 20
-			anchors.leftMargin: 36
-			anchors.rightMargin: 36
-			anchors.bottomMargin: 36
-			clip: true
-			contentHeight: grid.implicitHeight
+				text: "Caelestia Cheatsheet"
+				width: parent.width
+				horizontalAlignment: Text.AlignHCenter
+				font.pixelSize: 32
+				font.bold: true
+				color: CheatsheetTheme.primary
+			}
 
 			Grid {
 				id: grid
 
-				width: scroll.width
-				columns: Math.max(1, Math.floor(scroll.width / 420))
+				width: parent.width
+				columns: Math.max(1, Math.floor(parent.width / 420))
 				columnSpacing: 40
 				rowSpacing: 35
 
@@ -110,10 +95,7 @@ FloatingWindow {
 						visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
 
 						Text {
-							text: {
-								const c = (modelData?.category ?? "");
-								return c ? c.charAt(0).toUpperCase() + c.slice(1) : "";
-							}
+							text: (modelData ? modelData.category : "").charAt(0).toUpperCase() + (modelData ? modelData.category : "").slice(1)
 							font.pixelSize: 22
 							font.bold: true
 							color: CheatsheetTheme.primary
@@ -125,38 +107,31 @@ FloatingWindow {
 							Repeater {
 								model: modelData && modelData.keybinds ? modelData.keybinds : []
 
-								// 每行：左侧 220px 键帽区 + 右侧说明（对齐旧版 cheatsheet 排版）
-								delegate: Item {
+								delegate: Row {
 									required property var modelData
 
+									property var kb: modelData
 									width: 400
-									height: Math.max(28, descText.implicitHeight)
+									spacing: 15
 
 									Row {
-										id: keysRow
-
-										anchors.left: parent.left
+										spacing: 6
 										anchors.verticalCenter: parent.verticalCenter
 										width: 220
-										spacing: 6
 
 										Repeater {
 											id: keyRepeater
 
-											model: (modelData?.key ?? "").split(" ").filter(k => k.trim() !== "")
+											model: kb.key ? kb.key.split(" ").filter(k => k.trim() !== "") : []
 
-											delegate: Item {
+											delegate: Row {
 												required property string modelData
 												required property int index
 
-												width: chipFace.implicitWidth + (index < keyRepeater.count - 1 ? plusText.implicitWidth + 6 : 0)
-												height: chipFace.implicitHeight
+												spacing: 6
+												anchors.verticalCenter: parent.verticalCenter
 
 												Rectangle {
-													id: chipFace
-
-													anchors.left: parent.left
-													anchors.verticalCenter: parent.verticalCenter
 													color: CheatsheetTheme.primary
 													radius: 5
 													implicitWidth: keyFace.implicitWidth + 2
@@ -189,12 +164,8 @@ FloatingWindow {
 												}
 
 												Text {
-													id: plusText
-
 													text: "+"
-													visible: index < keyRepeater.count - 1
-													anchors.left: chipFace.right
-													anchors.leftMargin: 6
+													visible: index < (keyRepeater.count - 1)
 													anchors.verticalCenter: parent.verticalCenter
 													font.pixelSize: 14
 													color: CheatsheetTheme.primary
@@ -205,15 +176,11 @@ FloatingWindow {
 									}
 
 									Text {
-										id: descText
-
-										anchors.left: parent.left
-										anchors.leftMargin: 235
-										anchors.right: parent.right
+										text: kb.desc
 										anchors.verticalCenter: parent.verticalCenter
-										text: modelData?.desc ?? ""
 										font.pixelSize: 13
 										color: CheatsheetTheme.onSurface
+										width: parent.width - 220 - parent.spacing
 										wrapMode: Text.WordWrap
 									}
 								}

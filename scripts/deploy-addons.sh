@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 部署 overview 外挂到用户级 caelestia 配置。
-# 用法: bash scripts/deploy-overview.sh [-r]
+# 部署外挂模块（overview / cheatsheet）到用户级 caelestia 配置。
+# 用法: bash scripts/deploy-addons.sh [-r]
 #   -r  部署完成后重启 caelestia
 set -euo pipefail
 
@@ -10,23 +10,30 @@ SYSTEM_CONFIG="/etc/xdg/quickshell/caelestia"
 RESTART=0
 [[ "${1:-}" == "-r" ]] && RESTART=1
 
+MODULES=("overview" "cheatsheet")
+
 # 1. 用户配置缺失时，从系统包整体复制（用户目录遮蔽 /etc/xdg）
 if [[ ! -f "$TARGET/shell.qml" ]]; then
   echo "==> 从系统包初始化用户配置: $TARGET"
   cp -a "$SYSTEM_CONFIG/." "$TARGET/"
 fi
 
-# 2. 同步 overview 模块
-echo "==> 同步 overview 模块到 $TARGET/overview"
+# 2. 同步各外挂模块
 mkdir -p "$TARGET"
-cp -a "$REPO_DIR/overview/." "$TARGET/overview/"
+for mod in "${MODULES[@]}"; do
+  echo "==> 同步 $mod 模块到 $TARGET/$mod"
+  cp -a "$REPO_DIR/$mod/." "$TARGET/$mod/"
+done
 
-# 3. 幂等写入 shell.qml 钩子（import "overview" + Overview {}）
-python3 - "$TARGET/shell.qml" <<'PY'
+# 3. 幂等写入 shell.qml 钩子（import + 实例化）
+python3 - "$TARGET/shell.qml" "${MODULES[@]}" <<'PY'
 import re
 import sys
 
 path = sys.argv[1]
+modules = sys.argv[2:]
+instances = {"overview": "Overview {}", "cheatsheet": "Cheatsheet {}"}
+
 with open(path, encoding="utf-8") as f:
     lines = f.read().splitlines(keepends=True)
 
@@ -35,27 +42,31 @@ changed = False
 def has(pattern: str) -> bool:
     return any(re.search(pattern, line) for line in lines)
 
-if not has(r'^\s*import "overview"\s*$'):
-    for i, line in enumerate(lines):
-        if re.match(r'^\s*import "modules/lock"\s*$', line):
-            lines.insert(i + 1, 'import "overview"\n')
-            changed = True
-            break
-    else:
+for mod in modules:
+    if not has(rf'^\s*import "{mod}"\s*$'):
         for i, line in enumerate(lines):
-            if re.match(r'^\s*import Quickshell\s*$', line):
-                lines.insert(i, 'import "overview"\n')
+            if re.match(r'^\s*import "modules/lock"\s*$', line):
+                lines.insert(i + 1, f'import "{mod}"\n')
                 changed = True
                 break
+        else:
+            for i, line in enumerate(lines):
+                if re.match(r'^\s*import Quickshell\s*$', line):
+                    lines.insert(i, f'import "{mod}"\n')
+                    changed = True
+                    break
 
-if not has(r'^\s*Overview\s*\{\}\s*$'):
+for inst in instances.values():
+    pattern = r'^\s*' + re.escape(inst.split()[0]) + r'\s*\{\}\s*$'
+    if has(pattern):
+        continue
     for i, line in enumerate(lines):
         if re.match(r'^\s*(ConfigToasts|Shortcuts|BatteryMonitor)\s*\{\}\s*$', line):
-            lines.insert(i, '    Overview {}\n')
+            lines.insert(i, f'    {inst}\n')
             changed = True
             break
     else:
-        lines.append('    Overview {}\n')
+        lines.append(f'    {inst}\n')
         changed = True
 
 if changed:

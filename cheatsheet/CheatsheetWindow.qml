@@ -60,30 +60,44 @@ FloatingWindow {
 		border.width: 1
 		clip: true
 
-		Column {
-			anchors.fill: parent
-			anchors.margins: 40
-			spacing: 30
+		Text {
+			id: title
 
-			Text {
-				id: title
+			anchors.top: parent.top
+			anchors.left: parent.left
+			anchors.right: parent.right
+			anchors.topMargin: 48
+			anchors.leftMargin: 48
+			anchors.rightMargin: 48
+			text: "Caelestia Cheatsheet"
+			horizontalAlignment: Text.AlignHCenter
+			font.pixelSize: 34
+			font.bold: true
+			font.family: "PingFang SC"
+			color: CheatsheetTheme.primary
+		}
 
-				text: "Caelestia Cheatsheet"
-				width: parent.width
-				horizontalAlignment: Text.AlignHCenter
-				font.pixelSize: 32
-				font.bold: true
-				font.family: "PingFang SC"
-				color: CheatsheetTheme.primary
-			}
+		Flickable {
+			id: scroll
+
+			anchors.top: title.bottom
+			anchors.left: parent.left
+			anchors.right: parent.right
+			anchors.bottom: parent.bottom
+			anchors.topMargin: 36
+			anchors.leftMargin: 48
+			anchors.rightMargin: 48
+			anchors.bottomMargin: 48
+			clip: true
+			contentHeight: grid.implicitHeight
 
 			Grid {
 				id: grid
 
-				width: parent.width
-				columns: Math.max(1, Math.floor(parent.width / 420))
-				columnSpacing: 40
-				rowSpacing: 35
+				width: scroll.width
+				columns: Math.max(1, Math.floor(scroll.width / 480))
+				columnSpacing: 60
+				rowSpacing: 50
 
 				Repeater {
 					model: KeybindsData.data
@@ -91,20 +105,20 @@ FloatingWindow {
 					delegate: Column {
 						required property var modelData
 
-						width: 400
-						spacing: 15
+						width: 460
+						spacing: 20
 						visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
 
 						Text {
 							text: (modelData ? modelData.category : "").charAt(0).toUpperCase() + (modelData ? modelData.category : "").slice(1)
-							font.pixelSize: 22
+							font.pixelSize: 24
 							font.bold: true
 							font.family: "PingFang SC"
 							color: CheatsheetTheme.primary
 						}
 
 						Column {
-							spacing: 10
+							spacing: 14
 
 							Repeater {
 								model: modelData && modelData.keybinds ? modelData.keybinds : []
@@ -112,16 +126,16 @@ FloatingWindow {
 								delegate: Item {
 									required property var modelData
 
-									width: 400
-									height: Math.max(28, descText.implicitHeight)
+									width: 460
+									height: Math.max(34, descText.implicitHeight)
 
-									// 键帽区：固定 220px，裁剪溢出，防止长组合键挤进描述区
+									// 键帽区：固定 260px，裁剪溢出，防止长组合键挤进描述区
 									Item {
 										id: keysClip
 
 										anchors.left: parent.left
 										anchors.verticalCenter: parent.verticalCenter
-										width: 220
+										width: 260
 										height: keysRow.implicitHeight
 										clip: true
 
@@ -192,11 +206,12 @@ FloatingWindow {
 									Text {
 										id: descText
 
-										x: 240
-										width: 160
+										// 描述紧跟在键帽之后，长组合键自动把描述右移，避免重叠
+										x: Math.max(284, keysRow.width + 28)
+										width: parent.width - x - 12
 										anchors.verticalCenter: parent.verticalCenter
 										text: modelData.desc
-										font.pixelSize: 13
+										font.pixelSize: 14
 										font.family: "PingFang SC"
 										color: CheatsheetTheme.textColor
 										wrapMode: Text.WordWrap

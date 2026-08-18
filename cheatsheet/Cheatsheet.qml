@@ -17,12 +17,15 @@ Item {
 
 		function toggle(): void {
 			CheatsheetState.active = !CheatsheetState.active;
-			if (CheatsheetState.active)
+			if (CheatsheetState.active) {
+				CheatsheetTheme.reload();
 				KeybindsData.reload();
+			}
 		}
 
 		function open(): void {
 			CheatsheetState.active = true;
+			CheatsheetTheme.reload();
 			KeybindsData.reload();
 		}
 
@@ -32,8 +35,10 @@ Item {
 
 		function setVisible(visible: bool): void {
 			CheatsheetState.active = visible;
-			if (visible)
+			if (visible) {
+				CheatsheetTheme.reload();
 				KeybindsData.reload();
+			}
 		}
 	}
 }

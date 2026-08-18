@@ -17,6 +17,31 @@ HOME = os.path.expanduser("~")
 KEYBINDS = sys.argv[1] if len(sys.argv) > 1 else f"{HOME}/.config/hypr/hyprland/keybinds.lua"
 VARIABLES = sys.argv[2] if len(sys.argv) > 2 else f"{HOME}/.config/hypr/variables.lua"
 
+# 细分区名 -> 大类（避免 cheatsheet 分类太碎）
+CATEGORY_GROUPS = {
+    "Launcher": "Shell",
+    "Overview": "Shell",
+    "Cheatsheet": "Shell",
+    "Misc": "Shell",
+    "Restore lock": "Shell",
+    "Kill/restart": "Shell",
+    "Brightness": "系统",
+    "Media": "系统",
+    "Volume": "系统",
+    "Sleep": "系统",
+    "Go to workspace -1/+1": "工作区",
+    "Go to workspace group -1/+1": "工作区",
+    "Move window to workspace -1/+1": "工作区",
+    "Move window to/from special workspace": "工作区",
+    "Special workspace toggles": "工作区",
+    "Window groups": "窗口",
+    "Window actions": "窗口",
+    "鼠标滚轮横向切换窗口聚焦": "窗口",
+    "Apps": "应用与工具",
+    "Utilities": "应用与工具",
+    "Clipboard and emoji picker": "应用与工具",
+}
+
 
 def load_vars(path: str) -> dict:
     """解析 variables.lua 里的 name = "value" 字符串变量。"""
@@ -89,7 +114,18 @@ def main() -> None:
     except OSError:
         pass
 
-    json.dump([s for s in sections if s.get("keybinds")], sys.stdout, ensure_ascii=False)
+    merged = {}
+    for s in sections:
+        if not s.get("keybinds"):
+            continue
+        group = CATEGORY_GROUPS.get(s["category"], s["category"])
+        merged.setdefault(group, []).extend(s["keybinds"])
+
+    json.dump(
+        [{"category": g, "keybinds": kbs} for g, kbs in merged.items()],
+        sys.stdout,
+        ensure_ascii=False,
+    )
 
 
 if __name__ == "__main__":

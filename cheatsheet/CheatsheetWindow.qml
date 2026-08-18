@@ -50,17 +50,6 @@ FloatingWindow {
 			"mouse_down": "滚轮下",
 			"mouse:272": "左键",
 			"mouse:273": "右键",
-			"XF86MonBrightnessUp": "亮度+",
-			"XF86MonBrightnessDown": "亮度-",
-			"XF86AudioPlay": "播放",
-			"XF86AudioPause": "暂停",
-			"XF86AudioStop": "停止",
-			"XF86AudioNext": "下一曲",
-			"XF86AudioPrev": "上一曲",
-			"XF86AudioMute": "静音",
-			"XF86AudioMicMute": "麦克风静音",
-			"XF86AudioRaiseVolume": "音量+",
-			"XF86AudioLowerVolume": "音量-",
 		};
 		return map[k] ?? k;
 	}
@@ -236,6 +225,7 @@ FloatingWindow {
 																text: root.keyLabel(modelData)
 																anchors.centerIn: parent
 																font.pixelSize: 12
+																font.family: "PingFang SC"
 																font.bold: true
 																color: CheatsheetTheme.primary
 															}

@@ -98,7 +98,8 @@ def main() -> None:
                 raw_key = m.group(1)
                 key = resolve_key(raw_key, vars_)
                 action = m.group(2)
-                if not key or "launcherInterrupt" in action:
+                # 硬件媒体键（XF86*）不是组合快捷键，不进速查表
+                if not key or "launcherInterrupt" in action or "XF86" in key:
                     continue
 
                 # 描述来自 hyprland 绑定的 description 属性（用户自定义）

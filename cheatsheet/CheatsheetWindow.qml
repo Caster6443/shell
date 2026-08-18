@@ -14,6 +14,57 @@ FloatingWindow {
 	color: "transparent"
 	visible: CheatsheetState.active
 
+	// 键帽显示名：把生硬的键名映射成人类可读的写法
+	function keyLabel(k: string): string {
+		const map = {
+			"SUPER": "Super",
+			"SUPER_L": "Win",
+			"SUPER_R": "Win",
+			"CTRL": "Ctrl",
+			"SHIFT": "Shift",
+			"ALT": "Alt",
+			"left": "←",
+			"right": "→",
+			"up": "↑",
+			"down": "↓",
+			"Page_Up": "PgUp",
+			"Page_Down": "PgDn",
+			"Page_up": "PgUp",
+			"Page_down": "PgDn",
+			"Slash": "/",
+			"slash": "/",
+			"Backslash": "\\",
+			"backslash": "\\",
+			"Period": ".",
+			"Comma": ",",
+			"Minus": "-",
+			"Equal": "=",
+			"Escape": "Esc",
+			"Return": "Enter",
+			"Enter": "Enter",
+			"Space": "Space",
+			"space": "Space",
+			"Print": "PrtSc",
+			"Tab": "Tab",
+			"mouse_up": "滚轮上",
+			"mouse_down": "滚轮下",
+			"mouse:272": "左键",
+			"mouse:273": "右键",
+			"XF86MonBrightnessUp": "亮度+",
+			"XF86MonBrightnessDown": "亮度-",
+			"XF86AudioPlay": "播放",
+			"XF86AudioPause": "暂停",
+			"XF86AudioStop": "停止",
+			"XF86AudioNext": "下一曲",
+			"XF86AudioPrev": "上一曲",
+			"XF86AudioMute": "静音",
+			"XF86AudioMicMute": "麦克风静音",
+			"XF86AudioRaiseVolume": "音量+",
+			"XF86AudioLowerVolume": "音量-",
+		};
+		return map[k] ?? k;
+	}
+
 	implicitWidth: Math.round(Screen.width * 0.72)
 	implicitHeight: Math.round(Screen.height * 0.72)
 
@@ -182,7 +233,7 @@ FloatingWindow {
 															Text {
 																id: keyText
 
-																text: modelData
+																text: root.keyLabel(modelData)
 																anchors.centerIn: parent
 																font.pixelSize: 12
 																font.bold: true

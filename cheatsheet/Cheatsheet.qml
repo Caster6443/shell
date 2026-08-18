@@ -12,6 +12,13 @@ Item {
 
 	CheatsheetWindow {}
 
+	// 每次 caelestia 启动时自动弹一次速查表窗口（顺带刷新主题与键位数据）
+	Component.onCompleted: {
+		CheatsheetTheme.reload();
+		KeybindsData.reload();
+		CheatsheetState.active = true;
+	}
+
 	IpcHandler {
 		target: "cheatsheet"
 

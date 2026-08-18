@@ -33,6 +33,7 @@ CATEGORY_GROUPS = {
     "Go to workspace group -1/+1": "工作区",
     "Move window to workspace -1/+1": "工作区",
     "Move window to/from special workspace": "工作区",
+    "Workspaces": "工作区",
     "Special workspace toggles": "工作区",
     "Window groups": "窗口",
     "Window actions": "窗口",
@@ -67,60 +68,130 @@ def resolve_key(key: str, vars_: dict) -> str:
     return key
 
 
+LOOP_RE = re.compile(r"for\s+i\s*=\s*1,\s*10\s+do\s*\n(.*?)\n\s*end", re.S)
+LOOP_BIND_RE = re.compile(
+    r"hl\.bind\(\s*(vars\.[A-Za-z0-9_]+)\s*\.\.\s*\"\s*\+\s*\"\s*\.\.\s*key\s*,"
+    r"\s*fn\.wsaction\(\s*\"([^\"]*)\"\s*,\s*\"([^\"]*)\"\s*,\s*i\s*\)"
+    r"(?:,\s*\{\s*description\s*=\s*\"([^\"]*)\"\s*\})?\s*\)"
+)
+
+
+def expand_workspace_loop(text: str, vars_: dict) -> str:
+    """把 1..10 工作区循环折叠成一条代表绑定（Super+1 代表 1-10 号）。"""
+
+    def repl(m: re.Match) -> str:
+        body = m.group(1)
+        out = []
+        seen = set()
+        for bm in LOOP_BIND_RE.finditer(body):
+            var, action, group, desc = bm.groups()
+            if var in seen:
+                continue
+            seen.add(var)
+            base = vars_.get(var.replace("vars.", ""), var)
+            out.append(
+                f'hl.bind("{base} + 1", fn.wsaction("{action}", "{group}", 1), '
+                f'{{ description = "{desc or ""}" }})\n'
+            )
+        return "\n".join(out)
+
+    return LOOP_RE.sub(repl, text)
+
+
+def extract_bind_calls(text: str):
+    """按括号配平提取所有 hl.bind(...) 调用（支持多行），返回 (offset, call_text)。"""
+    i = 0
+    n = len(text)
+    while True:
+        m = re.search(r"\bhl\.bind\s*\(", text[i:])
+        if not m:
+            return
+        start = i + m.start()
+        j = i + m.end()
+        depth = 1
+        while j < n and depth > 0:
+            c = text[j]
+            if c in ('"', "'"):
+                quote = c
+                j += 1
+                while j < n and text[j] != quote:
+                    if text[j] == "\\":
+                        j += 1
+                    j += 1
+            elif text.startswith("[[", j):
+                j += 2
+                k = text.find("]]", j)
+                j = n if k == -1 else k + 2
+                continue
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+            j += 1
+        yield start, text[start:j]
+        i = j
+
+
+def collect_sections(text: str):
+    """解析 -- 分区注释。连续注释行算一组，取组内第一个标题；
+    含全角冒号（：）的注释视为说明文字，不作为分区。"""
+    sections = []
+    group_started = False
+    pending_header = None
+    prev_end = None
+    for m in re.finditer(r"^--\s+(.*?)\s*$", text, re.M):
+        name = m.group(1).strip()
+        sep = not name or name.startswith(("HYPRLAND", "KEYBINDS", "=")) or name.startswith("---")
+        contiguous = prev_end is not None and m.start() == prev_end + 1
+        if not group_started or not contiguous:
+            group_started = True
+            pending_header = None
+        if not sep and pending_header is None:
+            pending_header = name
+            if "：" not in name:
+                clean = re.split(r"[（(：:]", name)[0].strip() or name
+                sections.append({"pos": m.start(), "name": clean})
+        prev_end = m.end()
+    return sections
+
+
 def main() -> None:
     vars_ = load_vars(VARIABLES)
-    sections = []
-    current = None
-
     try:
         with open(KEYBINDS, encoding="utf-8") as f:
-            for raw in f:
-                line = raw.strip()
-
-                # 分区注释：-- Section
-                if line.startswith("--") and not line.startswith("----"):
-                    name = line[2:].strip()
-                    if name and not name.startswith(("HYPRLAND", "KEYBINDS", "=")):
-                        # 分类名去掉括号/冒号里的补充说明：-- Overview (in-shell module...) → Overview
-                        clean = re.split(r"[（(：:]", name)[0].strip()
-                        current = {"category": clean or name, "keybinds": []}
-                        sections.append(current)
-                    continue
-
-                # 单行 hl.bind("KEY" | vars.kbX, ACTION, {opts})
-                m = re.match(
-                    r'hl\.bind\(\s*("(?:[^"]+)"|vars\.[A-Za-z0-9_]+)\s*,\s*(.+?)(?:,\s*\{[^}]*\})?\)\s*$',
-                    line,
-                )
-                if not m:
-                    continue
-
-                raw_key = m.group(1)
-                key = resolve_key(raw_key, vars_)
-                action = m.group(2)
-                # 硬件媒体键（XF86*）不是组合快捷键，不进速查表
-                if not key or "launcherInterrupt" in action or "XF86" in key:
-                    continue
-
-                # 描述来自 hyprland 绑定的 description 属性（用户自定义）
-                dm = re.search(r'description\s*=\s*"([^"]*)"', line)
-                desc = dm.group(1).strip() if dm else ""
-                if not desc:
-                    continue
-
-                if current is None:
-                    current = {"category": "General", "keybinds": []}
-                    sections.append(current)
-                current["keybinds"].append({"key": key, "desc": desc})
+            text = f.read()
     except OSError:
-        pass
+        text = ""
+
+    text = expand_workspace_loop(text, vars_)
+    sections = collect_sections(text)
+
+    results = []
+    for offset, call in extract_bind_calls(text):
+        km = re.match(r'\s*hl\.bind\(\s*("(?:[^"]+)"|vars\.[A-Za-z0-9_]+)', call)
+        if not km:
+            continue
+        raw_key = km.group(1)
+        if "XF86" in raw_key or "launcherInterrupt" in call:
+            continue
+        dm = re.search(r'description\s*=\s*"([^"]*)"', call)
+        if not dm or not dm.group(1).strip():
+            continue
+        key = resolve_key(raw_key, vars_)
+        if not key:
+            continue
+        section = "General"
+        for s in sections:
+            if s["pos"] < offset:
+                section = s["name"]
+            else:
+                break
+        results.append({"section": section, "key": key, "desc": dm.group(1).strip()})
 
     merged = {}
-    for s in sections:
-        if not s.get("keybinds"):
-            continue
-        group = CATEGORY_GROUPS.get(s["category"], s["category"])
-        merged.setdefault(group, []).extend(s["keybinds"])
+    for r in results:
+        group = CATEGORY_GROUPS.get(r["section"], r["section"])
+        merged.setdefault(group, []).append({"key": r["key"], "desc": r["desc"]})
 
     json.dump(
         [{"category": g, "keybinds": kbs} for g, kbs in merged.items()],

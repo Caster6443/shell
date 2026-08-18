@@ -65,10 +65,13 @@ FloatingWindow {
 	onVisibleChanged: {
 		if (visible) {
 			focusCatcher.forceActiveFocus();
-			slideT.y = -root.height;
+			slideOffset = -root.implicitHeight;
 			slideIn.restart();
 		}
 	}
+
+	// 内容从顶部滑入的偏移量（由动画驱动）
+	property real slideOffset: 0
 
 	Item {
 		id: focusCatcher
@@ -106,7 +109,7 @@ FloatingWindow {
 			transform: Translate {
 				id: slideT
 
-				y: 0
+				y: root.slideOffset
 			}
 
 			Text {
@@ -219,9 +222,10 @@ FloatingWindow {
 
 																anchors.fill: parent
 																anchors.topMargin: 2
-																anchors.leftMargin: 3
+																anchors.leftMargin: 4
 																anchors.rightMargin: 2
-																anchors.bottomMargin: 5
+																// 底边明显厚于顶边，做出键帽的立体感
+																anchors.bottomMargin: 8
 
 																implicitWidth: keyText.implicitWidth + 20
 																implicitHeight: keyText.implicitHeight + 12
@@ -277,23 +281,29 @@ FloatingWindow {
 		}
 	}
 
-	ParallelAnimation {
+	SequentialAnimation {
 		id: slideIn
 
-		NumberAnimation {
-			target: slideT
-			property: "y"
-			to: 0
-			duration: 300
-			easing.type: Easing.OutCubic
+		PauseAnimation {
+			duration: 60
 		}
 
-		NumberAnimation {
-			target: slideWrap
-			property: "opacity"
-			from: 0
-			to: 1
-			duration: 240
+		ParallelAnimation {
+			NumberAnimation {
+				target: root
+				property: "slideOffset"
+				to: 0
+				duration: 400
+				easing.type: Easing.OutCubic
+			}
+
+			NumberAnimation {
+				target: slideWrap
+				property: "opacity"
+				from: 0
+				to: 1
+				duration: 320
+			}
 		}
 	}
 }

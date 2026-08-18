@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import qs.cheatsheet
@@ -96,9 +95,9 @@ FloatingWindow {
 				id: grid
 
 				width: scroll.width
-				columns: Math.max(1, Math.floor(scroll.width / 430))
-				columnSpacing: 48
-				rowSpacing: 30
+				columns: Math.max(1, Math.floor(scroll.width / 420))
+				columnSpacing: 40
+				rowSpacing: 35
 
 				Repeater {
 					model: KeybindsData.data
@@ -107,7 +106,7 @@ FloatingWindow {
 						required property var modelData
 
 						width: 400
-						spacing: 14
+						spacing: 15
 						visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
 
 						Text {
@@ -115,7 +114,7 @@ FloatingWindow {
 								const c = (modelData?.category ?? "");
 								return c ? c.charAt(0).toUpperCase() + c.slice(1) : "";
 							}
-							font.pixelSize: 21
+							font.pixelSize: 22
 							font.bold: true
 							color: CheatsheetTheme.primary
 						}
@@ -126,30 +125,38 @@ FloatingWindow {
 							Repeater {
 								model: modelData && modelData.keybinds ? modelData.keybinds : []
 
-								delegate: RowLayout {
+								// 每行：左侧 220px 键帽区 + 右侧说明（对齐旧版 cheatsheet 排版）
+								delegate: Item {
 									required property var modelData
 
 									width: 400
-									spacing: 14
+									height: Math.max(28, descText.implicitHeight)
 
-									RowLayout {
-										spacing: 5
-										Layout.preferredWidth: 210
-										Layout.alignment: Qt.AlignVCenter
+									Row {
+										id: keysRow
+
+										anchors.left: parent.left
+										anchors.verticalCenter: parent.verticalCenter
+										width: 220
+										spacing: 6
 
 										Repeater {
 											id: keyRepeater
 
 											model: (modelData?.key ?? "").split(" ").filter(k => k.trim() !== "")
 
-											delegate: RowLayout {
+											delegate: Item {
 												required property string modelData
 												required property int index
 
-												spacing: 5
-												Layout.alignment: Qt.AlignVCenter
+												width: chipFace.implicitWidth + (index < keyRepeater.count - 1 ? plusText.implicitWidth + 6 : 0)
+												height: chipFace.implicitHeight
 
 												Rectangle {
+													id: chipFace
+
+													anchors.left: parent.left
+													anchors.verticalCenter: parent.verticalCenter
 													color: CheatsheetTheme.primary
 													radius: 5
 													implicitWidth: keyFace.implicitWidth + 2
@@ -182,8 +189,13 @@ FloatingWindow {
 												}
 
 												Text {
+													id: plusText
+
 													text: "+"
 													visible: index < keyRepeater.count - 1
+													anchors.left: chipFace.right
+													anchors.leftMargin: 6
+													anchors.verticalCenter: parent.verticalCenter
 													font.pixelSize: 14
 													color: CheatsheetTheme.primary
 													opacity: 0.7
@@ -193,9 +205,13 @@ FloatingWindow {
 									}
 
 									Text {
+										id: descText
+
+										anchors.left: parent.left
+										anchors.leftMargin: 235
+										anchors.right: parent.right
+										anchors.verticalCenter: parent.verticalCenter
 										text: modelData?.desc ?? ""
-										Layout.alignment: Qt.AlignVCenter
-										Layout.fillWidth: true
 										font.pixelSize: 13
 										color: CheatsheetTheme.onSurface
 										wrapMode: Text.WordWrap

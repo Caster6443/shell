@@ -6,6 +6,8 @@
 *.log
 *.qslog
 .DS_Store
+__pycache__/
+*.pyc
 
 # 本地维护文档，不纳入版本控制（文件保留在磁盘，供本地维护使用）
 AGENTS.md

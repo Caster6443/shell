@@ -63,8 +63,11 @@ FloatingWindow {
 	}
 
 	onVisibleChanged: {
-		if (visible)
+		if (visible) {
 			focusCatcher.forceActiveFocus();
+			slideT.y = -root.height;
+			slideIn.restart();
+		}
 	}
 
 	Item {
@@ -88,170 +91,182 @@ FloatingWindow {
 
 	Rectangle {
 		anchors.fill: parent
-		color: CheatsheetTheme.background
-		opacity: 0.94
+		color: Qt.alpha(CheatsheetTheme.background, 0.86)
 		radius: 18
 		border.color: CheatsheetTheme.primary
 		border.width: 1
 		clip: true
 
-		Text {
-			id: title
+		Item {
+			id: slideWrap
 
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.topMargin: 48
-			anchors.leftMargin: 48
-			anchors.rightMargin: 48
-			text: "Caelestia Cheatsheet"
-			horizontalAlignment: Text.AlignHCenter
-			font.pixelSize: 34
-			font.bold: true
-			font.family: "PingFang SC"
-			color: CheatsheetTheme.primary
-		}
-
-		Flickable {
-			id: scroll
-
-			anchors.top: title.bottom
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: parent.bottom
-			anchors.topMargin: 36
-			anchors.leftMargin: 48
-			anchors.rightMargin: 48
-			anchors.bottomMargin: 48
+			anchors.fill: parent
 			clip: true
-			contentHeight: grid.implicitHeight
 
-			Grid {
-				id: grid
+			transform: Translate {
+				id: slideT
 
-				width: scroll.width
-				columns: Math.max(1, Math.floor(scroll.width / 480))
-				columnSpacing: 66
-				rowSpacing: 56
+				y: 0
+			}
 
-				Repeater {
-					model: KeybindsData.data
+			Text {
+				id: title
 
-					delegate: Column {
-						required property var modelData
+				anchors.top: parent.top
+				anchors.left: parent.left
+				anchors.right: parent.right
+				anchors.topMargin: 48
+				anchors.leftMargin: 48
+				anchors.rightMargin: 48
+				text: "Caelestia Cheatsheet"
+				horizontalAlignment: Text.AlignHCenter
+				font.pixelSize: 34
+				font.bold: true
+				font.family: "PingFang SC"
+				color: CheatsheetTheme.primary
+			}
 
-						width: 460
-						spacing: 22
-						visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
+			Flickable {
+				id: scroll
 
-						Text {
-							text: (modelData ? modelData.category : "").charAt(0).toUpperCase() + (modelData ? modelData.category : "").slice(1)
-							font.pixelSize: 24
-							font.bold: true
-							font.family: "PingFang SC"
-							color: CheatsheetTheme.primary
-						}
+				anchors.top: title.bottom
+				anchors.left: parent.left
+				anchors.right: parent.right
+				anchors.bottom: parent.bottom
+				anchors.topMargin: 36
+				anchors.leftMargin: 48
+				anchors.rightMargin: 48
+				anchors.bottomMargin: 48
+				clip: true
+				contentHeight: grid.implicitHeight
 
-						Column {
-							spacing: 16
+				Grid {
+					id: grid
 
-							Repeater {
-								model: modelData && modelData.keybinds ? modelData.keybinds : []
+					width: scroll.width
+					columns: Math.max(1, Math.floor(scroll.width / 500))
+					columnSpacing: 66
+					rowSpacing: 56
 
-								delegate: Item {
-									required property var modelData
+					Repeater {
+						model: KeybindsData.data
 
-									width: 460
-									height: Math.max(36, descText.implicitHeight)
+						delegate: Column {
+							required property var modelData
 
-									// 键帽区：固定 260px，裁剪溢出，防止长组合键挤进描述区
-									Item {
-										id: keysClip
+							width: 460
+							spacing: 22
+							visible: modelData && modelData.keybinds && modelData.keybinds.length > 0
 
-										anchors.left: parent.left
-										anchors.verticalCenter: parent.verticalCenter
-										width: 260
-										height: keysRow.implicitHeight
-										clip: true
+							Text {
+								text: (modelData ? modelData.category : "").charAt(0).toUpperCase() + (modelData ? modelData.category : "").slice(1)
+								font.pixelSize: 24
+								font.bold: true
+								font.family: "PingFang SC"
+								color: CheatsheetTheme.primary
+							}
 
-										Row {
-											id: keysRow
+							Column {
+								spacing: 16
+
+								Repeater {
+									model: modelData && modelData.keybinds ? modelData.keybinds : []
+
+									delegate: Item {
+										required property var modelData
+
+										width: 460
+										height: Math.max(44, descText.implicitHeight)
+
+										// 键帽区：固定 300px，裁剪溢出，防止长组合键挤进描述区
+										Item {
+											id: keysClip
 
 											anchors.left: parent.left
 											anchors.verticalCenter: parent.verticalCenter
-											spacing: 5
+											width: 300
+											height: keysRow.implicitHeight
+											clip: true
 
-											Repeater {
-												id: keyRepeater
+											Row {
+												id: keysRow
 
-												// 只把真正的键名画成键帽；"+" 分隔符是纯字符，不进模型
-												model: modelData.key ? modelData.key.split(" ").filter(k => k.trim() !== "" && k !== "+") : []
+												anchors.left: parent.left
+												anchors.verticalCenter: parent.verticalCenter
+												spacing: 6
 
-												delegate: Row {
-													required property string modelData
-													required property int index
+												Repeater {
+													id: keyRepeater
 
-													spacing: 4
-													anchors.verticalCenter: parent.verticalCenter
+													// 只把真正的键名画成键帽；"+" 分隔符是纯字符，不进模型
+													model: modelData.key ? modelData.key.split(" ").filter(k => k.trim() !== "" && k !== "+") : []
 
-													Rectangle {
-														color: CheatsheetTheme.primary
-														radius: 5
-														implicitWidth: keyFace.implicitWidth + 2
-														implicitHeight: keyFace.implicitHeight + 4
+													delegate: Row {
+														required property string modelData
+														required property int index
+
+														spacing: 5
+														anchors.verticalCenter: parent.verticalCenter
 
 														Rectangle {
-															id: keyFace
+															color: CheatsheetTheme.primary
+															radius: 6
+															implicitWidth: keyFace.implicitWidth + 4
+															implicitHeight: keyFace.implicitHeight + 6
 
-															anchors.fill: parent
-															anchors.topMargin: 1
-															anchors.leftMargin: 2
-															anchors.rightMargin: 1
-															anchors.bottomMargin: 4
+															Rectangle {
+																id: keyFace
 
-															implicitWidth: keyText.implicitWidth + 14
-															implicitHeight: keyText.implicitHeight + 8
-															color: CheatsheetTheme.surface
-															radius: 4
+																anchors.fill: parent
+																anchors.topMargin: 2
+																anchors.leftMargin: 3
+																anchors.rightMargin: 2
+																anchors.bottomMargin: 5
 
-															Text {
-																id: keyText
+																implicitWidth: keyText.implicitWidth + 20
+																implicitHeight: keyText.implicitHeight + 12
+																color: CheatsheetTheme.surface
+																radius: 5
 
-																text: root.keyLabel(modelData)
-																anchors.centerIn: parent
-																font.pixelSize: 12
-																font.family: "PingFang SC"
-																font.bold: true
-																color: CheatsheetTheme.primary
+																Text {
+																	id: keyText
+
+																	text: root.keyLabel(modelData)
+																	anchors.centerIn: parent
+																	font.pixelSize: 15
+																	font.family: "PingFang SC"
+																	font.bold: true
+																	color: CheatsheetTheme.primary
+																}
 															}
 														}
-													}
 
-													Text {
-														text: "+"
-														visible: index < (keyRepeater.count - 1)
-														anchors.verticalCenter: parent.verticalCenter
-														font.pixelSize: 11
-														color: CheatsheetTheme.textColor
-														opacity: 0.55
+														Text {
+															text: "+"
+															visible: index < (keyRepeater.count - 1)
+															anchors.verticalCenter: parent.verticalCenter
+															font.pixelSize: 13
+															color: CheatsheetTheme.textColor
+															opacity: 0.55
+														}
 													}
 												}
 											}
 										}
-									}
 
-									Text {
-										id: descText
+										Text {
+											id: descText
 
-										// 描述紧跟在键帽之后，长组合键自动把描述右移，避免重叠
-										x: Math.max(284, keysRow.width + 28)
-										width: parent.width - x - 12
-										anchors.verticalCenter: parent.verticalCenter
-										text: modelData.desc
-										font.pixelSize: 14
-										font.family: "PingFang SC"
-										color: CheatsheetTheme.textColor
-										wrapMode: Text.WordWrap
+											// 描述紧跟在键帽之后，长组合键自动把描述右移，避免重叠
+											x: Math.max(320, keysRow.width + 32)
+											width: parent.width - x - 14
+											anchors.verticalCenter: parent.verticalCenter
+											text: modelData.desc
+											font.pixelSize: 15
+											font.family: "PingFang SC"
+											color: CheatsheetTheme.textColor
+											wrapMode: Text.WordWrap
+										}
 									}
 								}
 							}
@@ -259,6 +274,26 @@ FloatingWindow {
 					}
 				}
 			}
+		}
+	}
+
+	ParallelAnimation {
+		id: slideIn
+
+		NumberAnimation {
+			target: slideT
+			property: "y"
+			to: 0
+			duration: 300
+			easing.type: Easing.OutCubic
+		}
+
+		NumberAnimation {
+			target: slideWrap
+			property: "opacity"
+			from: 0
+			to: 1
+			duration: 240
 		}
 	}
 }

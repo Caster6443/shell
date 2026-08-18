@@ -3,6 +3,9 @@
 
 用法: fetch_keybinds.py [keybinds.lua] [variables.lua]
 输出: [{ "category": "...", "keybinds": [{ "key": "SUPER + X", "desc": "..." }] }]
+
+规则（模仿旧版提取逻辑）：只输出有自定义 description 的键位；
+没有描述的不进入 cheatsheet；vars.kbX 变量会翻译成实际按键。
 """
 
 import json
@@ -76,6 +79,8 @@ def main() -> None:
                 # 描述来自 hyprland 绑定的 description 属性（用户自定义）
                 dm = re.search(r'description\s*=\s*"([^"]*)"', line)
                 desc = dm.group(1).strip() if dm else ""
+                if not desc:
+                    continue
 
                 if current is None:
                     current = {"category": "General", "keybinds": []}

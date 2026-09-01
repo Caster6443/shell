@@ -179,13 +179,66 @@ Rectangle {
 		anchors.margins: 1
 		live: OverviewState.active
 
-		captureSource: {
+		// HyprlandToplevel 按 address 复用，指针稳定；wayland 句柄到位后绑定自动更新。
+		readonly property var myToplevel: {
 			const addr = windowAddress.toLowerCase();
 			for (const tl of Hyprland.toplevels.values) {
 				if (`0x${tl.address}`.toLowerCase() === addr)
-					return tl.wayland;
+					return tl;
 			}
 			return null;
+		}
+
+		// 置 true 时 captureSource 走 null 分支，用于销毁旧捕获上下文后强制重建。
+		property bool forceBlank: false
+		property int retryCount: 0
+
+		captureSource: forceBlank ? null : (myToplevel?.wayland ?? null)
+
+		onHasContentChanged: {
+			if (screenView.hasContent)
+				screenView.retryCount = 0;
+		}
+
+		// 合成器终止画面流（如离屏窗口首帧失败、混合显卡拷贝失败）后，
+		// ScreencopyView 不会自愈：同指针 setCaptureSource 直接返回，
+		// live=true 也只在已有上下文时捕获。这里限量重试重建捕获。
+		onStopped: {
+			if (!OverviewState.active)
+				return;
+			screenView.scheduleRetry();
+		}
+
+		function scheduleRetry() {
+			if (screenView.retryCount >= 4)
+				return;
+			screenView.retryCount++;
+			retryTimer.restart();
+		}
+
+		function refreshCapture() {
+			// 先置 null 清掉 mCaptureSource，再在同一帧恢复同一 toplevel，强制重建上下文。
+			screenView.forceBlank = true;
+			Qt.callLater(() => { screenView.forceBlank = false; });
+		}
+
+		Timer {
+			id: retryTimer
+			interval: 500
+			onTriggered: screenView.refreshCapture()
+		}
+
+		// 每次打开 overview 时，给没有画面的缩略图一次全新捕获机会
+		// （此前失败的离屏窗口在切换工作区后重新可见，能恢复画面）。
+		Connections {
+			target: OverviewState
+			function onActiveChanged() {
+				if (OverviewState.active) {
+					screenView.retryCount = 0;
+					if (!screenView.hasContent)
+						screenView.refreshCapture();
+				}
+			}
 		}
 	}
 

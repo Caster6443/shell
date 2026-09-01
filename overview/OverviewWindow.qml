@@ -35,7 +35,7 @@ PanelWindow {
 
 	Behavior on implicitWidth {
 		NumberAnimation {
-			duration: 140
+			duration: 90
 			easing.type: Easing.OutCubic
 		}
 	}

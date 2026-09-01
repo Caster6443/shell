@@ -380,7 +380,7 @@ Item {
 			Behavior on contentY {
 				id: scrollAnim
 				NumberAnimation {
-					duration: 300
+					duration: 160
 					easing.type: Easing.OutCubic
 				}
 			}

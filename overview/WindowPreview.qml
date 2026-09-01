@@ -191,28 +191,33 @@ Rectangle {
 
 		// 置 true 时 captureSource 走 null 分支，用于销毁旧捕获上下文后强制重建。
 		property bool forceBlank: false
-		property int retryCount: 0
+		// 静默卡死保护：Hyprland 有时收到捕获请求后既不回帧也不报错
+		// （无 ready/failed，ScreencopyView 不会触发 stopped），缩略图会永久纯色。
+		// 这里用递增退避定时重建捕获上下文，覆盖数秒到一分钟级的卡死。
+		property int retryIdx: -1
+		readonly property var retryDelays: [1000, 2500, 5000, 10000, 20000, 40000]
 
 		captureSource: forceBlank ? null : (myToplevel?.wayland ?? null)
 
 		onHasContentChanged: {
 			if (screenView.hasContent)
-				screenView.retryCount = 0;
+				screenView.retryIdx = -1;
 		}
 
 		// 合成器终止画面流（如离屏窗口首帧失败、混合显卡拷贝失败）后，
 		// ScreencopyView 不会自愈：同指针 setCaptureSource 直接返回，
 		// live=true 也只在已有上下文时捕获。这里限量重试重建捕获。
 		onStopped: {
-			if (!OverviewState.active)
-				return;
 			screenView.scheduleRetry();
 		}
 
 		function scheduleRetry() {
-			if (screenView.retryCount >= 4)
+			if (!OverviewState.active || screenView.hasContent)
 				return;
-			screenView.retryCount++;
+			if (screenView.retryIdx >= screenView.retryDelays.length - 1)
+				return;
+			screenView.retryIdx++;
+			retryTimer.interval = screenView.retryDelays[screenView.retryIdx];
 			retryTimer.restart();
 		}
 
@@ -224,8 +229,25 @@ Rectangle {
 
 		Timer {
 			id: retryTimer
-			interval: 500
-			onTriggered: screenView.refreshCapture()
+			repeat: false
+			onTriggered: {
+				if (OverviewState.active && !screenView.hasContent)
+					screenView.refreshCapture();
+				else
+					screenView.retryIdx = -1;
+			}
+		}
+
+		// 看门狗：捕获已发起但迟迟没有首帧时，按退避表持续重建捕获。
+		Timer {
+			id: captureWatchdog
+			interval: 1000
+			repeat: true
+			running: OverviewState.active && !!screenView.captureSource && !screenView.hasContent
+			onTriggered: {
+				if (!retryTimer.running)
+					screenView.scheduleRetry();
+			}
 		}
 
 		// 每次打开 overview 时，给没有画面的缩略图一次全新捕获机会
@@ -234,9 +256,8 @@ Rectangle {
 			target: OverviewState
 			function onActiveChanged() {
 				if (OverviewState.active) {
-					screenView.retryCount = 0;
-					if (!screenView.hasContent)
-						screenView.refreshCapture();
+					screenView.retryIdx = -1;
+					screenView.scheduleRetry();
 				}
 			}
 		}

@@ -177,7 +177,7 @@ Rectangle {
 		id: screenView
 		anchors.fill: parent
 		anchors.margins: 1
-		live: OverviewState.active
+		live: overviewRoot.surfaceState.active
 
 		// HyprlandToplevel 按 address 复用，指针稳定；wayland 句柄到位后绑定自动更新。
 		readonly property var myToplevel: {
@@ -215,7 +215,7 @@ Rectangle {
 		}
 
 		function scheduleRetry() {
-			if (!OverviewState.active || screenView.hasContent)
+			if (!overviewRoot.surfaceState.active || screenView.hasContent)
 				return;
 			// 退避表循环使用：overview 打开期间可无限重试（此前到表尾就停，无法自愈）。
 			screenView.retryIdx = (screenView.retryIdx + 1) % screenView.retryDelays.length;
@@ -238,7 +238,7 @@ Rectangle {
 			id: retryTimer
 			repeat: false
 			onTriggered: {
-				if (OverviewState.active && !screenView.hasContent) {
+				if (overviewRoot.surfaceState.active && !screenView.hasContent) {
 					screenView.refreshCapture();
 				} else {
 					screenView.retryIdx = -1;
@@ -251,7 +251,7 @@ Rectangle {
 			id: captureWatchdog
 			interval: 1000
 			repeat: true
-			running: OverviewState.active && !!screenView.captureSource && !screenView.hasContent
+			running: overviewRoot.surfaceState.active && !!screenView.captureSource && !screenView.hasContent
 			onTriggered: {
 				if (!retryTimer.running)
 					screenView.scheduleRetry();
@@ -261,9 +261,9 @@ Rectangle {
 		// 每次打开 overview 时，给没有画面的缩略图一次全新捕获机会
 		// （此前失败的离屏窗口在切换工作区后重新可见，能恢复画面）。
 		Connections {
-			target: OverviewState
+			target: overviewRoot.surfaceState
 			function onActiveChanged() {
-				if (OverviewState.active) {
+				if (overviewRoot.surfaceState.active) {
 					screenView.retryIdx = -1;
 					screenView.scheduleRetry();
 					// 新实例启动后窗口捕获常整体静默悬挂：打开时若仍无画面，
@@ -278,7 +278,7 @@ Rectangle {
 		Connections {
 			target: overviewRoot
 			function onCaptureKickDone() {
-				if (OverviewState.active && !screenView.hasContent)
+				if (overviewRoot.surfaceState.active && !screenView.hasContent)
 					screenView.refreshCapture();
 			}
 		}

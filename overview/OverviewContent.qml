@@ -5,12 +5,24 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.overview
+import qs.services
 
 Item {
 	id: root
 
+	// surface 抽象：侧栏 overview 用 OverviewState；嵌入其他窗口（如 spotlight）时可注入独立状态。
+	property var surfaceState: OverviewState
+	property int visibleCards: 5
+	property real cardWidth: 400
+	property real cardHeight: 260
+	property string filterText: ""
+	property var launchOnWorkspace: null
+	property bool settleTopAlign: false
+	property bool showPanel: true
+	onFilterTextChanged: Qt.callLater(() => root.syncWindows(localHyprData.windowList))
+
 	function closeOverview() {
-		OverviewState.active = false;
+		root.surfaceState.active = false;
 	}
 
 	implicitWidth: mainContainer.implicitWidth
@@ -18,7 +30,7 @@ Item {
 
 	function handleKey(event) {
 		if (event.key === Qt.Key_Escape) {
-			OverviewState.active = false;
+			root.surfaceState.active = false;
 			event.accepted = true;
 		} else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
 			const step = flickable.cardHeight + flickable.cardSpacing;
@@ -28,7 +40,7 @@ Item {
 		} else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
 			const idx = Math.round(flickable.contentY / (flickable.cardHeight + flickable.cardSpacing));
 			HyprDispatch.call(`workspace ${idx + 1}`, `hl.dsp.focus({ workspace = "${idx + 1}" })`);
-			OverviewState.active = false;
+			root.surfaceState.active = false;
 			event.accepted = true;
 		}
 	}
@@ -64,9 +76,12 @@ Item {
 				continue;
 			const cls = (w.class || "").toLowerCase();
 			const title = (w.title || "");
-			if (cls.includes("quickshell") || title.includes("quickshell_pure_overview"))
-				continue;
-			const wsId = w.workspace?.id ?? 0;
+	if (cls.includes("quickshell") || title.includes("quickshell_pure_overview"))
+		continue;
+	const wsId = w.workspace?.id ?? 0;
+	const flt = root.filterText.trim().toLowerCase();
+	if (flt && !`${cls} ${title.toLowerCase()} ws${wsId}`.includes(flt))
+		continue;
 			if (wsId === 0)
 				continue;
 			if (wsId > 0)
@@ -143,6 +158,22 @@ Item {
 		const nextLayers = Object.assign({}, root.wsLayers);
 		nextLayers[wsId] = layerItem;
 		root.wsLayers = nextLayers;
+	}
+
+	// 命中测试：给定 overview 内容区内的坐标（相对本组件根），返回所在工作区 id；
+	// 未命中返回 -1。供外部 surface（spotlight）做“拖应用图标落到工作区”的判定。
+	function workspaceAt(pos: var): int {
+		if (!root.wsLayers)
+			return -1;
+		for (const k in root.wsLayers) {
+			const layer = root.wsLayers[k];
+			if (!layer || !layer.visible)
+				continue;
+			const local = root.mapToItem(layer, pos.x, pos.y);
+			if (local.x >= 0 && local.y >= 0 && local.x <= layer.width && local.y <= layer.height)
+				return Number(k);
+		}
+		return -1;
 	}
 
 	function recomputeLinearXForWs(wsId) {
@@ -277,6 +308,15 @@ Item {
 		syncTimer.restart();
 	}
 
+	// 供外部 surface（spotlight）在窗口显示时主动刷新数据与定位到当前工作区。
+	function refresh(): void {
+		localHyprData.updateAll();
+	}
+
+	function settleToActive(): void {
+		jumpSettleTimer.restart();
+	}
+
 	// ---- Hyprland 窗口捕获静默悬挂自动踢脚 ----
 	// toplevel-export 帧只在输出提交时拷贝；窗口捕获整体卡住（多次重建无首帧）时，
 	// 跑一次 monitor 截图（wlr-screencopy）可驱动输出提交解卡（grim 实测有效，2026-09-03）。
@@ -286,29 +326,20 @@ Item {
 	function requestCaptureKick() {
 		if (root.kickPending)
 			return;
-		root.kickPending = true;
-		kickDebounce.restart();
-	}
-
-	Timer {
-		id: kickDebounce
-		interval: 1500
-		repeat: false
-		onTriggered: {
-			root.kickPending = false;
-			const mon = Hyprland.focusedMonitor?.name ?? "";
-			if (!mon) {
-				console.info("[overview-kick] skip: no focused monitor");
-				return;
-			}
-			console.info(`[overview-kick] monitor screencopy kick: grim -o ${mon} /dev/null`);
-			kickProc.exec(["grim", "-o", mon, "/dev/null"]);
+		const mon = Hyprland.focusedMonitor?.name ?? "";
+		if (!mon) {
+			console.info("[overview-kick] skip: no focused monitor");
+			return;
 		}
+		root.kickPending = true;
+		console.info(`[overview-kick] monitor screencopy kick: grim -o ${mon} /dev/null`);
+		kickProc.exec(["grim", "-o", mon, "/dev/null"]);
 	}
 
 	Process {
 		id: kickProc
 		onExited: (code, status) => {
+			root.kickPending = false;
 			console.info(`[overview-kick] grim exited code=${code}`);
 			// 踢脚完成：通知各窗口立刻重建捕获（Hyprland 通常在随后的
 			// 新捕获请求里把此前悬挂的窗口帧送出来）。
@@ -342,6 +373,16 @@ Item {
 		}
 	}
 
+	// caelestia wallpaper 写 path.txt 可能是原子替换，FileView 监听会丢事件；
+	// 直接跟随 Wallpapers.actualCurrent 属性，切换瞬间即刷新 overview 背景。
+	Connections {
+		target: Wallpapers
+		function onActualCurrentChanged() {
+			if (Wallpapers.actualCurrent)
+				root.currentWallpaperPath = "file://" + Wallpapers.actualCurrent;
+		}
+	}
+
 	Timer {
 		id: jumpSettleTimer
 		interval: 80
@@ -355,7 +396,7 @@ Item {
 			const step = flickable.cardHeight + flickable.cardSpacing;
 			const normalTop = flickable.specialSectionHeight;
 
-			const targetY = normalTop + (activeId - 1) * step - (flickable.visibleHeight - flickable.cardHeight) / 2;
+		const targetY = normalTop + (activeId - 1) * step - (root.settleTopAlign ? 0 : (flickable.visibleHeight - flickable.cardHeight) / 2);
 
 			const maxScroll = Math.max(0, flickable.contentHeight - flickable.height);
 			flickable.contentY = Math.max(normalTop, Math.min(targetY, maxScroll));
@@ -378,12 +419,12 @@ Item {
 
 	Rectangle {
 		id: mainContainer
-		color: "#CC11111b"
+		color: root.showPanel ? "#CC11111b" : "transparent"
 		radius: 24
-		implicitWidth: flickable.contentWidth + 60
-		implicitHeight: flickable.visibleHeight + 60
-		border.color: "#313244"
-		border.width: 2
+		implicitWidth: flickable.contentWidth + (root.showPanel ? 60 : 0)
+		implicitHeight: flickable.visibleHeight + (root.showPanel ? 60 : 0)
+		border.color: root.showPanel ? "#313244" : "transparent"
+		border.width: root.showPanel ? 2 : 0
 		anchors {
 			top: parent.top
 			bottom: parent.bottom
@@ -401,9 +442,9 @@ Item {
 		Flickable {
 			id: flickable
 
-			readonly property real cardHeight: 260
+			readonly property real cardHeight: root.cardHeight
 			readonly property real cardSpacing: 25
-			readonly property real visibleCards: 5
+			readonly property real visibleCards: root.visibleCards
 			readonly property real visibleHeight: visibleCards * cardHeight + (visibleCards - 1) * cardSpacing
 			readonly property real separatorHeight: 40
 			readonly property real specialSectionHeight: specialColumn.implicitHeight > 0 ? specialColumn.implicitHeight + cardSpacing * 2 + separatorHeight : 0
@@ -479,6 +520,10 @@ Item {
 								windowModel: specialWindowModel
 								specialWsId: modelData
 								isSpecial: true
+								cardW: root.cardWidth
+								cardH: root.cardHeight
+								filterActive: root.filterText.trim() !== ""
+								launchOnWorkspace: root.launchOnWorkspace
 							}
 						}
 					}
@@ -496,11 +541,15 @@ Item {
 
 					Repeater {
 						model: 10
-						delegate: WorkspaceCard {
-							overviewRoot: root
-							windowModel: windowModel
-							isSpecial: false
-						}
+					delegate: WorkspaceCard {
+						overviewRoot: root
+						windowModel: windowModel
+						isSpecial: false
+						cardW: root.cardWidth
+						cardH: root.cardHeight
+						filterActive: root.filterText.trim() !== ""
+						launchOnWorkspace: root.launchOnWorkspace
+					}
 					}
 				}
 			}

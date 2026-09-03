@@ -13,12 +13,27 @@ Item {
 	required property ListModel windowModel
 	property bool isSpecial: false
 	property int specialWsId: -1
+	property real cardW: 400
+	property real cardH: 260
+	property bool filterActive: false
+	property var launchOnWorkspace: null
 
 	property int wsId: isSpecial ? specialWsId : index + 1
 	property bool hasActiveDrag: false
 
-	readonly property real workspaceW: 400
-	readonly property real workspaceH: 260
+	readonly property real workspaceW: cardW
+	readonly property real workspaceH: cardH
+
+	readonly property int matchingCount: {
+		let n = 0;
+		for (let i = 0; i < windowModel.count; ++i) {
+			if (windowModel.get(i).m_wsId === wsId)
+				n++;
+		}
+		return n;
+	}
+
+	visible: !(filterActive && matchingCount === 0)
 
 	property real contentMaxWidth: {
 		let monW = Hyprland.focusedMonitor?.width || 1920;
@@ -89,9 +104,14 @@ Item {
 
 		DropArea {
 			anchors.fill: parent
-			keys: ["window"]
+			keys: ["window", "app"]
 			onDropped: drop => {
-				if (drop.source && drop.source.windowAddress) {
+				if (drop.source && drop.source.appEntry) {
+					if (workspaceContainer.launchOnWorkspace)
+						workspaceContainer.launchOnWorkspace(drop.source.appEntry, wsId, isSpecial);
+					drop.accepted = true;
+					drop.action = Qt.MoveAction;
+				} else if (drop.source && drop.source.windowAddress) {
 					if (drop.source.currentWsId !== wsId) {
 						const addr = HyprDispatch.addressArg(drop.source.windowAddress);
 						if (isSpecial) {

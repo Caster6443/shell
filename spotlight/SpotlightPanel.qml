@@ -11,13 +11,12 @@ import qs.overview
 import qs.services
 import qs.spotlight
 
-// Spotlight：左 overview 工作区列 + 右应用列表；壁纸模式为横向大图浏览。
-FloatingWindow {
+// Spotlight 内容面板：左 overview 工作区列 + 右应用列表；壁纸模式双视图。
+// 由 launcher 弹出面板实例化（原浮动窗已退役）。
+Item {
 	id: root
 
-	title: "spotlight"
-	color: "transparent"
-	visible: SpotlightState.active
+	signal closeRequested()
 
 	implicitWidth: Math.round(Screen.width * 0.4)
 	implicitHeight: Math.round(Screen.height * 0.6)
@@ -28,6 +27,8 @@ FloatingWindow {
 	property string ghostIcon: ""
 	property string mode: "apps"
 	property string wallView: "carousel"
+	property real maxHeight: 900
+	property int kickBurstCount: 0
 
 	// ---------------- 生命周期 ----------------
 	onVisibleChanged: {
@@ -35,9 +36,30 @@ FloatingWindow {
 			input.text = "";
 			root.launchWatch = null;
 			root.ghostVisible = false;
+			SpotlightState.active = true;
 			ov.refresh();
 			Qt.callLater(() => ov.settleToActive());
 			input.forceActiveFocus();
+			root.kickBurstCount = 0;
+			openKickTimer.start();
+		} else {
+			SpotlightState.active = false;
+			openKickTimer.stop();
+		}
+	}
+
+	Component.onDestruction: SpotlightState.active = false
+
+	// 打开时连踢几次 monitor 截图：单次踢脚偶尔无效（实测需 2~3 次才稳定出帧）
+	Timer {
+		id: openKickTimer
+
+		interval: 700
+		repeat: true
+		onTriggered: {
+			ov.requestCaptureKick();
+			if (++root.kickBurstCount >= 4)
+				openKickTimer.stop();
 		}
 	}
 
@@ -192,7 +214,8 @@ FloatingWindow {
 		anchors.fill: parent
 		anchors.margins: 1
 		radius: 20
-		color: Qt.alpha(M3Palette.m3surfaceContainerHigh, 0.94)
+		// 跟随全局透明度设置（Wallpaper & style → Transparency），不写死
+		color: Colours.tPalette.m3surfaceContainerHigh
 		border.color: Qt.alpha(M3Palette.m3onSurface, 0.12)
 		border.width: 1
 		clip: true
@@ -214,7 +237,7 @@ FloatingWindow {
 				placeholderText: "过滤窗口与应用…"
 				placeholderTextColor: Qt.alpha(M3Palette.m3onSurface, 0.45)
 				color: M3Palette.m3onSurface
-				font.pixelSize: 16
+				font: Tokens.font.body.large
 
 				IconImage {
 					asynchronous: true
@@ -235,12 +258,8 @@ FloatingWindow {
 				}
 
 				Keys.onEscapePressed: {
-					SpotlightState.active = false;
+					root.closeRequested();
 					event.accepted = true;
-				}
-				onActiveFocusChanged: {
-					if (!activeFocus && root.visible)
-						SpotlightState.active = false;
 				}
 			}
 
@@ -436,7 +455,7 @@ FloatingWindow {
 										width: parent.width - 42
 										text: modelData.name ?? ""
 										color: M3Palette.m3onSurface
-										font.pixelSize: 12
+										font: Tokens.font.body.builders.large.weight(Font.DemiBold).build()
 										elide: Text.ElideRight
 										verticalAlignment: Text.AlignVCenter
 									}
@@ -487,6 +506,7 @@ FloatingWindow {
 										root.ghostVisible = false;
 										rowMouse.pressMightDrag = false;
 										if (!wasDrag) {
+											console.info(`[spotlight-click] launch ${modelData.name ?? ""}`);
 											Apps.launch(modelData);
 											launchRefreshTimer.restart();
 										}

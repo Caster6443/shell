@@ -1,0 +1,87 @@
+diff --git a/plugin/src/Caelestia/CMakeLists.txt b/plugin/src/Caelestia/CMakeLists.txt
+index 40e750fe..a889e189 100644
+--- a/plugin/src/Caelestia/CMakeLists.txt
++++ b/plugin/src/Caelestia/CMakeLists.txt
+@@ -7,6 +7,7 @@ qml_module(caelestia-core
+         requests.cpp
+         toaster.cpp
+         circularbuffer.cpp
++        translations.cpp
+     LIBRARIES
+         Qt::Gui
+         Qt::Quick
+diff --git a/plugin/src/Caelestia/translations.cpp b/plugin/src/Caelestia/translations.cpp
+new file mode 100644
+index 00000000..764876b4
+--- /dev/null
++++ b/plugin/src/Caelestia/translations.cpp
+@@ -0,0 +1,69 @@
++#include <QCoreApplication>
++#include <QDir>
++#include <QFileInfo>
++#include <QLocale>
++#include <QTranslator>
++
++// Personal fork i18n loader (2026-09-03):
++// Caelestia upstream QML uses qsTr() but ships no QTranslator loading.
++// This TU runs when the Caelestia QML module is dlopen'ed and installs a
++// translator for the user's locale from the caelestia config translations dir.
++namespace {
++
++QStringList translationDirs() {
++    QStringList dirs;
++    const QString home = QDir::homePath();
++    if (!home.isEmpty())
++        dirs << home + "/.config/quickshell/caelestia/translations";
++    dirs << "/etc/xdg/quickshell/caelestia/translations";
++    return dirs;
++}
++
++void installTranslations() {
++    auto* app = QCoreApplication::instance();
++    if (!app)
++        return;
++
++    QStringList names;
++    // LC_ALL=C 会盖掉 LANG；Qt 的 QLocale 只认 LC_ALL，所以这里优先用 LANG 推导。
++    const QByteArray langEnv = qgetenv("LANG");
++    if (!langEnv.isEmpty()) {
++        const QString lang = QString::fromLocal8Bit(langEnv).section('.', 0, 0).replace('-', '_');
++        if (!lang.isEmpty())
++            names << lang;
++    }
++    const QString locale = QLocale::system().name().replace('-', '_');
++    names << locale;
++    if (locale.contains('_'))
++        names << locale.section('_', 0, 0);
++    // LANG/QLocale 都无法表达中文（如 C.UTF-8）时，按 zh 前缀补一次 zh_CN
++    const bool wantsZh = langEnv.toLower().startsWith("zh") || locale.toLower().startsWith("zh")
++        || locale.toLower().startsWith("c");
++    if (wantsZh && !names.contains("zh_CN"))
++        names << "zh_CN";
++    names.removeDuplicates();
++
++    for (const QString& dir : translationDirs()) {
++        for (const QString& name : names) {
++            const QString path = QString("%1/caelestia_%2.qm").arg(dir, name);
++            if (!QFileInfo::exists(path))
++                continue;
++            auto* translator = new QTranslator(app);
++            if (translator->load(path)) {
++                app->installTranslator(translator);
++                return;
++            }
++            delete translator;
++        }
++    }
++}
++
++struct TranslationInit {
++    TranslationInit() {
++        installTranslations();
++    }
++};
++
++TranslationInit gTranslationInit;
++
++} // namespace

@@ -200,6 +200,16 @@ Rectangle {
 
 		captureSource: forceBlank ? null : (myToplevel?.wayland ?? null)
 
+		// 组件创建时若 surface 已激活但尚无首帧（launcher 场景：内容先建好、
+		// 打开时才激活），立即请求一次 monitor 踢脚，不必等看门狗走完退避。
+		Component.onCompleted: {
+			if (overviewRoot.surfaceState.active && !screenView.hasContent && screenView.captureSource) {
+				if (overviewRoot?.requestCaptureKick)
+					overviewRoot.requestCaptureKick();
+				screenView.scheduleRetry();
+			}
+		}
+
 		onHasContentChanged: {
 			if (screenView.hasContent) {
 				screenView.retryIdx = -1;

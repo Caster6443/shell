@@ -193,20 +193,23 @@ Rectangle {
 		property bool forceBlank: false
 		// 静默卡死保护：Hyprland 有时收到捕获请求后既不回帧也不报错
 		// （无 ready/failed，ScreencopyView 不会触发 stopped），缩略图会永久纯色。
-		// 这里用递增退避定时重建捕获上下文，覆盖数秒到一分钟级的卡死。
+		// 这里用递增退避定时重建捕获上下文，覆盖数秒到一分钟级的卡死；
+		// 连续重建仍无首帧时请求共享 monitor 截图踢脚（见 OverviewContent.requestCaptureKick）。
 		property int retryIdx: -1
 		readonly property var retryDelays: [1000, 2500, 5000, 10000, 20000, 40000]
 
 		captureSource: forceBlank ? null : (myToplevel?.wayland ?? null)
 
 		onHasContentChanged: {
-			if (screenView.hasContent)
+			if (screenView.hasContent) {
 				screenView.retryIdx = -1;
+				console.info(`[overview] ${windowAddress} capture ok`);
+			}
 		}
 
 		// 合成器终止画面流（如离屏窗口首帧失败、混合显卡拷贝失败）后，
 		// ScreencopyView 不会自愈：同指针 setCaptureSource 直接返回，
-		// live=true 也只在已有上下文时捕获。这里限量重试重建捕获。
+		// live=true 也只在已有上下文时捕获。这里重试重建捕获。
 		onStopped: {
 			screenView.scheduleRetry();
 		}
@@ -214,9 +217,13 @@ Rectangle {
 		function scheduleRetry() {
 			if (!OverviewState.active || screenView.hasContent)
 				return;
-			if (screenView.retryIdx >= screenView.retryDelays.length - 1)
-				return;
-			screenView.retryIdx++;
+			// 退避表循环使用：overview 打开期间可无限重试（此前到表尾就停，无法自愈）。
+			screenView.retryIdx = (screenView.retryIdx + 1) % screenView.retryDelays.length;
+			// 连续多次重建仍无首帧 → Hyprland toplevel-export 静默悬挂：
+			// 请求 OverviewContent 的共享 kicker 跑一次 monitor 截图（wlr-screencopy），
+			// 驱动输出提交让卡住的窗口捕获恢复（grim 实测有效，2026-09-03）。
+			if (screenView.retryIdx >= 1 && overviewRoot?.requestCaptureKick)
+				overviewRoot.requestCaptureKick();
 			retryTimer.interval = screenView.retryDelays[screenView.retryIdx];
 			retryTimer.restart();
 		}
@@ -231,10 +238,11 @@ Rectangle {
 			id: retryTimer
 			repeat: false
 			onTriggered: {
-				if (OverviewState.active && !screenView.hasContent)
+				if (OverviewState.active && !screenView.hasContent) {
 					screenView.refreshCapture();
-				else
+				} else {
 					screenView.retryIdx = -1;
+				}
 			}
 		}
 
@@ -258,7 +266,20 @@ Rectangle {
 				if (OverviewState.active) {
 					screenView.retryIdx = -1;
 					screenView.scheduleRetry();
+					// 新实例启动后窗口捕获常整体静默悬挂：打开时若仍无画面，
+					// 立即请求一次 monitor 截图踢脚，不必等退避表走完。
+					if (!screenView.hasContent && overviewRoot?.requestCaptureKick)
+						overviewRoot.requestCaptureKick();
 				}
+			}
+		}
+
+		// monitor 截图踢脚完成 → 立刻重建一次捕获。
+		Connections {
+			target: overviewRoot
+			function onCaptureKickDone() {
+				if (OverviewState.active && !screenView.hasContent)
+					screenView.refreshCapture();
 			}
 		}
 	}

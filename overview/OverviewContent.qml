@@ -277,6 +277,45 @@ Item {
 		syncTimer.restart();
 	}
 
+	// ---- Hyprland 窗口捕获静默悬挂自动踢脚 ----
+	// toplevel-export 帧只在输出提交时拷贝；窗口捕获整体卡住（多次重建无首帧）时，
+	// 跑一次 monitor 截图（wlr-screencopy）可驱动输出提交解卡（grim 实测有效，2026-09-03）。
+	property bool kickPending: false
+	signal captureKickDone()
+
+	function requestCaptureKick() {
+		if (root.kickPending)
+			return;
+		root.kickPending = true;
+		kickDebounce.restart();
+	}
+
+	Timer {
+		id: kickDebounce
+		interval: 1500
+		repeat: false
+		onTriggered: {
+			root.kickPending = false;
+			const mon = Hyprland.focusedMonitor?.name ?? "";
+			if (!mon) {
+				console.info("[overview-kick] skip: no focused monitor");
+				return;
+			}
+			console.info(`[overview-kick] monitor screencopy kick: grim -o ${mon} /dev/null`);
+			kickProc.exec(["grim", "-o", mon, "/dev/null"]);
+		}
+	}
+
+	Process {
+		id: kickProc
+		onExited: (code, status) => {
+			console.info(`[overview-kick] grim exited code=${code}`);
+			// 踢脚完成：通知各窗口立刻重建捕获（Hyprland 通常在随后的
+			// 新捕获请求里把此前悬挂的窗口帧送出来）。
+			root.captureKickDone();
+		}
+	}
+
 	Connections {
 		target: localHyprData
 		function onWindowListChanged() {

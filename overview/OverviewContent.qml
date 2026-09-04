@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import qs.overview
 import qs.services
 
@@ -322,6 +323,18 @@ Item {
 	property int previewTotal: 0
 	property int previewReady: 0
 
+	// 最初版（2026-04 独立浮窗原型）的隐藏机关：overview 背后挂一条常驻 live 的
+	// monitor 捕获流。Hyprland 的窗口导出帧要等“下一次输出提交”才拷贝，而这条
+	// monitor 流每次出帧都会触发本窗口重绘/提交，形成自持节拍，窗口预览跟着一起流动。
+	// 仅面板可见且有窗口预览时运行（visible 才绘制 = live 才喂帧），关闭即零开销。
+	readonly property var monitorScreen: {
+		const mon = Hyprland.focusedMonitor;
+		for (const s of Screens.screens)
+			if (s.name === mon?.name)
+				return s;
+		return Screens.screens[0] ?? null;
+	}
+
 	function registerPreview(address: string): void {
 		if (!(address in root.previewState)) {
 			root.previewState[address] = false;
@@ -475,6 +488,17 @@ Item {
 		} else {
 			jumpSettleTimer.stop();
 		}
+	}
+
+	// 旧版同款 monitor 实时流（衬在内容后面当“节拍源”，低透明度避免干扰视觉）。
+	ScreencopyView {
+		id: liveMonitorFeed
+
+		anchors.fill: parent
+		visible: root.visible && root.previewReady > 0
+		live: true
+		opacity: 0.22
+		captureSource: root.monitorScreen
 	}
 
 	Rectangle {

@@ -286,17 +286,37 @@ Item {
 					if (root.mode === "apps") {
 						root.moveAppSelection(1);
 						event.accepted = true;
+					} else if (root.mode === "wallpaper") {
+						root.moveWallSelection(0, 1);
+						event.accepted = true;
 					}
 				}
 				Keys.onUpPressed: event => {
 					if (root.mode === "apps") {
 						root.moveAppSelection(-1);
 						event.accepted = true;
+					} else if (root.mode === "wallpaper") {
+						root.moveWallSelection(0, -1);
+						event.accepted = true;
+					}
+				}
+				Keys.onLeftPressed: event => {
+					if (root.mode === "wallpaper" && root.wallView === "grid") {
+						root.moveWallSelection(-1, 0);
+						event.accepted = true;
+					}
+				}
+				Keys.onRightPressed: event => {
+					if (root.mode === "wallpaper" && root.wallView === "grid") {
+						root.moveWallSelection(1, 0);
+						event.accepted = true;
 					}
 				}
 				onTextChanged: {
 					if (root.mode === "apps")
 						Qt.callLater(root.resetAppSelection);
+					else if (root.mode === "wallpaper")
+						Qt.callLater(root.resetWallSelection);
 				}
 				onAccepted: {
 					if (root.mode === "apps") {
@@ -304,6 +324,8 @@ Item {
 							root.launchSelectedApp();
 						else if (input.text.trim())
 							root.openWebSearch(input.text);
+					} else if (root.mode === "wallpaper") {
+						root.applySelectedWallpaper();
 					}
 				}
 			}
@@ -725,7 +747,11 @@ Item {
 							readonly property bool isCurrent: modelData?.path === Wallpapers.actualCurrent
 							readonly property bool isSelected: ListView.isCurrentItem
 
-							scale: wallCard.isSelected ? 1 : 0.94
+							// 点击“缩小回弹”用的独立缩放值（不破坏 scale 绑定）
+							property real bounceScale: 1
+
+							// 基础缩放（选中态放大）+ 点击回弹分量，二者相乘
+							scale: (wallCard.isSelected ? 1 : 0.94) * wallCard.bounceScale
 							opacity: wallCard.isSelected ? 1 : 0.78
 
 							Behavior on scale {
@@ -741,22 +767,24 @@ Item {
 								}
 							}
 
+							// 点击反馈：先缩小，再带回弹放大回位（经典动画）
 							SequentialAnimation {
 								id: wallClickAnim
 
 								running: false
 								NumberAnimation {
-									target: wallFlash
-									property: "opacity"
-									to: 0.35
-									duration: 70
+									target: wallCard
+									property: "bounceScale"
+									to: 0.92
+									duration: 90
+									easing.type: Easing.OutQuad
 								}
 								NumberAnimation {
-									target: wallFlash
-									property: "opacity"
-									to: 0
-									duration: 260
-									easing.type: Easing.OutCubic
+									target: wallCard
+									property: "bounceScale"
+									to: 1.0
+									duration: 300
+									easing.type: Easing.OutBack
 								}
 							}
 
@@ -810,17 +838,6 @@ Item {
 										font.bold: true
 									}
 								}
-
-								// 点击反馈闪层
-								Rectangle {
-									id: wallFlash
-
-									anchors.fill: parent
-									radius: 16
-									color: M3Palette.m3onSurface
-									opacity: 0
-									z: 6
-								}
 							}
 
 							MouseArea {
@@ -830,6 +847,7 @@ Item {
 								hoverEnabled: true
 								onClicked: {
 									if (modelData?.path) {
+										wallCard.bounceScale = 0.92;
 										wallClickAnim.restart();
 										Wallpapers.setWallpaper(modelData.path);
 									}
@@ -864,6 +882,18 @@ Item {
 							: Math.round((parent.width - 16) / 3)
 						cellHeight: Math.round(cellWidth / 16 * 9 + 10)
 						model: wallpaperResults(input.text)
+						currentIndex: 0
+
+						onCountChanged: {
+							for (let i = 0; i < wallGrid.count; ++i) {
+								if (wallGrid.model?.[i]?.path === Wallpapers.actualCurrent) {
+									wallGrid.currentIndex = i;
+									wallGrid.positionViewAtIndex(i, GridView.Center);
+									return;
+								}
+							}
+							wallGrid.currentIndex = 0;
+						}
 
 						delegate: Item {
 							id: gridCard
@@ -874,6 +904,17 @@ Item {
 							height: wallGrid.cellHeight
 
 							readonly property bool isCurrent: modelData?.path === Wallpapers.actualCurrent
+							// 点击“缩小回弹”用的独立缩放值
+							property real bounceScale: 1
+
+							scale: gridCard.bounceScale
+
+							Behavior on scale {
+								NumberAnimation {
+									duration: 180
+									easing.type: Easing.OutCubic
+								}
+							}
 
 							Rectangle {
 								id: gridFrame
@@ -918,16 +959,6 @@ Item {
 										font.bold: true
 									}
 								}
-
-								Rectangle {
-									id: gridFlash
-
-									anchors.fill: parent
-									radius: 12
-									color: M3Palette.m3onSurface
-									opacity: 0
-									z: 6
-								}
 							}
 
 							SequentialAnimation {
@@ -935,17 +966,18 @@ Item {
 
 								running: false
 								NumberAnimation {
-									target: gridFlash
-									property: "opacity"
-									to: 0.35
-									duration: 70
+									target: gridCard
+									property: "bounceScale"
+									to: 0.92
+									duration: 90
+									easing.type: Easing.OutQuad
 								}
 								NumberAnimation {
-									target: gridFlash
-									property: "opacity"
-									to: 0
-									duration: 260
-									easing.type: Easing.OutCubic
+									target: gridCard
+									property: "bounceScale"
+									to: 1.0
+									duration: 300
+									easing.type: Easing.OutBack
 								}
 							}
 
@@ -956,6 +988,7 @@ Item {
 								hoverEnabled: true
 								onClicked: {
 									if (modelData?.path) {
+										gridCard.bounceScale = 0.92;
 										gridClickAnim.restart();
 										Wallpapers.setWallpaper(modelData.path);
 									}
@@ -993,6 +1026,81 @@ Item {
 	}
 
 	// ---------------- 数据 ----------------
+	// 壁纸选中（carousel 列表 / grid 网格）当前项定位到“正在用的壁纸”
+	function resetWallSelection(): void {
+		if (root.wallView === "grid") {
+			if (wallGrid.count > 0) {
+				for (let i = 0; i < wallGrid.count; ++i) {
+					if (wallGrid.model?.[i]?.path === Wallpapers.actualCurrent) {
+						wallGrid.currentIndex = i;
+						wallGrid.positionViewAtIndex(i, GridView.Center);
+						return;
+					}
+				}
+				wallGrid.currentIndex = 0;
+			}
+		} else {
+			if (wallList.count > 0) {
+				for (let i = 0; i < wallList.count; ++i) {
+					if (wallList.model?.[i]?.path === Wallpapers.actualCurrent) {
+						wallList.currentIndex = i;
+						wallList.positionViewAtIndex(i, ListView.Center);
+						return;
+					}
+				}
+				wallList.currentIndex = 0;
+			}
+		}
+	}
+
+	// 方向键移动壁纸选中：carousel 只用 dy（上下），grid 用 dx+dy（四向）
+	function moveWallSelection(dx: int, dy: int): void {
+		if (root.wallView === "grid") {
+			const cols = Math.max(1, Math.floor(wallGrid.width / wallGrid.cellWidth));
+			const total = wallGrid.count;
+			if (total === 0)
+				return;
+			let idx = wallGrid.currentIndex;
+			if (dx !== 0) {
+				const row = Math.floor(idx / cols);
+				idx += dx;
+				idx = Math.max(row * cols, Math.min(idx, Math.min((row + 1) * cols - 1, total - 1)));
+			}
+			if (dy !== 0) {
+				idx += dy * cols;
+				idx = Math.max(0, Math.min(idx, total - 1));
+			}
+			if (idx !== wallGrid.currentIndex) {
+				wallGrid.currentIndex = idx;
+				wallGrid.positionViewAtIndex(idx, GridView.Contain);
+			}
+		} else {
+			const total = wallList.count;
+			if (total === 0)
+				return;
+			const next = Math.max(0, Math.min(total - 1, wallList.currentIndex + dy));
+			if (next !== wallList.currentIndex) {
+				wallList.currentIndex = next;
+				wallList.positionViewAtIndex(next, ListView.Contain);
+			}
+		}
+	}
+
+	// 回车/确认应用当前选中的壁纸
+	function applySelectedWallpaper(): void {
+		const entry = root.wallView === "grid"
+			? (wallGrid.count > 0
+				? (wallGrid.currentItem?.modelData ?? wallGrid.model?.[wallGrid.currentIndex])
+				: null)
+			: (wallList.count > 0
+				? (wallList.currentItem?.modelData ?? wallList.model?.[wallList.currentIndex])
+				: null);
+		if (!entry?.path)
+			return;
+		console.info(`[spotlight-key] wallpaper set ${entry.path}`);
+		Wallpapers.setWallpaper(entry.path);
+	}
+
 	function resetAppSelection(): void {
 		if (appList.count > 0) {
 			appList.currentIndex = 0;

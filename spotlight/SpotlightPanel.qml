@@ -26,7 +26,10 @@ Item {
 	property bool ghostVisible: false
 	property string ghostIcon: ""
 	property string mode: "apps"
+	// 壁纸模式默认视图：竖排列表（carousel）；用户 2026-09-04 确认不用网格
 	property string wallView: "carousel"
+	// 无本地结果时回车回退到浏览器搜索（?q= 后由 openWebSearch 自动拼接查询词）
+	readonly property string webSearchBase: "https://www.bing.com/search?q="
 	property real maxHeight: 900
 	property int kickBurstCount: 0
 
@@ -296,8 +299,12 @@ Item {
 						Qt.callLater(root.resetAppSelection);
 				}
 				onAccepted: {
-					if (root.mode === "apps")
-						root.launchSelectedApp();
+					if (root.mode === "apps") {
+						if (appList.count > 0)
+							root.launchSelectedApp();
+						else if (input.text.trim())
+							root.openWebSearch(input.text);
+					}
 				}
 			}
 
@@ -428,6 +435,20 @@ Item {
 							font.bold: true
 						}
 
+						// 零结果提示：回车会用默认浏览器搜索
+						Text {
+							id: webSearchHint
+
+							anchors.top: appTitle.bottom
+							anchors.left: parent.left
+							anchors.right: parent.right
+							anchors.topMargin: 8
+							visible: appList.count === 0 && input.text.trim() !== ""
+							text: "没有匹配的应用 — 回车用浏览器搜索"
+							color: Qt.alpha(M3Palette.m3onSurface, 0.45)
+							font.pixelSize: 12
+						}
+
 						ListView {
 							id: appList
 
@@ -440,6 +461,29 @@ Item {
 							spacing: 2
 							model: appResults(input.text)
 							currentIndex: -1
+
+							// 选中条平滑流动（原版 caelestia launcher 同款：highlight 跟随 currentItem.y）
+							highlightFollowsCurrentItem: false
+							preferredHighlightBegin: 0
+							preferredHighlightEnd: appList.height
+							highlightRangeMode: ListView.ApplyRange
+							highlight: Rectangle {
+								width: appList.width
+								height: 52
+								radius: 10
+								color: Qt.alpha(M3Palette.m3tertiary, 0.26)
+								border.color: Qt.alpha(M3Palette.m3tertiary, 0.7)
+								border.width: 1
+
+								y: appList.currentItem?.y ?? 0
+
+								Behavior on y {
+									NumberAnimation {
+										duration: 220
+										easing.type: Easing.OutCubic
+									}
+								}
+							}
 
 							onCountChanged: {
 								if (root.mode === "apps")
@@ -465,15 +509,10 @@ Item {
 								Rectangle {
 									anchors.fill: parent
 									radius: 10
-									color: appRow.ListView.isCurrentItem
-										? Qt.alpha(M3Palette.m3tertiary, 0.26)
-										: rowMouse.containsMouse
-											? Qt.alpha(M3Palette.m3onSurface, 0.08)
-											: "transparent"
-									border.color: appRow.ListView.isCurrentItem
-										? Qt.alpha(M3Palette.m3tertiary, 0.7)
+									// 选中态由 ListView 流动高亮条负责，行内只保留非选中时的悬停底
+									color: rowMouse.containsMouse && !appRow.ListView.isCurrentItem
+										? Qt.alpha(M3Palette.m3onSurface, 0.08)
 										: "transparent"
-									border.width: appRow.ListView.isCurrentItem ? 1 : 0
 								}
 
 								Row {
@@ -560,6 +599,8 @@ Item {
 											console.info(`[spotlight-click] launch ${modelData.name ?? ""}`);
 											Apps.launch(modelData);
 											launchRefreshTimer.restart();
+											// 点击启动后自动关闭；只有拖放到工作区（wasDrag）才保持打开
+											root.closeRequested();
 										}
 									}
 								}
@@ -648,7 +689,7 @@ Item {
 						anchors.fill: parent
 						orientation: ListView.Vertical
 						interactive: false
-						spacing: 16
+						spacing: 12
 						boundsBehavior: Flickable.StopAtBounds
 						model: wallpaperResults(input.text)
 						clip: true
@@ -679,7 +720,7 @@ Item {
 							required property var modelData
 
 							width: wallList.width
-							height: Math.round(wallList.height * 0.62)
+							height: Math.round(wallList.height * 0.46)
 
 							readonly property bool isCurrent: modelData?.path === Wallpapers.actualCurrent
 							readonly property bool isSelected: ListView.isCurrentItem
@@ -743,6 +784,10 @@ Item {
 									source: modelData?.path ? "file://" + modelData.path : ""
 									fillMode: Image.PreserveAspectCrop
 									asynchronous: true
+									sourceSize: Qt.size(
+										Math.max(640, Math.round(width * 2)),
+										Math.max(360, Math.round(height * 2))
+									)
 								}
 
 								// 当前壁纸：右上角对勾（不用文字）
@@ -814,8 +859,10 @@ Item {
 						visible: root.wallView === "grid"
 						anchors.fill: parent
 						clip: true
-						cellWidth: Math.max(150, Math.round((parent.width - 8) / 2))
-						cellHeight: Math.round(cellWidth / 16 * 9 + 6)
+						cellWidth: parent.width >= 900
+							? Math.round((parent.width - 24) / 4)
+							: Math.round((parent.width - 16) / 3)
+						cellHeight: Math.round(cellWidth / 16 * 9 + 10)
 						model: wallpaperResults(input.text)
 
 						delegate: Item {
@@ -846,6 +893,10 @@ Item {
 									source: modelData?.path ? "file://" + modelData.path : ""
 									fillMode: Image.PreserveAspectCrop
 									asynchronous: true
+									sourceSize: Qt.size(
+										Math.max(480, Math.round(width * 2)),
+										Math.max(270, Math.round(height * 2))
+									)
 								}
 
 								Rectangle {
@@ -969,6 +1020,16 @@ Item {
 			return;
 		console.info(`[spotlight-key] launch ${entry.name ?? ""}`);
 		Apps.launch(entry);
+		root.closeRequested();
+	}
+
+	function openWebSearch(query: string): void {
+		const q = (query ?? "").trim();
+		if (!q)
+			return;
+		const url = root.webSearchBase + encodeURIComponent(q);
+		console.info(`[spotlight-web] open ${url}`);
+		Quickshell.execDetached(["xdg-open", url]);
 		root.closeRequested();
 	}
 

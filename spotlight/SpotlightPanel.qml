@@ -747,11 +747,8 @@ Item {
 							readonly property bool isCurrent: modelData?.path === Wallpapers.actualCurrent
 							readonly property bool isSelected: ListView.isCurrentItem
 
-							// 点击“缩小回弹”用的独立缩放值（不破坏 scale 绑定）
-							property real bounceScale: 1
-
-							// 基础缩放（选中态放大）+ 点击回弹分量，二者相乘
-							scale: (wallCard.isSelected ? 1 : 0.94) * wallCard.bounceScale
+							// 外层只负责“选中放大”的基准缩放，点击回弹动画放到内层 wallFrame，互不干扰
+							scale: wallCard.isSelected ? 1 : 0.94
 							opacity: wallCard.isSelected ? 1 : 0.78
 
 							Behavior on scale {
@@ -764,27 +761,6 @@ Item {
 								NumberAnimation {
 									duration: 180
 									easing.type: Easing.OutCubic
-								}
-							}
-
-							// 点击反馈：先缩小，再带回弹放大回位（经典动画）
-							SequentialAnimation {
-								id: wallClickAnim
-
-								running: false
-								NumberAnimation {
-									target: wallCard
-									property: "bounceScale"
-									to: 0.92
-									duration: 90
-									easing.type: Easing.OutQuad
-								}
-								NumberAnimation {
-									target: wallCard
-									property: "bounceScale"
-									to: 1.0
-									duration: 300
-									easing.type: Easing.OutBack
 								}
 							}
 
@@ -801,6 +777,11 @@ Item {
 									? M3Palette.m3tertiary
 									: Qt.alpha(M3Palette.m3onSurface, 0.12)
 								border.width: (wallHover.containsMouse || wallCard.isSelected || wallCard.isCurrent) ? 2 : 1
+
+								// 点击反馈：轻微缩小再快速回位。pressScale 由单一 SequentialAnimation 控制，
+								// 不设 Behavior（避免 Behavior 与显式动画在同一属性上叠加打架）
+								property real pressScale: 1
+								scale: wallFrame.pressScale
 
 								Image {
 									id: wallImage
@@ -847,10 +828,29 @@ Item {
 								hoverEnabled: true
 								onClicked: {
 									if (modelData?.path) {
-										wallCard.bounceScale = 0.92;
-										wallClickAnim.restart();
+										wallPressAnim.restart();
 										Wallpapers.setWallpaper(modelData.path);
 									}
+								}
+							}
+
+							// 点击反馈单一动画源：快速收缩 → 带回弹回位
+							SequentialAnimation {
+								id: wallPressAnim
+
+								running: false
+								NumberAnimation {
+									target: wallFrame
+									property: "pressScale"
+									to: 0.9
+									duration: 60
+								}
+								NumberAnimation {
+									target: wallFrame
+									property: "pressScale"
+									to: 1
+									duration: 170
+									easing.type: Easing.OutBack
 								}
 							}
 						}
@@ -904,17 +904,6 @@ Item {
 							height: wallGrid.cellHeight
 
 							readonly property bool isCurrent: modelData?.path === Wallpapers.actualCurrent
-							// 点击“缩小回弹”用的独立缩放值
-							property real bounceScale: 1
-
-							scale: gridCard.bounceScale
-
-							Behavior on scale {
-								NumberAnimation {
-									duration: 180
-									easing.type: Easing.OutCubic
-								}
-							}
 
 							Rectangle {
 								id: gridFrame
@@ -928,6 +917,11 @@ Item {
 									? M3Palette.m3tertiary
 									: Qt.alpha(M3Palette.m3onSurface, 0.12)
 								border.width: (gridHover.containsMouse || gridCard.isCurrent) ? 2 : 1
+
+								// 点击反馈：轻微缩小再快速回位。pressScale 由单一 SequentialAnimation 控制，
+								// 不设 Behavior（避免 Behavior 与显式动画在同一属性上叠加打架）
+								property real pressScale: 1
+								scale: gridFrame.pressScale
 
 								Image {
 									anchors.fill: parent
@@ -961,22 +955,22 @@ Item {
 								}
 							}
 
+							// 点击反馈单一动画源：快速收缩 → 带回弹回位
 							SequentialAnimation {
-								id: gridClickAnim
+								id: gridPressAnim
 
 								running: false
 								NumberAnimation {
-									target: gridCard
-									property: "bounceScale"
-									to: 0.92
-									duration: 90
-									easing.type: Easing.OutQuad
+									target: gridFrame
+									property: "pressScale"
+									to: 0.9
+									duration: 60
 								}
 								NumberAnimation {
-									target: gridCard
-									property: "bounceScale"
-									to: 1.0
-									duration: 300
+									target: gridFrame
+									property: "pressScale"
+									to: 1
+									duration: 170
 									easing.type: Easing.OutBack
 								}
 							}
@@ -988,8 +982,7 @@ Item {
 								hoverEnabled: true
 								onClicked: {
 									if (modelData?.path) {
-										gridCard.bounceScale = 0.92;
-										gridClickAnim.restart();
+										gridPressAnim.restart();
 										Wallpapers.setWallpaper(modelData.path);
 									}
 								}
@@ -1081,7 +1074,8 @@ Item {
 			const next = Math.max(0, Math.min(total - 1, wallList.currentIndex + dy));
 			if (next !== wallList.currentIndex) {
 				wallList.currentIndex = next;
-				wallList.positionViewAtIndex(next, ListView.Contain);
+				// Center：保持"中间完整、上下各露半张"的居中 carousel 视图（与滚轮一致）
+				wallList.positionViewAtIndex(next, ListView.Center);
 			}
 		}
 	}

@@ -57,6 +57,17 @@ Item {
 
 	Component.onDestruction: SpotlightState.active = false
 
+	// overview 内点击工作区卡/窗口缩略图会经 closeOverview() 把 SpotlightState 置 false，
+	// 此时启动器面板仍可见 → 视为“已选定目标”，自动关闭启动器
+	Connections {
+		target: SpotlightState
+
+		function onActiveChanged() {
+			if (!SpotlightState.active && root.visible)
+				root.closeRequested();
+		}
+	}
+
 	// 打开时连踢几次 monitor 截图：单次踢脚偶尔无效（实测需 2~3 次才稳定出帧）
 	Timer {
 		id: openKickTimer
@@ -391,7 +402,6 @@ Item {
 							cardWidth: 560
 							cardHeight: 360
 							showPanel: false
-							filterText: input.text
 							settleTopAlign: true
 							launchOnWorkspace: root.launchOnWorkspace
 						}

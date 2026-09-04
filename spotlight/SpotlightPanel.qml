@@ -252,7 +252,7 @@ Item {
 				leftPadding: 40
 				rightPadding: 14
 
-				placeholderText: "过滤窗口与应用…"
+				placeholderText: root.mode === "wallpaper" ? "搜索壁纸…" : "搜索应用…"
 				placeholderTextColor: Qt.alpha(M3Palette.m3onSurface, 0.45)
 				color: M3Palette.m3onSurface
 				font: Tokens.font.body.large

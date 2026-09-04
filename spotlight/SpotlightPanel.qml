@@ -31,6 +31,12 @@ Item {
 	property int kickBurstCount: 0
 
 	// ---------------- 生命周期 ----------------
+	Component.onCompleted: Qt.callLater(() => {
+		if (root.mode === "apps")
+			root.resetAppSelection();
+		input.forceActiveFocus();
+	})
+
 	onVisibleChanged: {
 		if (visible) {
 			input.text = "";
@@ -40,6 +46,7 @@ Item {
 			ov.refresh();
 			Qt.callLater(() => ov.settleToActive());
 			input.forceActiveFocus();
+			Qt.callLater(root.resetAppSelection);
 			root.kickBurstCount = 0;
 			openKickTimer.start();
 		} else {
@@ -257,9 +264,29 @@ Item {
 					border.width: input.activeFocus ? 1.5 : 1
 				}
 
-				Keys.onEscapePressed: {
+				Keys.onEscapePressed: event => {
 					root.closeRequested();
 					event.accepted = true;
+				}
+				Keys.onDownPressed: event => {
+					if (root.mode === "apps") {
+						root.moveAppSelection(1);
+						event.accepted = true;
+					}
+				}
+				Keys.onUpPressed: event => {
+					if (root.mode === "apps") {
+						root.moveAppSelection(-1);
+						event.accepted = true;
+					}
+				}
+				onTextChanged: {
+					if (root.mode === "apps")
+						Qt.callLater(root.resetAppSelection);
+				}
+				onAccepted: {
+					if (root.mode === "apps")
+						root.launchSelectedApp();
 				}
 			}
 
@@ -402,6 +429,12 @@ Item {
 							clip: true
 							spacing: 2
 							model: appResults(input.text)
+							currentIndex: -1
+
+							onCountChanged: {
+								if (root.mode === "apps")
+									Qt.callLater(root.resetAppSelection);
+							}
 
 							ScrollBar.vertical: ScrollBar {}
 
@@ -422,7 +455,15 @@ Item {
 								Rectangle {
 									anchors.fill: parent
 									radius: 10
-									color: rowMouse.containsMouse ? Qt.alpha(M3Palette.m3onSurface, 0.08) : "transparent"
+									color: appRow.ListView.isCurrentItem
+										? Qt.alpha(M3Palette.m3tertiary, 0.26)
+										: rowMouse.containsMouse
+											? Qt.alpha(M3Palette.m3onSurface, 0.08)
+											: "transparent"
+									border.color: appRow.ListView.isCurrentItem
+										? Qt.alpha(M3Palette.m3tertiary, 0.7)
+										: "transparent"
+									border.width: appRow.ListView.isCurrentItem ? 1 : 0
 								}
 
 								Row {
@@ -891,6 +932,36 @@ Item {
 	}
 
 	// ---------------- 数据 ----------------
+	function resetAppSelection(): void {
+		if (appList.count > 0) {
+			appList.currentIndex = 0;
+			appList.positionViewAtIndex(0, ListView.Beginning);
+		} else {
+			appList.currentIndex = -1;
+		}
+	}
+
+	function moveAppSelection(delta: int): void {
+		if (appList.count === 0)
+			return;
+		const next = Math.max(0, Math.min(appList.count - 1, appList.currentIndex + delta));
+		if (next !== appList.currentIndex) {
+			appList.currentIndex = next;
+			appList.positionViewAtIndex(next, ListView.Contain);
+		}
+	}
+
+	function launchSelectedApp(): void {
+		const entry = appList.count > 0
+			? (appList.currentItem?.modelData ?? appList.model?.[appList.currentIndex])
+			: null;
+		if (!entry)
+			return;
+		console.info(`[spotlight-key] launch ${entry.name ?? ""}`);
+		Apps.launch(entry);
+		root.closeRequested();
+	}
+
 	function appResults(text: string): var {
 		text = (text || "").trim();
 		return Apps.search(text).filter(a => !!a).slice(0, 60);

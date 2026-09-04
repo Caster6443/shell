@@ -317,14 +317,65 @@ Item {
 		jumpSettleTimer.restart();
 	}
 
-	// ---- Hyprland 窗口捕获静默悬挂自动踢脚 ----
-	// toplevel-export 帧只在输出提交时拷贝；窗口捕获整体卡住（多次重建无首帧）时，
-	// 跑一次 monitor 截图（wlr-screencopy）可驱动输出提交解卡（grim 实测有效，2026-09-03）。
-	property bool kickPending: false
-	signal captureKickDone()
+	// ---- 预览状态登记（供解锁踢脚判断“是否已有画面”） ----
+	property var previewState: ({})
+	property int previewTotal: 0
+	property int previewReady: 0
 
-	function requestCaptureKick() {
-		if (root.kickPending)
+	function registerPreview(address: string): void {
+		if (!(address in root.previewState)) {
+			root.previewState[address] = false;
+			root.recomputePreviewCounts();
+		}
+		root.kickIfNeeded();
+	}
+
+	function unregisterPreview(address: string): void {
+		if (address in root.previewState) {
+			delete root.previewState[address];
+			root.recomputePreviewCounts();
+		}
+	}
+
+	function setPreviewHasContent(address: string, has: bool): void {
+		if (!(address in root.previewState))
+			return;
+		if (root.previewState[address] === has)
+			return;
+		root.previewState[address] = has;
+		root.recomputePreviewCounts();
+	}
+
+	function recomputePreviewCounts(): void {
+		root.previewTotal = 0;
+		root.previewReady = 0;
+		for (const k in root.previewState) {
+			root.previewTotal++;
+			if (root.previewState[k])
+				root.previewReady++;
+		}
+		if (root.previewReady > 0)
+			kickRetryTimer.stop();
+	}
+
+	// ---- Hyprland toplevel-export 解锁踢脚（有界） ----
+	// 实测（2026-09-01~03）：新实例/新捕获上下文的窗口捕获会静默悬挂（无帧无报错），
+	// 一次 monitor 截图（wlr-screencopy）可恢复合成器侧状态，随后常驻 live 流正常出帧。
+	// 这里只在「有预览且一个画面都没有」时踢，任一预览出帧即停，最多 3 次/次打开。
+	signal captureKickDone()
+	property bool kickPending: false
+	property int kickAttempts: 0
+
+	function unlockCaptureSequence(): void {
+		root.kickAttempts = 0;
+		root.kickPending = false;
+		root.kickIfNeeded();
+	}
+
+	function kickIfNeeded(): void {
+		if (root.kickPending || root.kickAttempts >= 3)
+			return;
+		if (root.previewTotal === 0 || root.previewReady > 0)
 			return;
 		const mon = Hyprland.focusedMonitor?.name ?? "";
 		if (!mon) {
@@ -332,7 +383,7 @@ Item {
 			return;
 		}
 		root.kickPending = true;
-		console.info(`[overview-kick] monitor screencopy kick: grim -o ${mon} /dev/null`);
+		console.info(`[overview-kick] unlock kick ${root.kickAttempts + 1}/3: grim -o ${mon} /dev/null`);
 		kickProc.exec(["grim", "-o", mon, "/dev/null"]);
 	}
 
@@ -340,11 +391,20 @@ Item {
 		id: kickProc
 		onExited: (code, status) => {
 			root.kickPending = false;
+			root.kickAttempts++;
 			console.info(`[overview-kick] grim exited code=${code}`);
-			// 踢脚完成：通知各窗口立刻重建捕获（Hyprland 通常在随后的
-			// 新捕获请求里把此前悬挂的窗口帧送出来）。
+			if (root.previewReady === 0 && root.previewTotal > 0 && root.kickAttempts < 3)
+				kickRetryTimer.start();
+			// 无论成功与否都通知预览：仍无首帧的窗口重建一次捕获
+			// （解锁后新发出的捕获请求通常即恢复送帧）。
 			root.captureKickDone();
 		}
+	}
+
+	Timer {
+		id: kickRetryTimer
+		interval: 700
+		onTriggered: root.kickIfNeeded()
 	}
 
 	Connections {

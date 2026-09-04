@@ -177,7 +177,10 @@ Rectangle {
 		id: screenView
 		anchors.fill: parent
 		anchors.margins: 1
-		live: overviewRoot.surfaceState.active
+		// 旧版（最初版 overview）语义：预览是常驻实时流，不随 surface 开关门控。
+		// 关闭/隐藏时视图不参与绘制，ScreencopyView 不会喂帧（Quickshell view.cpp
+		// 只在 updatePaintNode 里请求下一帧），因此不会产生后台空转开销。
+		live: true
 
 		// HyprlandToplevel 按 address 复用，指针稳定；wayland 句柄到位后绑定自动更新。
 		readonly property var myToplevel: {
@@ -191,106 +194,94 @@ Rectangle {
 
 		// 置 true 时 captureSource 走 null 分支，用于销毁旧捕获上下文后强制重建。
 		property bool forceBlank: false
-		// 静默卡死保护：Hyprland 有时收到捕获请求后既不回帧也不报错
-		// （无 ready/failed，ScreencopyView 不会触发 stopped），缩略图会永久纯色。
-		// 这里用递增退避定时重建捕获上下文，覆盖数秒到一分钟级的卡死；
-		// 连续重建仍无首帧时请求共享 monitor 截图踢脚（见 OverviewContent.requestCaptureKick）。
-		property int retryIdx: -1
-		readonly property var retryDelays: [1000, 2500, 5000, 10000, 20000, 40000]
 
 		captureSource: forceBlank ? null : (myToplevel?.wayland ?? null)
 
-		// 组件创建时若 surface 已激活但尚无首帧（launcher 场景：内容先建好、
-		// 打开时才激活），立即请求一次 monitor 踢脚，不必等看门狗走完退避。
 		Component.onCompleted: {
-			if (overviewRoot.surfaceState.active && !screenView.hasContent && screenView.captureSource) {
-				if (overviewRoot?.requestCaptureKick)
-					overviewRoot.requestCaptureKick();
-				screenView.scheduleRetry();
-			}
+			if (overviewRoot?.registerPreview)
+				overviewRoot.registerPreview(windowAddress);
+		}
+
+		Component.onDestruction: {
+			if (overviewRoot?.unregisterPreview)
+				overviewRoot.unregisterPreview(windowAddress);
 		}
 
 		onHasContentChanged: {
+			if (overviewRoot?.setPreviewHasContent)
+				overviewRoot.setPreviewHasContent(windowAddress, screenView.hasContent);
 			if (screenView.hasContent) {
-				screenView.retryIdx = -1;
+				screenView.gaveUpNoFrame = false;
 				console.info(`[overview] ${windowAddress} capture ok`);
 			}
 		}
 
 		// 合成器终止画面流（如离屏窗口首帧失败、混合显卡拷贝失败）后，
 		// ScreencopyView 不会自愈：同指针 setCaptureSource 直接返回，
-		// live=true 也只在已有上下文时捕获。这里重试重建捕获。
+		// live=true 也只在已有上下文时捕获。这里重建捕获上下文。
 		onStopped: {
-			screenView.scheduleRetry();
+			console.info(`[overview] ${windowAddress} stream stopped, rebuild`);
+			screenView.recover();
 		}
 
-		function scheduleRetry() {
-			if (!overviewRoot.surfaceState.active || screenView.hasContent)
-				return;
-			// 退避表循环使用：overview 打开期间可无限重试（此前到表尾就停，无法自愈）。
-			screenView.retryIdx = (screenView.retryIdx + 1) % screenView.retryDelays.length;
-			// 连续多次重建仍无首帧 → Hyprland toplevel-export 静默悬挂：
-			// 请求 OverviewContent 的共享 kicker 跑一次 monitor 截图（wlr-screencopy），
-			// 驱动输出提交让卡住的窗口捕获恢复（grim 实测有效，2026-09-03）。
-			if (screenView.retryIdx >= 1 && overviewRoot?.requestCaptureKick)
-				overviewRoot.requestCaptureKick();
-			retryTimer.interval = screenView.retryDelays[screenView.retryIdx];
-			retryTimer.restart();
-		}
-
-		function refreshCapture() {
-			// 先置 null 清掉 mCaptureSource，再在同一帧恢复同一 toplevel，强制重建上下文。
-			screenView.forceBlank = true;
-			Qt.callLater(() => { screenView.forceBlank = false; });
-		}
+		// 静默卡死兜底（最小化）：长时间无首帧时只重建一次捕获上下文，
+		// 仍无帧即放弃自动重试，等待 OverviewContent 的按需解锁踢脚再恢复。
+		property bool gaveUpNoFrame: false
 
 		Timer {
-			id: retryTimer
+			id: firstFrameWatchdog
+			interval: 4000
 			repeat: false
+			running: !screenView.gaveUpNoFrame && !screenView.hasContent && !!screenView.captureSource
 			onTriggered: {
-				if (overviewRoot.surfaceState.active && !screenView.hasContent) {
-					screenView.refreshCapture();
-				} else {
-					screenView.retryIdx = -1;
+				if (!screenView.hasContent && !!screenView.captureSource) {
+					console.info(`[overview] ${windowAddress} no first frame, rebuild`);
+					screenView.gaveUpNoFrame = true;
+					screenView.recover();
 				}
 			}
 		}
 
-		// 看门狗：捕获已发起但迟迟没有首帧时，按退避表持续重建捕获。
-		Timer {
-			id: captureWatchdog
-			interval: 1000
-			repeat: true
-			running: overviewRoot.surfaceState.active && !!screenView.captureSource && !screenView.hasContent
-			onTriggered: {
-				if (!retryTimer.running)
-					screenView.scheduleRetry();
-			}
+		// 重建保护：forceBlank 置 null 销毁旧捕获上下文，再恢复同一 toplevel 强制重建。
+		// 冷却期内不再重建，避免合成器反复终止流时无限循环。
+		property bool recovering: false
+		property bool recoverCooldown: false
+
+		function recover() {
+			if (screenView.recovering || screenView.recoverCooldown)
+				return;
+			screenView.recovering = true;
+			screenView.forceBlank = true;
+			Qt.callLater(() => {
+				screenView.forceBlank = false;
+				screenView.recovering = false;
+				screenView.recoverCooldown = true;
+				recoverCooldownTimer.restart();
+			});
 		}
 
-		// 每次打开 overview 时，给没有画面的缩略图一次全新捕获机会
-		// （此前失败的离屏窗口在切换工作区后重新可见，能恢复画面）。
-		Connections {
-			target: overviewRoot.surfaceState
-			function onActiveChanged() {
-				if (overviewRoot.surfaceState.active) {
-					screenView.retryIdx = -1;
-					screenView.scheduleRetry();
-					// 新实例启动后窗口捕获常整体静默悬挂：打开时若仍无画面，
-					// 立即请求一次 monitor 截图踢脚，不必等退避表走完。
-					if (!screenView.hasContent && overviewRoot?.requestCaptureKick)
-						overviewRoot.requestCaptureKick();
-				}
-			}
+		// 解锁踢脚完成后的重建：合成器侧已恢复，强制清冷却并重建一次。
+		function recoverAfterKick() {
+			screenView.gaveUpNoFrame = false;
+			screenView.recoverCooldown = false;
+			screenView.recover();
+			firstFrameWatchdog.interval = 8000;
+			firstFrameWatchdog.restart();
 		}
 
-		// monitor 截图踢脚完成 → 立刻重建一次捕获。
+		// 解锁踢脚（monitor 截图）完成 → 仍无首帧的预览立刻重建捕获。
 		Connections {
 			target: overviewRoot
 			function onCaptureKickDone() {
-				if (overviewRoot.surfaceState.active && !screenView.hasContent)
-					screenView.refreshCapture();
+				if (!screenView.hasContent && !!screenView.captureSource)
+					screenView.recoverAfterKick();
 			}
+		}
+
+		Timer {
+			id: recoverCooldownTimer
+			interval: 8000
+			onTriggered: screenView.recoverCooldown = false
 		}
 	}
 

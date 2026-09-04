@@ -31,7 +31,6 @@ Item {
 	// 无本地结果时回车回退到浏览器搜索（?q= 后由 openWebSearch 自动拼接查询词）
 	readonly property string webSearchBase: "https://www.bing.com/search?q="
 	property real maxHeight: 900
-	property int kickBurstCount: 0
 
 	// ---------------- 生命周期 ----------------
 	Component.onCompleted: Qt.callLater(() => {
@@ -47,14 +46,12 @@ Item {
 			root.ghostVisible = false;
 			SpotlightState.active = true;
 			ov.refresh();
+			ov.unlockCaptureSequence();
 			Qt.callLater(() => ov.settleToActive());
 			input.forceActiveFocus();
 			Qt.callLater(root.resetAppSelection);
-			root.kickBurstCount = 0;
-			openKickTimer.start();
 		} else {
 			SpotlightState.active = false;
-			openKickTimer.stop();
 		}
 	}
 
@@ -68,19 +65,6 @@ Item {
 		function onActiveChanged() {
 			if (!SpotlightState.active && root.visible)
 				root.closeRequested();
-		}
-	}
-
-	// 打开时连踢几次 monitor 截图：单次踢脚偶尔无效（实测需 2~3 次才稳定出帧）
-	Timer {
-		id: openKickTimer
-
-		interval: 700
-		repeat: true
-		onTriggered: {
-			ov.requestCaptureKick();
-			if (++root.kickBurstCount >= 4)
-				openKickTimer.stop();
 		}
 	}
 

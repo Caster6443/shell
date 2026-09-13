@@ -51,6 +51,11 @@ Singleton {
 		path: root.stateDir + "/caelestia/scheme.json"
 		watchChanges: true
 
+		// 注意：Quickshell 的 FileView 在 watchChanges 下只发 fileChanged、不会自动重读
+		// （必须显式 reload，上游 services/Colours.qml 同款写法）。少了这句就是「监听了个寂寞」：
+		// 主题/壁纸换色时本文件不会更新。
+		onFileChanged: root.reload()
+
 		onLoaded: {
 			try {
 				root.themeColours = JSON.parse(text()).colours ?? {};

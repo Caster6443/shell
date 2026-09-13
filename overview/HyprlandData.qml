@@ -12,6 +12,11 @@ Item {
 	property var workspaces: []
 	property var activeWorkspace: null
 
+	// 事件驱动的全量刷新开关（每次刷新 = 3 个 hyprctl 进程）。
+	// 面板现在常驻不销毁，隐藏期间由宿主把这里置 false，避免在后台跟着
+	// Hyprland 事件（窗口标题 10Hz 级别的刷新）反复拉起进程。
+	property bool liveUpdates: true
+
 	function updateAll() {
 		getClients.running = true;
 		getWorkspaces.running = true;
@@ -23,6 +28,8 @@ Item {
 	Connections {
 		target: Hyprland
 		function onRawEvent(event) {
+			if (!root.liveUpdates)
+				return;
 			if (["openlayer", "closelayer", "screencast", "activemon"].includes(event.name))
 				return;
 			updateAll();

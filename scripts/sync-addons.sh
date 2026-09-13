@@ -20,10 +20,12 @@ RESTART=0
 [[ "${1:-}" == "-r" ]] && RESTART=1
 
 # 1. 自包含外挂模块（整目录同步）。仅这些目录会被覆盖，仓库 modules/ 其余不动。
-MODULES=("overview" "cheatsheet" "spotlight")
+# 同步内容：
+#   1. 自包含外挂模块目录：overview / cheatsheet / spotlight / aichat / mihomo
+MODULES=("overview" "cheatsheet" "spotlight" "aichat" "mihomo")
 
 # 2. shell.qml 需要顶层实例化的模块（名字 → 实例化行）。
-INSTANCE_HOOKS=("cheatsheet")
+INSTANCE_HOOKS=("cheatsheet" "aichat" "mihomo")
 
 # 同步自包含外挂模块
 mkdir -p "$TARGET"
@@ -48,7 +50,7 @@ import sys
 
 path = sys.argv[1]
 modules = sys.argv[2:]
-instances = {"cheatsheet": "Cheatsheet {}"}
+instances = {"cheatsheet": "Cheatsheet {}", "aichat": "AiChat {}", "mihomo": "Mihomo {}"}
 
 with open(path, encoding="utf-8") as f:
     lines = f.read().splitlines(keepends=True)

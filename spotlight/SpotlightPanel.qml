@@ -26,6 +26,29 @@ Item {
 	property bool ghostVisible: false
 	property string ghostIcon: ""
 	property string mode: "apps"
+	// 顶部标签顺序（胶囊按索引滑动，cycleMode 也用这个顺序）
+	readonly property var modeOrder: ["apps", "wallpaper", "clipboard", "emoji"]
+	readonly property int modeIndex: Math.max(0, root.modeOrder.indexOf(root.mode))
+
+	function modeLabel(m: string): string {
+		if (m === "apps")
+			return "应用";
+		if (m === "wallpaper")
+			return "壁纸";
+		if (m === "clipboard")
+			return "剪贴板";
+		return "Emoji";
+	}
+
+	function modePlaceholder(m: string): string {
+		if (m === "wallpaper")
+			return "搜索壁纸…";
+		if (m === "clipboard")
+			return "搜索剪贴板历史…";
+		if (m === "emoji")
+			return "搜索 Emoji（英文关键词）…";
+		return "搜索应用…";
+	}
 	// 壁纸模式默认视图：竖排列表（carousel）；用户 2026-09-04 确认不用网格
 	property string wallView: "carousel"
 	// 无本地结果时回车回退到浏览器搜索（?q= 后由 openWebSearch 自动拼接查询词）
@@ -33,18 +56,34 @@ Item {
 	property real maxHeight: 900
 
 	// ---------------- 生命周期 ----------------
+	// 面板内容现在常驻（launcher Wrapper 的本地补丁：首次打开后不再销毁重建），
+	// 所以这里同时负责「每次打开」和「完全关闭后」的重置工作。
 	Component.onCompleted: Qt.callLater(() => {
 		if (root.mode === "apps")
 			root.resetAppSelection();
-		input.forceActiveFocus();
+		// 预热（隐藏状态创建）时不要抢焦点，只在真正可见时补焦点。
+		if (root.visible)
+			input.forceActiveFocus();
 	})
+
+	// 打开流程里唯一会起外部进程的重活（cliphist list）：推迟到面板已经上屏之后再跑，
+	// 不和入场动画抢主线程与 CPU。
+	Timer {
+		id: clipboardRefreshTimer
+		interval: 250
+		repeat: false
+		onTriggered: ClipboardData.refresh()
+	}
 
 	onVisibleChanged: {
 		if (visible) {
+			hoverCloseTimer.stop();
 			input.text = "";
 			root.launchWatch = null;
 			root.ghostVisible = false;
 			SpotlightState.active = true;
+			// 剪贴板历史每次打开刷新一次（一个 cliphist list 进程，很便宜）
+			clipboardRefreshTimer.restart();
 			ov.refresh();
 			ov.unlockCaptureSequence();
 			Qt.callLater(() => ov.settleToActive());
@@ -52,6 +91,31 @@ Item {
 			Qt.callLater(root.resetAppSelection);
 		} else {
 			SpotlightState.active = false;
+			clipboardRefreshTimer.stop();
+			// 面板常驻后不再随关闭销毁重建，这里显式回到默认标签页，
+			// 保持与之前「每次打开都停在应用标签」一致的手感。
+			root.mode = "apps";
+		}
+	}
+
+	// 鼠标离开面板即自动关闭；给 150ms 宽限，避免贴着边缘/拖动时被误关。
+	HoverHandler {
+		onHoveredChanged: {
+			if (hovered)
+				hoverCloseTimer.stop();
+			else if (root.visible)
+				hoverCloseTimer.restart();
+		}
+	}
+
+	Timer {
+		id: hoverCloseTimer
+
+		interval: 150
+		repeat: false
+		onTriggered: {
+			if (root.visible)
+				root.closeRequested();
 		}
 	}
 
@@ -79,18 +143,41 @@ Item {
 		return entry?.command ?? [];
 	}
 
-	function launchOnWorkspace(entry: var, wsId: int, isSpecial: bool): void {
+	// 模式标签切换：滚轮向上 = 下一个标签，向下 = 上一个标签（按 modeOrder 循环；方向按用户实测反馈定）
+	function cycleMode(deltaY: real): void {
+		if (deltaY === 0)
+			return;
+		const order = root.modeOrder;
+		const idx = order.indexOf(root.mode);
+		const step = deltaY < 0 ? 1 : -1;
+		const next = order[(idx + step + order.length) % order.length];
+		if (next !== root.mode)
+			root.mode = next;
+	}
+
+	// 壁纸视图（竖排 / 网格）切换：方向与标签一致
+	function cycleWallView(deltaY: real): void {
+		if (deltaY === 0)
+			return;
+		const order = ["carousel", "grid"];
+		const idx = Math.max(0, order.indexOf(root.wallView));
+		const step = deltaY < 0 ? 1 : -1;
+		root.wallView = order[(idx + step + order.length) % order.length];
+	}
+
+	// ws 是工作区选择符字符串：普通工作区 "3"，特殊工作区 "special:slot1"
+	function launchOnWorkspace(entry: var, ws: var, isSpecial: bool): void {
 		launchRefreshTimer.restart();
 		if (isSpecial) {
-			root.pendingLaunch = { entry: entry, ws: wsId, special: true };
+			root.pendingLaunch = { entry: entry, ws: ws, special: true };
 			clientsProc.running = true;
 			return;
 		}
 		const argv = root.buildLaunchArgv(entry);
 		const cmdline = argv.map(root.shq).join(" ");
 		const luaCmd = String(cmdline).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
-		const expr = `hl.dispatch(hl.dsp.exec_cmd("${luaCmd}", { workspace = "${wsId} silent" }))`;
-		console.info(`[spotlight-launch] eval ws=${wsId}: ${cmdline.slice(0, 120)}`);
+		const expr = `hl.dispatch(hl.dsp.exec_cmd("${luaCmd}", { workspace = "${ws} silent" }))`;
+		console.info(`[spotlight-launch] eval ws=${ws}: ${cmdline.slice(0, 120)}`);
 		Quickshell.execDetached(["hyprctl", "eval", expr]);
 	}
 
@@ -102,7 +189,8 @@ Item {
 		onTriggered: ov.refresh()
 	}
 
-	function beginWatch(snapshot: var, entry: var, wsId: int, isSpecial: bool): void {
+	// wsId 这里其实是工作区选择符（普通 "3" / 特殊 "special:slot1"），用 var 接收
+	function beginWatch(snapshot: var, entry: var, wsId: var, isSpecial: bool): void {
 		const expected = new Set();
 		for (const c of [entry?.startupClass, entry?.command?.[0]]) {
 			if (!c)
@@ -163,7 +251,7 @@ Item {
 						const matched = watch.expected.size === 0 || watch.expected.has(cls);
 						if (!matched)
 							continue;
-						const ws = watch.special ? "special" : String(watch.ws);
+						const ws = String(watch.ws);
 						console.info(`[spotlight-launch] move ${c.class ?? ""} ${c.address} -> ws ${ws}`);
 						HyprDispatch.call(
 							`movetoworkspacesilent ${ws},address:${HyprDispatch.addressArg(c.address)}`,
@@ -239,7 +327,7 @@ Item {
 				leftPadding: 40
 				rightPadding: 14
 
-				placeholderText: root.mode === "wallpaper" ? "搜索壁纸…" : "搜索应用…"
+				placeholderText: root.modePlaceholder(root.mode)
 				placeholderTextColor: Qt.alpha(M3Palette.m3onSurface, 0.45)
 				color: M3Palette.m3onSurface
 				font: Tokens.font.body.large
@@ -273,6 +361,12 @@ Item {
 					} else if (root.mode === "wallpaper") {
 						root.moveWallSelection(0, 1);
 						event.accepted = true;
+					} else if (root.mode === "clipboard") {
+						root.moveClipSelection(1, 0);
+						event.accepted = true;
+					} else if (root.mode === "emoji") {
+						root.moveEmojiSelection(0, 1);
+						event.accepted = true;
 					}
 				}
 				Keys.onUpPressed: event => {
@@ -282,17 +376,29 @@ Item {
 					} else if (root.mode === "wallpaper") {
 						root.moveWallSelection(0, -1);
 						event.accepted = true;
+					} else if (root.mode === "clipboard") {
+						root.moveClipSelection(-1, 0);
+						event.accepted = true;
+					} else if (root.mode === "emoji") {
+						root.moveEmojiSelection(0, -1);
+						event.accepted = true;
 					}
 				}
 				Keys.onLeftPressed: event => {
 					if (root.mode === "wallpaper" && root.wallView === "grid") {
 						root.moveWallSelection(-1, 0);
 						event.accepted = true;
+					} else if (root.mode === "emoji") {
+						root.moveEmojiSelection(-1, 0);
+						event.accepted = true;
 					}
 				}
 				Keys.onRightPressed: event => {
 					if (root.mode === "wallpaper" && root.wallView === "grid") {
 						root.moveWallSelection(1, 0);
+						event.accepted = true;
+					} else if (root.mode === "emoji") {
+						root.moveEmojiSelection(1, 0);
 						event.accepted = true;
 					}
 				}
@@ -301,6 +407,10 @@ Item {
 						Qt.callLater(root.resetAppSelection);
 					else if (root.mode === "wallpaper")
 						Qt.callLater(root.resetWallSelection);
+					else if (root.mode === "clipboard")
+						Qt.callLater(root.resetClipSelection);
+					else if (root.mode === "emoji")
+						Qt.callLater(root.resetEmojiSelection);
 				}
 				onAccepted: {
 					if (root.mode === "apps") {
@@ -310,79 +420,81 @@ Item {
 							root.openWebSearch(input.text);
 					} else if (root.mode === "wallpaper") {
 						root.applySelectedWallpaper();
+					} else if (root.mode === "clipboard") {
+						root.copySelectedClip();
+					} else if (root.mode === "emoji") {
+						root.copySelectedEmoji();
 					}
 				}
 			}
 
-			// 顶部：模式切换（应用 / 壁纸）
+			// 顶部：模式切换（应用 / 壁纸 / 剪贴板 / Emoji）
 			Rectangle {
 				id: modeHeader
 
-				width: 172
+				width: 300
 				height: 30
 				radius: 15
 				color: Qt.alpha(M3Palette.m3surface, 0.55)
 				border.color: Qt.alpha(M3Palette.m3onSurface, 0.15)
 				border.width: 1
 
+				// 滑块胶囊：单一元素在标签之间滑过去（按 modeIndex 定位）
+				Rectangle {
+					id: modePill
+
+					y: 2
+					width: (modeHeader.width - 4) / root.modeOrder.length
+					height: modeHeader.height - 4
+					radius: 13
+					color: M3Palette.m3tertiary
+					x: 2 + root.modeIndex * width
+
+					Behavior on x {
+						NumberAnimation {
+							duration: 190
+							easing.type: Easing.OutCubic
+						}
+					}
+				}
+
 				Row {
 					anchors.fill: parent
 
-					Item {
-						width: parent.width / 2
-						height: parent.height
+					Repeater {
+						model: root.modeOrder
 
-						Rectangle {
-							anchors.fill: parent
-							anchors.margins: 2
-							radius: 13
-							visible: root.mode === "apps"
-							color: M3Palette.m3tertiary
-						}
+						delegate: Item {
+							id: modeTab
+							required property string modelData
 
-						Text {
-							anchors.centerIn: parent
-							text: "应用"
-							color: root.mode === "apps"
-								? "#FFFFFF"
-								: Qt.alpha(M3Palette.m3onSurface, 0.5)
-							font.pixelSize: 11
-							font.bold: root.mode === "apps"
-						}
+							width: modeHeader.width / root.modeOrder.length
+							height: modeHeader.height
 
-						MouseArea {
-							anchors.fill: parent
-							hoverEnabled: true
-							onClicked: root.mode = "apps"
-						}
-					}
+							Text {
+								anchors.centerIn: parent
+								text: root.modeLabel(modeTab.modelData)
+								color: root.mode === modeTab.modelData
+									? "#FFFFFF"
+									: Qt.alpha(M3Palette.m3onSurface, 0.5)
+								font.pixelSize: 11
+								font.bold: root.mode === modeTab.modelData
+							}
 
-					Item {
-						width: parent.width / 2
-						height: parent.height
-
-						Rectangle {
-							anchors.fill: parent
-							anchors.margins: 2
-							radius: 13
-							visible: root.mode === "wallpaper"
-							color: M3Palette.m3tertiary
-						}
-
-						Text {
-							anchors.centerIn: parent
-							text: "壁纸"
-							color: root.mode === "wallpaper"
-								? "#FFFFFF"
-								: Qt.alpha(M3Palette.m3onSurface, 0.5)
-							font.pixelSize: 11
-							font.bold: root.mode === "wallpaper"
-						}
-
-						MouseArea {
-							anchors.fill: parent
-							hoverEnabled: true
-							onClicked: root.mode = "wallpaper"
+							MouseArea {
+								anchors.fill: parent
+								hoverEnabled: true
+								// 悬停在选项卡上滚轮也能切换模式
+								onWheel: wheel => {
+									wheel.accepted = true;
+									root.cycleMode(wheel.angleDelta.y);
+								}
+								onClicked: {
+									root.mode = modeTab.modelData;
+									if (modeTab.modelData === "clipboard")
+										ClipboardData.refresh();
+								}
+							}
 						}
 					}
 				}
@@ -589,13 +701,13 @@ Item {
 									}
 									onReleased: mouse => {
 										const wasDrag = appRow.Drag.active;
-										let hitWs = -1;
+										let hitWs = "";
 										if (wasDrag) {
 											const p = rowMouse.mapToItem(ov, mouse.x, mouse.y);
 											hitWs = ov.workspaceAt(p);
 											console.info(`[spotlight-drag] release ${modelData.name ?? ""} ws=${hitWs}`);
-											if (hitWs !== -1)
-												root.launchOnWorkspace(modelData, hitWs, hitWs < 0);
+											if (hitWs !== "")
+												root.launchOnWorkspace(modelData, hitWs, ov.isSpecialWorkspaceKey(hitWs));
 										}
 										appRow.Drag.active = false;
 										appRow.opacity = 1;
@@ -632,49 +744,120 @@ Item {
 					height: 28
 					spacing: 8
 
+					// 随机 Booru 壁纸（只取 rating:safe）：抓一张随机图下载到缓存再应用
 					Rectangle {
-						width: 58
+						id: booruButton
+
+						width: booruLabel.implicitWidth + 20
 						height: parent.height
 						radius: 9
-						color: root.wallView === "carousel"
-							? M3Palette.m3tertiary
-							: Qt.alpha(M3Palette.m3surface, 0.6)
+						color: BooruWallpaper.busy
+							? Qt.alpha(M3Palette.m3tertiary, 0.5)
+							: (booruArea.containsMouse ? Qt.alpha(M3Palette.m3tertiary, 0.35) : Qt.alpha(M3Palette.m3surface, 0.6))
 
 						Text {
+							id: booruLabel
+
 							anchors.centerIn: parent
-							text: "≡"
-							color: root.wallView === "carousel"
-								? "#FFFFFF"
-								: Qt.alpha(M3Palette.m3onSurface, 0.55)
-							font.pixelSize: 16
+							text: BooruWallpaper.busy ? "抓取中…" : "🎲 随机壁纸"
+							color: BooruWallpaper.busy ? "#FFFFFF" : M3Palette.m3onSurface
+							font.pixelSize: 12
 						}
 
 						MouseArea {
+							id: booruArea
+
 							anchors.fill: parent
-							onClicked: root.wallView = "carousel"
+							hoverEnabled: true
+							onClicked: BooruWallpaper.randomize()
 						}
 					}
 
+					Text {
+						anchors.verticalCenter: parent.verticalCenter
+						visible: BooruWallpaper.status !== ""
+						text: BooruWallpaper.status
+						color: Qt.alpha(M3Palette.m3onSurface, 0.55)
+						font.pixelSize: 11
+					}
+
+					// 竖排 / 网格 切换：单一滑块 + 滚轮切换（与顶部标签同一套手势方向）
 					Rectangle {
-						width: 58
+						id: wallViewSwitch
+
+						width: 116
 						height: parent.height
 						radius: 9
-						color: root.wallView === "grid"
-							? M3Palette.m3tertiary
-							: Qt.alpha(M3Palette.m3surface, 0.6)
+						color: Qt.alpha(M3Palette.m3surface, 0.6)
 
-						Text {
-							anchors.centerIn: parent
-							text: "▦"
-							color: root.wallView === "grid"
-								? "#FFFFFF"
-								: Qt.alpha(M3Palette.m3onSurface, 0.55)
-							font.pixelSize: 15
+						Rectangle {
+							id: wallViewPill
+
+							y: 2
+							width: (wallViewSwitch.width - 4) / 2
+							height: wallViewSwitch.height - 4
+							radius: 7
+							color: M3Palette.m3tertiary
+							x: 2 + (root.wallView === "carousel" ? 0 : width)
+
+							Behavior on x {
+								NumberAnimation {
+									duration: 160
+									easing.type: Easing.OutCubic
+								}
+							}
 						}
 
-						MouseArea {
+						Row {
 							anchors.fill: parent
-							onClicked: root.wallView = "grid"
+
+							Item {
+								width: wallViewSwitch.width / 2
+								height: wallViewSwitch.height
+
+								Text {
+									anchors.centerIn: parent
+									text: "≡"
+									color: root.wallView === "carousel"
+										? "#FFFFFF"
+										: Qt.alpha(M3Palette.m3onSurface, 0.55)
+									font.pixelSize: 16
+								}
+
+								MouseArea {
+									anchors.fill: parent
+									hoverEnabled: true
+									onWheel: wheel => {
+										wheel.accepted = true;
+										root.cycleWallView(wheel.angleDelta.y);
+									}
+									onClicked: root.wallView = "carousel"
+								}
+							}
+
+							Item {
+								width: wallViewSwitch.width / 2
+								height: wallViewSwitch.height
+
+								Text {
+									anchors.centerIn: parent
+									text: "▦"
+									color: root.wallView === "grid"
+										? "#FFFFFF"
+										: Qt.alpha(M3Palette.m3onSurface, 0.55)
+									font.pixelSize: 15
+								}
+
+								MouseArea {
+									anchors.fill: parent
+									hoverEnabled: true
+									onWheel: wheel => {
+										wheel.accepted = true;
+										root.cycleWallView(wheel.angleDelta.y);
+									}
+									onClicked: root.wallView = "grid"
+								}
+							}
 						}
 					}
 				}
@@ -972,12 +1155,212 @@ Item {
 								}
 							}
 						}
+						}
+					}
+				}
+
+			// ---------------- 剪贴板历史（cliphist） ----------------
+			Item {
+				id: clipboardBody
+
+				visible: root.mode === "clipboard"
+				width: parent.width
+				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+
+				Text {
+					anchors.centerIn: parent
+					visible: clipList.count === 0
+					text: ClipboardData.busy
+						? "读取剪贴板历史…"
+						: (ClipboardData.entries.length === 0
+							? "剪贴板历史为空（需要 cliphist + wl-paste --watch cliphist store）"
+							: "没有匹配的条目")
+					color: Qt.alpha(M3Palette.m3onSurface, 0.5)
+					font.pixelSize: 14
+				}
+
+				ListView {
+					id: clipList
+
+					anchors.fill: parent
+					clip: true
+					spacing: 4
+					model: ClipboardData.query(input.text)
+					currentIndex: -1
+
+					onCountChanged: {
+						if (currentIndex < 0 && count > 0)
+							currentIndex = 0;
+					}
+
+					delegate: Rectangle {
+						id: clipRow
+						required property var modelData
+						required property int index
+
+						width: clipList.width
+						height: clipRow.modelData.isImage ? 152 : 56
+						radius: 12
+						color: (clipList.currentIndex === clipRow.index || clipRowMouse.containsMouse)
+							? Qt.alpha(M3Palette.m3tertiary, 0.22)
+							: Qt.alpha(M3Palette.m3surface, 0.3)
+
+						Text {
+							id: clipIcon
+
+							anchors.left: parent.left
+							anchors.leftMargin: 12
+							anchors.verticalCenter: parent.verticalCenter
+							visible: !clipRow.modelData.isImage
+							text: "📄"
+							font.pixelSize: 18
+						}
+
+						// 图片条目：解码一次画大预览（保持比例、完整显示，缓存见 ClipboardData.thumbs）
+						Image {
+							id: clipThumb
+
+							anchors.left: parent.left
+							anchors.right: parent.right
+							anchors.leftMargin: 12
+							anchors.rightMargin: 12
+							anchors.verticalCenter: parent.verticalCenter
+							visible: clipRow.modelData.isImage
+							height: 132
+							source: clipRow.modelData.isImage ? ClipboardData.thumbFor(clipRow.modelData.id) : ""
+							sourceSize: Qt.size(512, 512)
+							fillMode: Image.PreserveAspectFit
+							asynchronous: true
+							cache: false
+
+							Component.onCompleted: {
+								if (clipRow.modelData.isImage)
+									ClipboardData.requestThumb(clipRow.modelData);
+							}
+
+							Rectangle {
+								anchors.fill: parent
+								visible: parent.status !== Image.Ready
+								color: Qt.alpha(M3Palette.m3surface, 0.6)
+
+								Text {
+									anchors.centerIn: parent
+									text: "🖼"
+									font.pixelSize: 18
+								}
+							}
+						}
+
+						Text {
+							anchors.left: clipRow.modelData.isImage ? clipThumb.right : clipIcon.right
+							anchors.leftMargin: 10
+							anchors.right: parent.right
+							anchors.rightMargin: 12
+							anchors.verticalCenter: parent.verticalCenter
+							visible: !clipRow.modelData.isImage
+							text: clipRow.modelData.preview
+							textFormat: Text.PlainText
+							elide: Text.ElideRight
+							maximumLineCount: 1
+							color: M3Palette.m3onSurface
+							font.pixelSize: 15
+						}
+
+						// 图片条目：底部一条尺寸/大小说明（图片本体按比例完整显示，不裁剪）
+						Text {
+							anchors.left: parent.left
+							anchors.bottom: parent.bottom
+							anchors.leftMargin: 12
+							anchors.bottomMargin: 6
+							visible: clipRow.modelData.isImage && clipRow.modelData.info !== ""
+							text: clipRow.modelData.info
+							textFormat: Text.PlainText
+							color: Qt.alpha(M3Palette.m3onSurface, 0.6)
+							font.pixelSize: 12
+						}
+
+						MouseArea {
+							id: clipRowMouse
+
+							anchors.fill: parent
+							hoverEnabled: true
+							acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+							onEntered: clipList.currentIndex = clipRow.index
+							onClicked: mouse => {
+								if (mouse.button === Qt.MiddleButton) {
+									ClipboardData.remove(clipRow.modelData);
+									return;
+								}
+								root.copyClipEntry(clipRow.modelData);
+							}
+						}
 					}
 				}
 			}
-		}
 
-		// 拖拽幽灵
+			// ---------------- Emoji 选择器 ----------------
+			Item {
+				id: emojiBody
+
+				visible: root.mode === "emoji"
+				width: parent.width
+				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+
+				Text {
+					anchors.centerIn: parent
+					visible: emojiGrid.count === 0
+					text: EmojiData.loaded ? "没有匹配的 Emoji" : "正在载入 Emoji 数据…"
+					color: Qt.alpha(M3Palette.m3onSurface, 0.5)
+					font.pixelSize: 12
+				}
+
+				GridView {
+					id: emojiGrid
+
+					anchors.fill: parent
+					clip: true
+					cellWidth: 58
+					cellHeight: 58
+					model: EmojiData.query(input.text)
+					currentIndex: -1
+
+					onCountChanged: {
+						if (currentIndex < 0 && count > 0)
+							currentIndex = 0;
+					}
+
+					delegate: Rectangle {
+						id: emojiCell
+						required property var modelData
+						required property int index
+
+						width: emojiGrid.cellWidth - 4
+						height: emojiGrid.cellHeight - 4
+						radius: 10
+						color: (emojiGrid.currentIndex === emojiCell.index || emojiCellMouse.containsMouse)
+							? Qt.alpha(M3Palette.m3tertiary, 0.25)
+							: "transparent"
+
+						Text {
+							anchors.centerIn: parent
+							text: emojiCell.modelData.emoji
+							font.pixelSize: 32
+						}
+
+						MouseArea {
+							id: emojiCellMouse
+
+							anchors.fill: parent
+							hoverEnabled: true
+							onEntered: emojiGrid.currentIndex = emojiCell.index
+							onClicked: root.copyEmojiEntry(emojiCell.modelData)
+						}
+					}
+				}
+			}
+
+			}
+			// 拖拽幽灵
 		Item {
 			id: dragGhost
 
@@ -1077,6 +1460,77 @@ Item {
 			return;
 		console.info(`[spotlight-key] wallpaper set ${entry.path}`);
 		Wallpapers.setWallpaper(entry.path);
+	}
+
+	// ---------------- 剪贴板历史（cliphist） ----------------
+	function resetClipSelection(): void {
+		if (clipList.count > 0) {
+			clipList.currentIndex = 0;
+			clipList.positionViewAtIndex(0, ListView.Beginning);
+		} else {
+			clipList.currentIndex = -1;
+		}
+	}
+
+	function moveClipSelection(delta: int): void {
+		if (clipList.count === 0)
+			return;
+		if (clipList.currentIndex < 0) {
+			clipList.currentIndex = 0;
+			return;
+		}
+		const idx = Math.max(0, Math.min(clipList.currentIndex + delta, clipList.count - 1));
+		clipList.currentIndex = idx;
+		clipList.positionViewAtIndex(idx, ListView.Contain);
+	}
+
+	function copyClipEntry(entry: var): void {
+		if (!entry)
+			return;
+		ClipboardData.copy(entry);
+		root.closeRequested();
+	}
+
+	function copySelectedClip(): void {
+		root.copyClipEntry(clipList.currentItem?.modelData ?? clipList.model?.[clipList.currentIndex]);
+	}
+
+	// ---------------- Emoji ----------------
+	function resetEmojiSelection(): void {
+		if (emojiGrid.count > 0) {
+			emojiGrid.currentIndex = 0;
+			emojiGrid.positionViewAtIndex(0, GridView.Beginning);
+		} else {
+			emojiGrid.currentIndex = -1;
+		}
+	}
+
+	function moveEmojiSelection(dx: int, dy: int): void {
+		const total = emojiGrid.count;
+		if (total === 0)
+			return;
+		const cols = Math.max(1, Math.floor(emojiGrid.width / emojiGrid.cellWidth));
+		let idx = emojiGrid.currentIndex < 0 ? 0 : emojiGrid.currentIndex;
+		if (dx !== 0) {
+			const row = Math.floor(idx / cols);
+			idx = idx + dx;
+			idx = Math.max(row * cols, Math.min(idx, Math.min((row + 1) * cols - 1, total - 1)));
+		}
+		if (dy !== 0)
+			idx = Math.max(0, Math.min(idx + dy * cols, total - 1));
+		emojiGrid.currentIndex = idx;
+		emojiGrid.positionViewAtIndex(idx, GridView.Contain);
+	}
+
+	function copyEmojiEntry(item: var): void {
+		if (!item)
+			return;
+		EmojiData.copy(item);
+		root.closeRequested();
+	}
+
+	function copySelectedEmoji(): void {
+		root.copyEmojiEntry(emojiGrid.currentItem?.modelData ?? emojiGrid.model?.[emojiGrid.currentIndex]);
 	}
 
 	function resetAppSelection(): void {

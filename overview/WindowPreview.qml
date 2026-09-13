@@ -18,6 +18,10 @@ Rectangle {
 	required property real m_linearX
 	required property bool m_floating
 	required property string m_title
+	// 工作区名字（特殊工作区是 "special:xxx"，普通工作区是 "1" 这类）。
+	// 必须是 required：普通/特殊两个模型都要提供该角色，否则拿不到值（踩过：非 required 带默认值收不到角色，
+	// 结果 layerKey 退化成 id，找不到卡片 → 缩略图被塞进 anyWorkspaceLayer()，出现在 1 号工作区上）。
+	required property string m_wsName
 
 	required property var overviewRoot
 	required property Item orphanLayer
@@ -26,11 +30,22 @@ Rectangle {
 	property int currentWsId: m_wsId
 
 	readonly property bool isHovered: overviewRoot.hoveredWindowAddress === m_address
+	readonly property bool isSpecialRow: m_wsId <= 0
+	// 卡片登记键：普通工作区用 id，特殊工作区用名字（空插槽还没有 id）
+	readonly property string layerKey: isSpecialRow ? (m_wsName !== "" ? m_wsName : String(m_wsId)) : String(m_wsId)
+	readonly property var rowModel: overviewRoot ? (isSpecialRow ? overviewRoot.specialWindowModelRef : overviewRoot.windowModelRef) : null
+
+	function rowInSameWorkspace(row): bool {
+		return isSpecialRow ? row.m_wsName === m_wsName : row.m_wsId === m_wsId;
+	}
 
 	readonly property int wsWindowCount: {
 		let n = 0;
-		for (let i = 0; i < overviewRoot.windowModelRef.count; ++i)
-			if (overviewRoot.windowModelRef.get(i).m_wsId === m_wsId)
+		const model = rowModel;
+		if (!model)
+			return 1;
+		for (let i = 0; i < model.count; ++i)
+			if (rowInSameWorkspace(model.get(i)))
 				n++;
 		return n;
 	}
@@ -41,9 +56,12 @@ Rectangle {
 		const hAddr = overviewRoot.hoveredWindowAddress;
 		if (!hAddr || hAddr === m_address)
 			return 0;
-		for (let i = 0; i < overviewRoot.windowModelRef.count; ++i) {
-			const it = overviewRoot.windowModelRef.get(i);
-			if (it.m_address !== hAddr || it.m_wsId !== m_wsId)
+		const model = rowModel;
+		if (!model)
+			return 0;
+		for (let i = 0; i < model.count; ++i) {
+			const it = model.get(i);
+			if (it.m_address !== hAddr || !rowInSameWorkspace(it))
 				continue;
 			const hovX = it.m_linearX * scaleRatio;
 			const myX = m_linearX * scaleRatio;
@@ -56,7 +74,18 @@ Rectangle {
 		return 0;
 	}
 
-	parent: (overviewRoot.wsLayers && overviewRoot.wsLayers[m_wsId]) ? overviewRoot.wsLayers[m_wsId] : (overviewRoot.anyWorkspaceLayer() ? overviewRoot.anyWorkspaceLayer() : orphanLayer)
+	parent: {
+		const layers = overviewRoot.wsLayers;
+		if (layers && layers[layerKey])
+			return layers[layerKey];
+		// 找不到自己的卡片时宁可放进隐藏的 orphanLayer，也不要塞到别的工作区卡片里
+		if (windowItem.loggedMissingLayer !== layerKey) {
+			windowItem.loggedMissingLayer = layerKey;
+			console.info(`[overview-preview] ${m_address} 没找到卡片 key=${layerKey}，现有键=${Object.keys(layers ?? {}).join(",")}`);
+		}
+		return orphanLayer;
+	}
+	property string loggedMissingLayer: ""
 	visible: parent !== orphanLayer
 	z: isHovered ? 30 : 20
 	scale: isHovered ? hoverScale : 1.0
@@ -291,12 +320,12 @@ Rectangle {
 	Drag.hotSpot.x: width / 2
 	Drag.hotSpot.y: height / 2
 
-	MouseArea {
-		id: mouseArea
-		anchors.fill: parent
-		drag.target: windowItem
-		hoverEnabled: true
-		acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+		MouseArea {
+			id: mouseArea
+			anchors.fill: parent
+			drag.target: windowItem
+			hoverEnabled: true
+			acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
 		onEntered: overviewRoot.hoveredWindowAddress = m_address
 		onExited: overviewRoot.hoveredWindowAddress = ""
@@ -314,14 +343,18 @@ Rectangle {
 			windowItem.z = 100;
 			const layer = windowItem.parent;
 			const container = layer ? layer.parent : null;
-			if (container)
+			if (container) {
 				container.hasActiveDrag = true;
+				overviewRoot.dragFromSpecialSection = !!container.isSpecial;
+			}
 		}
 
 		onReleased: mouse => {
+			overviewRoot.dragFromSpecialSection = false;
 			if (mouse.button === Qt.MiddleButton)
 				return;
-			windowItem.z = 1;
+			// 还原 hover 用的 z 绑定（直接赋常数会把绑定永久改掉）
+			windowItem.z = Qt.binding(() => windowItem.isHovered ? 30 : 20);
 			const layer = windowItem.parent;
 			const container = layer ? layer.parent : null;
 			if (container)
@@ -364,6 +397,16 @@ Rectangle {
 				}
 				overviewRoot.restartSyncTimer();
 			}
+		}
+
+		// 拖拽被打断（抢焦点、手势取消）时同样复位，避免列层级停在抬升状态。
+		onCanceled: {
+			overviewRoot.dragFromSpecialSection = false;
+			windowItem.z = Qt.binding(() => windowItem.isHovered ? 30 : 20);
+			const layer = windowItem.parent;
+			const container = layer ? layer.parent : null;
+			if (container)
+				container.hasActiveDrag = false;
 		}
 
 		onClicked: mouse => {

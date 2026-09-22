@@ -8,6 +8,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.mihomo
 import qs.services
 import qs.modules.nexus
 import qs.modules.bar.popouts as BarPopouts
@@ -148,6 +149,13 @@ StyledRect {
                         isToggle: VPN.status.state !== "needs-auth" && VPN.status.state !== "error"
                         inactiveOnColour: Colours.palette.m3onSurfaceVariant
                         onClicked: VPN.toggle()
+
+                        // 本地 fork 补丁（2026-09-11）：右键打开 mihomo 节点/订阅面板
+                        // （左键仍是 VPN.toggle()，即启停无头 mihomo 的 TUN 内核）
+                        TapHandler {
+                            acceptedButtons: Qt.RightButton
+                            onTapped: MihomoState.openPanel()
+                        }
                     }
                 }
             }

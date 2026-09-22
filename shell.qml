@@ -9,6 +9,9 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import "clipboard"
+import "mihomo"
+import "cheatsheet"
 import QtQuick
 import Quickshell
 import qs.services
@@ -34,6 +37,9 @@ ShellRoot {
         id: lock
     }
 
+    Cheatsheet {}
+    Mihomo {}
+    Clipboard {}
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {

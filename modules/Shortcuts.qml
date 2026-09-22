@@ -5,12 +5,27 @@ import Caelestia
 import qs.components.misc
 import qs.services
 import qs.modules.nexus
+import qs.spotlight
 
 Scope {
     id: root
 
-    property bool launcherInterrupted
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
+
+    // ---- fork 扩展（2026-09-14）：按 IPC / 快捷键请求「打开 launcher 并落在指定标签页」----
+    // 与基座 launcher 快捷键保持同一策略：全屏窗口聚焦时不弹面板。
+    function openSpotlight(mode: string): void {
+        if (root.hasFullscreen)
+            return;
+        const screenState = ShellState.forActive();
+        // 已经开着同一个标签页 → 再按一次收回（对齐旧 fuzzel 绑定的 toggle 手感，也与基座 launcher 一致）
+        if (screenState.launcher && SpotlightState.currentMode === mode) {
+            screenState.launcher = false;
+            return;
+        }
+        SpotlightState.requestedMode = mode;
+        screenState.launcher = true;
+    }
 
     // qmllint disable unresolved-type
     CustomShortcut {
@@ -64,22 +79,12 @@ Scope {
         // qmllint enable unresolved-type
         name: "launcher"
         description: "Toggle launcher"
-        onPressed: root.launcherInterrupted = false
         onReleased: {
-            if (!root.launcherInterrupted && !root.hasFullscreen) {
+            if (!root.hasFullscreen) {
                 const screenState = ShellState.forActive();
                 screenState.launcher = !screenState.launcher;
             }
-            root.launcherInterrupted = false;
         }
-    }
-
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
-        name: "launcherInterrupt"
-        description: "Interrupt launcher keybind"
-        onPressed: root.launcherInterrupted = true
     }
 
     // qmllint disable unresolved-type
@@ -133,6 +138,22 @@ Scope {
         }
 
         target: "drawers"
+    }
+
+    // ---- fork 扩展（2026-09-14）：spotlight/launcher 面板的按标签打开 ----
+    // 用法：caelestia shell spotlight clipboard（或 open <apps|wallpaper|clipboard|emoji>）
+    IpcHandler {
+        // 打开 spotlight（launcher 面板）并直接落在指定标签页
+        function open(mode: string): void {
+            root.openSpotlight(mode);
+        }
+
+        // 便捷入口：Hyprland 的 SUPER+V 走这个
+        function clipboard(): void {
+            root.openSpotlight("clipboard");
+        }
+
+        target: "spotlight"
     }
 
     IpcHandler {

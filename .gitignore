@@ -4,3 +4,6 @@
 build/
 .cache/
 logs
+
+# 翻译模板由 scripts/trs.fish raw 生成，不入库（fork：仅保留 trs/*.po）
+plugin/src/Caelestia/I18n/trs/raw.pot

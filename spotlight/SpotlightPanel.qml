@@ -848,7 +848,10 @@ Item {
 				}
 				onTextChanged: {
 					// 壁纸结果走防抖，其余标签仍是即时反应
-					root.wallQueryDebounce.restart();
+					// 注意：wallQueryDebounce 是 root 的直接子对象（靠 id 在组件内可见），
+					// 不是 root 的属性——写成 root.wallQueryDebounce.restart() 会取到 undefined，
+					// 导致防抖永不触发、壁纸搜索不随输入刷新（2026-09-23 修复）。
+					wallQueryDebounce.restart();
 					// 应用结果与改造前一样即时刷新（多了一层"查询串没变就复用"的保护）
 					root.syncAppResults(false);
 					// 结果集变了，右键菜单里的归类状态可能已失效

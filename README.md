@@ -36,36 +36,6 @@ like [`paru`](https://github.com/morganamilo/paru), or by manually downloading t
 A package following the latest commit also exists as `caelestia-shell-git`. This is bleeding-edge
 and likely to be unstable/have bugs. Regular users are recommended to use the stable package (`caelestia-shell`).
 
-### Nix
-
-You can run the shell directly via `nix run`:
-
-```sh
-nix run github:caelestia-dots/shell#with-cli
-```
-
-Or add it to your system configuration:
-
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    caelestia-shell = {
-      url = "github:caelestia-dots/shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-}
-```
-
-For full functionality, use `caelestia-shell.packages.<system>.with-cli`, which can be added to your
-`environment.systemPackages`, `users.users.<username>.packages`, `home.packages` if using home-manager,
-or a devshell. The `default` package does not include the CLI.
-You can then run the shell with `caelestia-shell`.
-
-For home-manager, you can also use Caelestia's Home Manager module (explained in [the configuration section](#home-manager-module)), which installs and configures the shell and CLI.
-
 ### Manual installation
 
 Dependencies:
@@ -867,42 +837,6 @@ token values to produce the final computed values.
 
 Per-monitor token overrides are also available at
 `~/.config/caelestia/monitors/<monitor_name>/shell-tokens.json`.
-
-### Home Manager Module
-
-For NixOS users, a Home Manager module is also available.
-
-<details><summary><code>home.nix</code></summary>
-
-```nix
-programs.caelestia = {
-  enable = true;
-  systemd = {
-    enable = false; # if you prefer starting from your compositor
-    target = "graphical-session.target";
-    environment = [];
-  };
-  settings = {
-    bar.statusIcons = [
-      { id = "lockStatus"; enabled = true; }
-      { id = "network"; enabled = true; }
-      { id = "bluetooth"; enabled = true; }
-      { id = "battery"; enabled = false; }
-    ];
-    paths.wallpaperDir = "~/Images";
-  };
-  cli = {
-    enable = true; # Also add caelestia-cli to path
-    settings = {
-      theme.enableGtk = false;
-    };
-  };
-};
-```
-
-The module automatically adds the shell to the path with **full functionality**. The CLI is not required; however, you can enable and configure it.
-
-</details>
 
 ## FAQ
 

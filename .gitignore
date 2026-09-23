@@ -1,9 +1,26 @@
-.direnv
+# ── 上游（caelestia-dots/shell）规则 ──
 /result
 /.qmlls.ini
 build/
 .cache/
 logs
+
+# ── fork 追加（合并上游时务必保留，否则本地维护物会被误提交）──
+# 忽略所有隐藏文件（但保留 .gitignore 自己；.clang-format/.clang-tidy 已跟踪，不受影响）
+.*
+!.gitignore
+
+# 临时文件与日志
+*.log
+*.qslog
+.DS_Store
+__pycache__/
+*.pyc
+
+# 本地维护文档：不纳入版本控制（文件保留在磁盘供本地维护使用）
+AGENTS.md
+docs/
+DEVELOPMENT_LOG.md
 
 # 翻译模板由 scripts/trs.fish raw 生成，不入库（fork：仅保留 trs/*.po）
 plugin/src/Caelestia/I18n/trs/raw.pot

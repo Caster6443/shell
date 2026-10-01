@@ -1,0 +1,63 @@
+--- a/modules/drawers/ContentWindow.qml
++++ b/modules/drawers/ContentWindow.qml
+@@ -21,6 +21,11 @@
+ 
+     readonly property ScreenState screenState: ShellState.forScreen(screen)
+ 
++    Component.onCompleted: {
++        screenState.dashboardTextInput = false;
++        screenState.spotlightTextInput = false;
++    }
++
+     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
+     readonly property bool hasSpecialWorkspace: (monitor?.lastIpcObject.specialWorkspace?.name.length ?? 0) > 0
+     readonly property bool hasFullscreenOnNormalWs: monitor?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
+@@ -68,7 +73,7 @@
+     name: "drawers"
+     WlrLayershell.exclusionMode: ExclusionMode.Ignore
+     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
+-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
++    WlrLayershell.keyboardFocus: screenState.textInputActive || screenState.launcher || screenState.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+ 
+     mask: hasFullscreen ? emptyRegion : regions
+ 
+@@ -115,6 +120,8 @@
+         active: {
+             const s = root.screenState;
+             const conf = root.contentItem.Config;
++            if (s.textInputActive)
++                return false;
+             if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || (s.sidebar && conf.sidebar.enabled))
+                 return true;
+             if (!conf.dashboard.showOnHover && s.dashboard && conf.dashboard.enabled)
+@@ -129,6 +136,8 @@
+             root.screenState.session = false;
+             root.screenState.sidebar = false;
+             root.screenState.dashboard = false;
++            root.screenState.dashboardTextInput = false;
++            root.screenState.spotlightTextInput = false;
+             panels.popouts.hasCurrent = false;
+             bar.closeTray();
+         }
+--- a/modules/dashboard/Media.qml
++++ b/modules/dashboard/Media.qml
+@@ -142,6 +142,7 @@
+                     }
+ 
+                     LyricsAndSelector {
++                        screenState: root.screenState
+                         Layout.fillHeight: true
+                         implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                     }
+--- a/components/ScreenState.qml
++++ b/components/ScreenState.qml
+@@ -9,6 +9,9 @@
+     property bool session
+     property bool launcher
+     property bool dashboard
++    property bool dashboardTextInput
++    property bool spotlightTextInput
++    readonly property bool textInputActive: dashboardTextInput || spotlightTextInput
+     property bool utilities
+     property bool sidebar
+ 

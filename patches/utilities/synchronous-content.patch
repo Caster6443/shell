@@ -1,0 +1,12 @@
+--- a/modules/utilities/Wrapper.qml
++++ b/modules/utilities/Wrapper.qml
+@@ -78,7 +78,8 @@
+         anchors.margins: Tokens.padding.large
+ 
+-        asynchronous: true
++        // Create this small menu atomically; partial incubation exposes unlaid-out toggles.
++        asynchronous: false
+         active: root.shouldBeActive || root.visible
+ 
+         sourceComponent: Content {
+             implicitWidth: root.implicitWidth - root.totalPadding

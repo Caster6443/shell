@@ -1,0 +1,681 @@
+--- a/modules/background/DesktopClock.qml
++++ b/modules/background/DesktopClock.qml
+@@ -3,10 +3,16 @@
+ import QtQuick
+ import QtQuick.Effects
+ import QtQuick.Layouts
++import Quickshell
++import Quickshell.Io
+ import Caelestia.Config
+ import Caelestia.I18n
+ import qs.components
++import qs.components.controls
++import qs.components.effects
+ import qs.services
++import qs.utils
++import qs.desktoptodo
+ 
+ Item {
+     id: root
+@@ -20,9 +26,107 @@
+     readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.enabled
+     readonly property bool invertColors: Config.background.desktopClock.invertColors
+     readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
+-    readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
+-    readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
+-    readonly property color safeTertiary: useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
++    readonly property color safePrimary: invertColors ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
++    readonly property color safeSecondary: invertColors ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
++    readonly property color safeTertiary: invertColors ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
++    readonly property date calendarDate: Time.date
++    readonly property real calendarCellSize: 40 * root.clockScale
++    readonly property int calendarFirstDayOffset: (new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1).getDay() + 6) % 7
++    readonly property int calendarDaysInMonth: new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate()
++    readonly property int calendarWeekCount: Math.ceil((calendarFirstDayOffset + calendarDaysInMonth) / 7)
++    readonly property var weekdayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
++    property int forecastStartIndex: 0
++    property bool showingTodos: false
++    property string todosDateKey: ""
++    property string reminderText: ""
++    property string reminderTaskId: ""
++    property bool reminderActive: false
++    property bool reminderIsAlarm: false
++    property bool reminderIsTest: false
++    property bool showingAlarmSettings: false
++    property string reminderGif: Config.paths.mediaGif
++    readonly property string shellConfigPath: `${Quickshell.env("XDG_CONFIG_HOME") || `${Quickshell.env("HOME")}/.config`}/caelestia/shell.json`
++    readonly property real forecastCardWidth: 96 * root.clockScale
++    readonly property real forecastCardHeight: 126 * root.clockScale
++    readonly property real forecastCardSpacing: Tokens.spacing.small * root.clockScale
++    readonly property int forecastMaxStartIndex: Math.max(0, Weather.hourlyForecast.length - 3)
++
++    function dateKeyForDay(day: int): string {
++        const pad = value => String(value).padStart(2, "0");
++        return `${calendarDate.getFullYear()}-${pad(calendarDate.getMonth() + 1)}-${pad(day)}`;
++    }
++
++    function openTodos(day: int): void {
++        if (day < 1 || day > calendarDaysInMonth)
++            return;
++        todosDateKey = dateKeyForDay(day);
++        showingTodos = true;
++    }
++
++    function remind(task: var): void {
++        reminderText = task.title;
++        reminderTaskId = task.id || "";
++        reminderIsAlarm = task.kind === "alarm" || task.id === "desktop-alarm";
++        reminderIsTest = task.test === true;
++        reminderActive = true;
++        reminderTimer.restart();
++    }
++
++    function dismissReminder(): void {
++        reminderTimer.stop();
++        reminderText = "";
++        reminderTaskId = "";
++        reminderIsAlarm = false;
++        reminderIsTest = false;
++        reminderActive = false;
++    }
++
++    Component.onCompleted: {
++        if (!Weather.cc)
++            Weather.reload();
++    }
++
++    Connections {
++        target: TodoData
++        function onReminderDue(task: var): void { root.remind(task); }
++    }
++
++    FileView {
++        id: shellConfigFile
++        path: root.shellConfigPath
++        watchChanges: true
++        printErrors: false
++        onFileChanged: reload()
++        onLoaded: {
++            try {
++                const config = JSON.parse(text());
++                const configuredPath = config.paths?.desktopReminderGif;
++                root.reminderGif = typeof configuredPath === "string" && configuredPath.length > 0
++                    ? configuredPath
++                    : Config.paths.mediaGif;
++            } catch (error) {
++                console.warn("[DesktopClock] Unable to read reminder GIF setting:", error);
++                root.reminderGif = Config.paths.mediaGif;
++            }
++        }
++        onLoadFailed: error => {
++            if (error !== FileViewError.FileNotFound)
++                console.warn("[DesktopClock] Unable to load shell.json for reminder GIF:", error);
++            root.reminderGif = Config.paths.mediaGif;
++        }
++    }
++
++    Timer {
++        id: reminderTimer
++        interval: 9000
++        onTriggered: {
++            root.reminderText = "";
++            root.reminderTaskId = "";
++            root.reminderIsAlarm = false;
++            root.reminderIsTest = false;
++            root.reminderActive = false;
++        }
++    }
+ 
+     implicitWidth: layout.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
+     implicitHeight: layout.implicitHeight + (Tokens.padding.extraLargeIncreased * root.clockScale)
+@@ -67,6 +171,10 @@
+             radius: Tokens.rounding.extraLarge * root.clockScale
+             opacity: Config.background.desktopClock.background.opacity
+             color: Colours.palette.m3surface
++            border.color: root.reminderActive ? root.safePrimary : "transparent"
++            border.width: root.reminderActive ? 2 * root.clockScale : 0
++
++            Behavior on border.color { CAnim {} }
+ 
+             layer.enabled: root.blurEnabled
+         }
+@@ -75,81 +183,489 @@
+             id: layout
+ 
+             anchors.centerIn: parent
++            opacity: root.showingTodos || root.reminderActive || root.showingAlarmSettings ? 0 : 1
++            scale: root.showingTodos || root.reminderActive || root.showingAlarmSettings ? 0.97 : 1
++            transformOrigin: Item.Center
++            enabled: !root.showingTodos && !root.reminderActive && !root.showingAlarmSettings
+             spacing: Tokens.spacing.large * root.clockScale
+ 
+-            RowLayout {
+-                spacing: Tokens.spacing.small
++            Behavior on opacity {
++                NumberAnimation { duration: 240; easing.type: root.showingTodos || root.showingAlarmSettings || root.reminderActive ? Easing.InCubic : Easing.OutCubic }
++            }
++            Behavior on scale {
++                NumberAnimation { duration: 280; easing.type: root.showingTodos || root.showingAlarmSettings || root.reminderActive ? Easing.InCubic : Easing.OutCubic }
++            }
+ 
+-                StyledText {
+-                    text: Time.hourStr
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
+-                    color: root.safePrimary
++            ColumnLayout {
++                Layout.alignment: Qt.AlignTop
++                spacing: Tokens.spacing.large * root.clockScale
++
++                RowLayout {
++                    Layout.alignment: Qt.AlignLeft | Qt.AlignTop
++                    spacing: Tokens.spacing.small
++
++                    TapHandler {
++                        acceptedButtons: Qt.LeftButton
++                        onTapped: root.showingAlarmSettings = true
++                    }
++
++                    HoverHandler {
++                        cursorShape: Qt.PointingHandCursor
++                    }
++
++                    StyledText {
++                        text: Time.hourStr
++                        font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
++                        color: root.safePrimary
++                    }
++
++                    StyledText {
++                        text: ":"
++                        font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).build()
++                        color: root.safeTertiary
++                        opacity: 0.8
++                        Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
++                    }
++
++                    StyledText {
++                        text: Time.minuteStr
++                        font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
++                        color: root.safeSecondary
++                    }
++
++                    MaterialIcon {
++                        visible: TodoData.alarms.length > 0
++                        text: "alarm"
++                        color: TodoData.alarms.some(alarm => alarm.enabled || alarm.snoozeAt > 0) ? root.safeTertiary : Colours.palette.m3onSurfaceVariant
++                        Layout.alignment: Qt.AlignVCenter
++                        Layout.leftMargin: 5 * root.clockScale
++                        Layout.preferredWidth: 22 * root.clockScale
++                        Layout.preferredHeight: 22 * root.clockScale
++                        fontStyle: Tokens.font.icon.builders.medium.scale(0.85 * root.clockScale).build()
++                    }
++
++                    Loader {
++                        asynchronous: true
++                        Layout.alignment: Qt.AlignTop
++                        Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
++
++                        active: Units.twelveHourClock
++                        visible: active
++
++                        sourceComponent: StyledText {
++                            text: Time.amPmStr
++                            font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).build()
++                            color: root.safeSecondary
++                        }
++                    }
+                 }
+ 
+-                StyledText {
+-                    text: ":"
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).build()
+-                    color: root.safeTertiary
+-                    opacity: 0.8
+-                    Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
++                RowLayout {
++                    Layout.alignment: Qt.AlignLeft
++
++                    CustomMouseArea {
++                        id: forecastArea
++
++                        Layout.preferredWidth: root.forecastCardWidth * 3 + root.forecastCardSpacing * 2
++                        Layout.preferredHeight: root.forecastCardHeight
++                        hoverEnabled: true
++                        acceptedButtons: Qt.NoButton
++
++                        function onWheel(event: WheelEvent): void {
++                            if (event.angleDelta.y < 0)
++                                root.forecastStartIndex = Math.min(root.forecastStartIndex + 1, root.forecastMaxStartIndex);
++                            else if (event.angleDelta.y > 0)
++                                root.forecastStartIndex = Math.max(root.forecastStartIndex - 1, 0);
++                        }
++
++                        onExited: root.forecastStartIndex = 0
++
++                        Item {
++                            anchors.fill: parent
++                            clip: true
++
++                            Row {
++                                id: forecastRow
++
++                                spacing: root.forecastCardSpacing
++                                x: -root.forecastStartIndex * (root.forecastCardWidth + root.forecastCardSpacing)
++
++                                Repeater {
++                                    model: Weather.hourlyForecast
++
++                                    StyledRect {
++                                        id: forecastCard
++
++                                        required property int index
++                                        required property var modelData
++
++                                        width: root.forecastCardWidth
++                                        height: root.forecastCardHeight
++                                        radius: Tokens.rounding.large * root.clockScale
++                                        color: Colours.tPalette.m3surfaceContainer
++
++                                        ColumnLayout {
++                                            anchors.centerIn: parent
++                                            spacing: Tokens.spacing.extraSmall * root.clockScale
++
++                                            StyledText {
++                                                Layout.alignment: Qt.AlignHCenter
++                                                text: new Date(forecastCard.modelData.timestamp).toLocaleTimeString(Qt.locale(), "HH:mm")
++                                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale).weight(Font.DemiBold).build()
++                                                color: root.safePrimary
++                                            }
++
++                                            StyledText {
++                                                Layout.alignment: Qt.AlignHCenter
++                                                text: `降水 ${forecastCard.modelData.precipChance}%`
++                                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.78 * root.clockScale).build()
++                                                color: root.safeSecondary
++                                                opacity: 0.76
++                                            }
++
++                                            MaterialIcon {
++                                                Layout.alignment: Qt.AlignHCenter
++                                                text: forecastCard.modelData.icon
++                                                fontStyle: Tokens.font.icon.builders.extraLarge.scale(0.9 * root.clockScale).build()
++                                                color: root.safeTertiary
++                                                animate: true
++                                            }
++
++                                            StyledText {
++                                                Layout.alignment: Qt.AlignHCenter
++                                                text: Weather.formatTemp(forecastCard.modelData.tempC, true)
++                                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.76 * root.clockScale).weight(Font.DemiBold).build()
++                                                color: root.safeTertiary
++                                            }
++                                        }
++                                    }
++                                }
++
++                                Behavior on x {
++                                    Anim {
++                                        type: Anim.FastSpatial
++                                    }
++                                }
++                            }
++                        }
++                    }
+                 }
+ 
+-                StyledText {
+-                    text: Time.minuteStr
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
+-                    color: root.safeSecondary
+-                }
+-
+-                Loader {
+-                    asynchronous: true
+-                    Layout.alignment: Qt.AlignTop
+-                    Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
+-
+-                    active: Units.twelveHourClock
+-                    visible: active
+-
+-                    sourceComponent: StyledText {
+-                        text: Time.amPmStr
+-                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).build()
++            }
++
++            ColumnLayout {
++                spacing: Tokens.spacing.small * root.clockScale
++
++                RowLayout {
++                    Layout.fillWidth: true
++                    spacing: Tokens.spacing.small * root.clockScale
++
++                    StyledText {
++                        Layout.fillWidth: true
++                        text: Time.format("MMMM").toUpperCase()
++                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).letterSpacing(3).weight(Font.Bold).build()
+                         color: root.safeSecondary
+                     }
++
++                    StyledText {
++                        text: Time.format("yyyy")
++                        font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale).weight(Font.Medium).build()
++                        color: root.safeTertiary
++                        opacity: 0.8
++                        Layout.alignment: Qt.AlignBottom
++                    }
++                }
++
++                Grid {
++                    id: weekdayGrid
++
++                    columns: 7
++                    spacing: 0
++                    Layout.preferredWidth: root.calendarCellSize * 7
++                    Layout.preferredHeight: root.calendarCellSize * 0.72
++
++                    Repeater {
++                        model: root.weekdayLabels.length
++
++                        delegate: Item {
++                            required property int index
++
++                            implicitWidth: root.calendarCellSize
++                            implicitHeight: root.calendarCellSize * 0.72
++
++                            StyledText {
++                                anchors.fill: parent
++                                horizontalAlignment: Text.AlignHCenter
++                                verticalAlignment: Text.AlignVCenter
++                                text: root.weekdayLabels[index]
++                                color: index > 4 ? root.safeTertiary : root.safeSecondary
++                                opacity: 0.76
++                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale * 0.76).weight(Font.DemiBold).build()
++                            }
++                        }
++                    }
++                }
++
++                Grid {
++                    id: dateGrid
++
++                    columns: 7
++                    rows: root.calendarWeekCount
++                    spacing: 0
++                    Layout.preferredWidth: root.calendarCellSize * 7
++                    Layout.preferredHeight: root.calendarCellSize * root.calendarWeekCount
++
++                    Repeater {
++                        model: root.calendarWeekCount * 7
++
++                        delegate: Item {
++                            id: dateCell
++
++                            required property int index
++
++                            readonly property int dayNumber: index - root.calendarFirstDayOffset + 1
++                            readonly property bool isCurrentMonth: dayNumber >= 1 && dayNumber <= root.calendarDaysInMonth
++                            readonly property bool isToday: isCurrentMonth && dayNumber === root.calendarDate.getDate()
++                            readonly property bool hasTodos: {
++                                const revision = TodoData.revision;
++                                return isCurrentMonth && TodoData.tasks.some(task => task.date === root.dateKeyForDay(dayNumber));
++                            }
++
++                            implicitWidth: root.calendarCellSize
++                            implicitHeight: root.calendarCellSize
++                            StyledRect {
++                                anchors.centerIn: parent
++                                implicitWidth: root.calendarCellSize * 0.76
++                                implicitHeight: implicitWidth
++                                radius: Tokens.rounding.small * root.clockScale
++                                visible: dateCell.isToday
++                                color: root.useLightSet ? Colours.palette.m3primary : Colours.palette.m3primaryContainer
++                            }
++
++                            StyledText {
++                                anchors.centerIn: parent
++                                visible: dateCell.isCurrentMonth
++                                text: Qt.locale().toString(dateCell.dayNumber)
++                                color: dateCell.isToday ? (root.useLightSet ? Colours.palette.m3onPrimary : Colours.palette.m3onPrimaryContainer)
++                                                        : ((index % 7) >= 5 ? root.safeTertiary : root.safeSecondary)
++                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale).weight(dateCell.isToday ? Font.Bold : Font.Normal).build()
++                            }
++
++                            StyledRect {
++                                anchors.horizontalCenter: parent.horizontalCenter
++                                anchors.bottom: parent.bottom
++                                anchors.bottomMargin: 3 * root.clockScale
++                                width: 4.5 * root.clockScale
++                                height: width
++                                radius: width / 2
++                                visible: dateCell.hasTodos
++                                color: root.safePrimary
++                            }
++
++                            MouseArea {
++                                anchors.fill: parent
++                                z: 10
++                                enabled: dateCell.isCurrentMonth
++                                acceptedButtons: Qt.LeftButton
++                                hoverEnabled: true
++                                cursorShape: Qt.PointingHandCursor
++                                onClicked: root.openTodos(dateCell.dayNumber)
++                            }
++
++                        }
++                    }
+                 }
+             }
++        }
+ 
+-            StyledRect {
+-                Layout.fillHeight: true
+-                Layout.preferredWidth: 4 * root.clockScale
+-                Layout.topMargin: Tokens.spacing.large * root.clockScale
+-                Layout.bottomMargin: Tokens.spacing.large * root.clockScale
+-                radius: Tokens.rounding.full
+-                color: root.safePrimary
+-                opacity: 0.8
++        Item {
++            id: todoScene
++            anchors.fill: parent
++            visible: root.showingTodos || opacity > 0
++            opacity: root.showingTodos ? 1 : 0
++            scale: root.showingTodos ? 1 : 0.97
++            transformOrigin: Item.Center
++            enabled: root.showingTodos && !root.reminderActive
++
++            Behavior on opacity { NumberAnimation { duration: 240; easing.type: root.showingTodos ? Easing.OutCubic : Easing.InCubic } }
++            Behavior on scale { NumberAnimation { duration: 280; easing.type: root.showingTodos ? Easing.OutCubic : Easing.InCubic } }
++
++            TodoPanel {
++                anchors.fill: parent
++                visible: todoScene.visible
++                dateKey: root.todosDateKey
++                scaleFactor: root.clockScale
++                onBackRequested: root.showingTodos = false
++                onPointerLeft: root.showingTodos = false
+             }
++        }
+ 
+-            ColumnLayout {
+-                spacing: 0
++        Item {
++            id: reminderScene
++            anchors.fill: parent
++            visible: root.reminderActive
++            opacity: visible ? 1 : 0
++            scale: visible ? 1 : 0.88
++            transformOrigin: Item.Center
++            z: 5
++            clip: true
++
++            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
++            Behavior on scale { NumberAnimation { duration: 440; easing.type: Easing.OutBack } }
++
++            Rectangle {
++                id: reminderRoundedMask
++                anchors.fill: parent
++                radius: Tokens.rounding.extraLarge * root.clockScale
++                color: "white"
++                visible: false
++                layer.enabled: true
++            }
+ 
+-                StyledText {
+-                    text: Time.format("MMMM").toUpperCase()
+-                    font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).letterSpacing(4).weight(Font.Bold).build()
+-                    color: root.safeSecondary
++            AnimatedImage {
++                id: reminderImage
++                anchors.fill: parent
++                sourceSize.width: width
++                sourceSize.height: height
++                asynchronous: true
++                cache: true
++                playing: root.reminderActive
++                fillMode: AnimatedImage.PreserveAspectCrop
++                source: Paths.absolutePath(root.reminderGif)
++                layer.enabled: true
++                layer.effect: Mask {
++                    maskSource: reminderRoundedMask
+                 }
++            }
+ 
+-                StyledText {
+-                    text: Time.format("dd")
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * root.clockScale).letterSpacing(2).weight(Font.Medium).build()
+-                    color: root.safePrimary
++            StyledRect {
++                anchors.fill: parent
++                radius: Tokens.rounding.extraLarge * root.clockScale
++                color: "transparent"
++                border.color: root.safePrimary
++                border.width: 1.5 * root.clockScale
++            }
++
++            Item {
++                anchors.fill: parent
++                anchors.margins: Tokens.padding.medium * root.clockScale
++
++                RowLayout {
++                    anchors.top: parent.top
++                    anchors.left: parent.left
++                    spacing: Tokens.spacing.extraSmall * root.clockScale
++                    MaterialIcon {
++                        Layout.alignment: Qt.AlignVCenter
++                        Layout.preferredWidth: 22 * root.clockScale
++                        Layout.preferredHeight: 22 * root.clockScale
++                        text: "notifications_active"
++                        color: Colours.palette.m3onPrimaryContainer
++                        fontStyle: Tokens.font.icon.builders.medium.scale(root.clockScale).build()
++                        style: Text.Outline
++                        styleColor: Qt.rgba(0, 0, 0, 0.82)
++                    }
++                    StyledText {
++                        text: "时间到了"
++                        color: Colours.palette.m3onPrimaryContainer
++                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).weight(Font.Bold).build()
++                        style: Text.Outline
++                        styleColor: Qt.rgba(0, 0, 0, 0.82)
++                    }
+                 }
+ 
+                 StyledText {
+-                    text: Time.format("dddd")
+-                    font: Tokens.font.clock.size(Tokens.font.body.large.pointSize * root.clockScale).letterSpacing(2).build()
+-                    color: root.safeSecondary
++                    anchors.top: parent.top
++                    anchors.right: parent.right
++                    width: parent.width * 0.52
++                    text: root.reminderText
++                    color: Colours.palette.m3onPrimaryContainer
++                    font: Tokens.font.clock.size(Tokens.font.body.large.pointSize * root.clockScale).weight(Font.DemiBold).build()
++                    elide: Text.ElideRight
++                    horizontalAlignment: Text.AlignRight
++                    style: Text.Outline
++                    styleColor: Qt.rgba(0, 0, 0, 0.82)
+                 }
++
++                RowLayout {
++                    anchors.horizontalCenter: parent.horizontalCenter
++                    anchors.bottom: parent.bottom
++                    spacing: Tokens.spacing.small * root.clockScale
++                    ButtonBase {
++                        visible: root.reminderIsAlarm
++                        type: ButtonBase.Tonal
++                        isRound: true
++                        inactiveColour: Colours.palette.m3secondaryContainer
++                        inactiveOnColour: Colours.palette.m3onSecondaryContainer
++                        activeColour: Colours.palette.m3primaryContainer
++                        activeOnColour: Colours.palette.m3onPrimaryContainer
++                        Layout.preferredWidth: 112 * root.clockScale
++                        Layout.preferredHeight: 38 * root.clockScale
++                        implicitWidth: 112 * root.clockScale
++                        implicitHeight: 38 * root.clockScale
++                        onClicked: {
++                            if (!root.reminderIsTest)
++                                TodoData.snoozeAlarm(root.reminderTaskId, 10);
++                            root.dismissReminder();
++                        }
++                        StyledText {
++                            anchors.centerIn: parent
++                            text: "稍后 10 分钟"
++                            color: Colours.palette.m3onSecondaryContainer
++                            font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale).weight(Font.DemiBold).build()
++                        }
++                    }
++                    ButtonBase {
++                        type: ButtonBase.Tonal
++                        isRound: true
++                        inactiveColour: Colours.palette.m3secondaryContainer
++                        inactiveOnColour: Colours.palette.m3onSecondaryContainer
++                        activeColour: Colours.palette.m3primaryContainer
++                        activeOnColour: Colours.palette.m3onPrimaryContainer
++                        Layout.preferredWidth: 116 * root.clockScale
++                        Layout.preferredHeight: 38 * root.clockScale
++                        implicitWidth: 116 * root.clockScale
++                        implicitHeight: 38 * root.clockScale
++                        onClicked: root.dismissReminder()
++                        StyledText {
++                            anchors.centerIn: parent
++                            text: "知道了"
++                            color: Colours.palette.m3onSecondaryContainer
++                            font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * root.clockScale).weight(Font.DemiBold).build()
++                        }
++                    }
++                }
++            }
++        }
++
++        Item {
++            id: alarmScene
++            anchors.fill: parent
++            visible: (root.showingAlarmSettings && !root.showingTodos && !root.reminderActive) || opacity > 0
++            opacity: root.showingAlarmSettings && !root.showingTodos && !root.reminderActive ? 1 : 0
++            scale: root.showingAlarmSettings && !root.reminderActive && !root.showingTodos ? 1 : 0.97
++            transformOrigin: Item.Center
++            enabled: root.showingAlarmSettings && !root.reminderActive && !root.showingTodos
++
++            Behavior on opacity { NumberAnimation { duration: 240; easing.type: root.showingAlarmSettings && !root.reminderActive && !root.showingTodos ? Easing.OutCubic : Easing.InCubic } }
++            Behavior on scale { NumberAnimation { duration: 280; easing.type: root.showingAlarmSettings && !root.reminderActive && !root.showingTodos ? Easing.OutCubic : Easing.InCubic } }
++
++            AlarmPanel {
++                anchors.fill: parent
++                visible: alarmScene.visible
++                scaleFactor: root.clockScale
++                onBackRequested: root.showingAlarmSettings = false
+             }
+         }
+     }
+ 
++    Connections {
++        target: Weather
++
++        function onHourlyForecastChanged(): void {
++            root.forecastStartIndex = Math.min(root.forecastStartIndex, root.forecastMaxStartIndex);
++        }
++    }
++
+     Behavior on clockScale {
+         Anim {}
+     }

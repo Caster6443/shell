@@ -238,7 +238,6 @@ Singleton {
 		root.scannedCategories = categoryMap;
 		root.scannedSearchText = searchMap;
 		root.revision++;
-		console.info(`[spotlight-apps] 已扫描 ${Object.keys(categoryMap).length} 个 .desktop 的分类与中英搜索字段`);
 	}
 
 	function searchableText(entry: var): string {
@@ -265,19 +264,6 @@ Singleton {
 			const haystack = root.searchableText(entry);
 			return words.every(word => haystack.indexOf(word) >= 0);
 		});
-	}
-
-	// 分类结果快照日志：只在内容变化时打一行，方便排查"某分类是空的"
-	property string lastBucketLog: ""
-	function logBuckets(map: var): void {
-		const parts = [];
-		for (const c of root.categories)
-			parts.push(`${c.label}:${map[c.id] ? map[c.id].length : 0}`);
-		const line = parts.join(" ");
-		if (line !== root.lastBucketLog) {
-			root.lastBucketLog = line;
-			console.info(`[spotlight-apps] 分类结果：${line}`);
-		}
 	}
 
 	function autoCategory(entry: var): string {
@@ -324,7 +310,6 @@ Singleton {
 			if (ord && ord.length > 0)
 				map[c.id] = root.applyOrder(map[c.id], ord);
 		}
-		root.logBuckets(map);
 		return map;
 	}
 
@@ -367,7 +352,6 @@ Singleton {
 					if (data.order && typeof data.order === "object" && !Array.isArray(data.order))
 						root.order = data.order;
 					root.revision++;
-					console.info(`[spotlight-apps] 分类存储已加载：常用 ${root.favorites.length} 条，手动归类 ${Object.keys(root.assignments).length} 条`);
 				}
 			} catch (e) {
 				console.warn("[spotlight-apps] 分类存储解析失败，按空处理");

@@ -29,8 +29,8 @@ Item {
 	// 拖拽中的缩略图要盖在所有卡片之上：同列靠卡片自身 z=100 抬升，跨列（拖去/拖出特殊工作区
 	// 卡片区）还要把所在的列整体抬到另一列之上，否则缩略图会被对方列的工作区卡片盖住。
 	property bool dragFromSpecialSection: false
-	// 滚轮灵敏度：1.0 = 标准滚轮一格（angleDelta.y = 120）滚动一整张卡片的高度。
-	property real wheelSensitivity: 1.0
+	// 滚轮灵敏度：标准滚轮一格约移动 0.35 张卡片，三格左右翻过一张。
+	property real wheelSensitivity: 0.35
 	// 新插槽入场动画用的名字；动画结束后清空，避免卡片重建时重复播放
 	property string lastAddedSpecialName: ""
 
@@ -80,9 +80,10 @@ Item {
 		while (taken[`special:slot${n}`])
 			n++;
 		const name = `special:slot${n}`;
+		// 先标记本次插入，再更新列表，让旧卡片在 Column 重排前启用位置动画。
+		root.lastAddedSpecialName = name;
 		root.extraSpecialNames = [name].concat(root.extraSpecialNames);
 		specialSlotsFile.setText(JSON.stringify(root.extraSpecialNames));
-		root.lastAddedSpecialName = name;
 		clearLastAddedTimer.restart();
 		console.info(`[overview-special] 新增特殊工作区插槽 ${name}`);
 	}
@@ -110,8 +111,32 @@ Item {
 		if (deltaY === 0)
 			return;
 		const step = (flickable.cardHeight + flickable.cardSpacing) * root.wheelSensitivity;
-		const newY = flickable.contentY - deltaY / 120 * step;
-		flickable.contentY = Math.max(0, Math.min(newY, flickable.contentHeight - flickable.height));
+		root.scrollBy(-deltaY / 120 * step, true);
+	}
+
+	// 连续滚动可跟手累计，但把待完成距离限制在不足一张卡片；反向滚动立即从当前画面反向。
+	function scrollBy(delta: real, capWheelBurst: bool): void {
+		const maxY = Math.max(0, flickable.contentHeight - flickable.height);
+		const pending = scrollAnim.running ? scrollAnim.to - flickable.contentY : 0;
+		const reverses = capWheelBurst && pending !== 0 && delta * pending < 0;
+		const base = scrollAnim.running && !reverses ? scrollAnim.to : flickable.contentY;
+		let target = base + delta;
+		if (capWheelBurst) {
+			const maxPending = (flickable.cardHeight + flickable.cardSpacing) * 0.85;
+			target = Math.max(flickable.contentY - maxPending, Math.min(target, flickable.contentY + maxPending));
+		}
+		target = Math.max(0, Math.min(target, maxY));
+		const distance = Math.abs(target - flickable.contentY);
+		if (distance < 1)
+			return;
+
+		scrollAnim.stop();
+		scrollAnim.from = flickable.contentY;
+		scrollAnim.to = target;
+		// 依距离轻微延长动画；单次滚轮位移变短，因此导航保持轻快。
+		scrollAnim.duration = Math.round(Math.max(125, Math.min(250,
+			110 + 55 * Math.sqrt(distance / Math.max(1, flickable.cardHeight + flickable.cardSpacing)))));
+		scrollAnim.start();
 	}
 
 	implicitWidth: mainContainer.implicitWidth
@@ -124,7 +149,7 @@ Item {
 		} else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
 			const step = flickable.cardHeight + flickable.cardSpacing;
 			const delta = event.key === Qt.Key_Up ? -step : step;
-			flickable.contentY = Math.max(0, Math.min(flickable.contentY + delta, flickable.contentHeight - flickable.height));
+			root.scrollBy(delta, false);
 			event.accepted = true;
 		} else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
 			const idx = Math.round(flickable.contentY / (flickable.cardHeight + flickable.cardSpacing));
@@ -489,12 +514,9 @@ Item {
 		if (root.previewTotal === 0 || root.previewReady > 0)
 			return;
 		const mon = Hyprland.focusedMonitor?.name ?? "";
-		if (!mon) {
-			console.info("[overview-kick] skip: no focused monitor");
+		if (!mon)
 			return;
-		}
 		root.kickPending = true;
-		console.info(`[overview-kick] unlock kick ${root.kickAttempts + 1}/3: grim -o ${mon} /dev/null`);
 		kickProc.exec(["grim", "-o", mon, "/dev/null"]);
 	}
 
@@ -503,7 +525,8 @@ Item {
 		onExited: (code, status) => {
 			root.kickPending = false;
 			root.kickAttempts++;
-			console.info(`[overview-kick] grim exited code=${code}`);
+			if (code !== 0)
+				console.warn(`[overview-kick] grim failed code=${code}`);
 			if (root.previewReady === 0 && root.previewTotal > 0 && root.kickAttempts < 3)
 				kickRetryTimer.start();
 			// 无论成功与否都通知预览：仍无首帧的窗口重建一次捕获
@@ -600,7 +623,7 @@ Item {
 			if (!root.visible)
 				return;
 
-			scrollAnim.enabled = false;
+			scrollAnim.stop();
 
 			const activeId = Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1;
 			const step = flickable.cardHeight + flickable.cardSpacing;
@@ -611,9 +634,6 @@ Item {
 			const maxScroll = Math.max(0, flickable.contentHeight - flickable.height);
 			flickable.contentY = Math.max(normalTop, Math.min(targetY, maxScroll));
 
-			Qt.callLater(() => {
-				scrollAnim.enabled = true;
-			});
 		}
 	}
 
@@ -630,7 +650,6 @@ Item {
 			root.recycleSpecialSlots();
 		}
 	}
-
 	// 旧版同款 monitor 实时流（衬在内容后面当“节拍源”，低透明度避免干扰视觉）。
 	ScreencopyView {
 		id: liveMonitorFeed
@@ -638,7 +657,7 @@ Item {
 		anchors.fill: parent
 		visible: root.visible && root.previewReady > 0
 		live: true
-		opacity: 0.22
+		opacity: root.showPanel ? 0.22 : 0
 		captureSource: root.monitorScreen
 	}
 
@@ -682,13 +701,11 @@ Item {
 			clip: true
 			flickableDirection: Flickable.VerticalFlick
 
-			Behavior on contentY {
+			NumberAnimation {
 				id: scrollAnim
-				// 连续跟随目标：滚轮连发时不会每格重启一次缓动（那种「一格一停」的顿感），
-				// 单格从静止起步约 385px / 3600px·s⁻¹ ≈ 110ms，与原来的 160ms 短动画接近。
-				SmoothedAnimation {
-					velocity: 3600
-				}
+				property: "contentY"
+				target: flickable
+				easing.type: Easing.OutCubic
 			}
 
 			// 滚轮事件沿父链冒泡到这里（工作区卡片自己不处理滚轮），
@@ -792,14 +809,16 @@ Item {
 								filterActive: root.filterText.trim() !== ""
 								launchOnWorkspace: root.launchOnWorkspace
 
-								// 新插槽入场：从「+」按钮下方滑入 + 淡入（整卡尺寸不变，只做位移，避免内容被压扁）
-								appearProgress: modelData === root.lastAddedSpecialName ? 0 : 1
+								// 新卡从右侧插入；已有卡片平滑下移让位，布局高度不做动画。
+								isEntering: modelData === root.lastAddedSpecialName
+								animatePosition: root.lastAddedSpecialName !== "" && modelData !== root.lastAddedSpecialName
+								appearProgress: slotCard.isEntering ? 0 : 1
 								transform: Translate {
-									y: (1 - slotCard.appearProgress) * -90
+									x: (1 - slotCard.appearProgress) * (slotCard.cardW + flickable.cardSpacing)
 								}
 								Behavior on appearProgress {
 									NumberAnimation {
-										duration: 260
+										duration: 320
 										easing.type: Easing.OutCubic
 									}
 								}

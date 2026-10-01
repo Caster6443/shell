@@ -15,9 +15,13 @@ Variants {
         id: win
 
         required property ShellScreen modelData
+        property alias desktopClock: clockLoader
 
         screen: modelData
         name: "background"
+        // OnDemand 而非 Exclusive：Exclusive 会让 Background 层 surface 独占键盘，其它窗口就拿不到键盘焦点
+        // （2026-09-30 修：闹钟设置页出现时无法聚焦别的窗口）；OnDemand 只在该 surface 被点击/请求时取键盘，不长期霸占
+        WlrLayershell.keyboardFocus: clockLoader.item?.showingTodos || clockLoader.item?.showingAlarmSettings ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
         color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"

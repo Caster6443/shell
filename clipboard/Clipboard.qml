@@ -13,14 +13,14 @@ import qs.overview
 Item {
     id: root
     property bool opened: false
-    property bool hadFocus: false
+    property bool pointerHasEntered: false
     readonly property var results: ClipboardData.query(search.text)
     readonly property color foreground: Colours.palette.m3onSurface
     readonly property color accent: Colours.palette.m3primary
     function show(): void {
         search.text = "";
         content.resetClipSelection();
-        root.hadFocus = false;
+        root.pointerHasEntered = false;
         root.opened = true;
         search.forceActiveFocus();
         ClipboardData.refresh();
@@ -49,10 +49,7 @@ Item {
         Connections {
             target: surface.Window.window
             function onActiveChanged(): void {
-                if (surface.Window.window.active) {
-                    root.hadFocus = true;
-                    search.forceActiveFocus();
-                } else if (root.opened && root.hadFocus) root.opened = false;
+                if (surface.Window.window.active) search.forceActiveFocus();
             }
         }
         Shortcut { sequence: "Escape"; enabled: root.opened; onActivated: { if (content.clipConfirm) content.clipConfirm = ""; else root.opened = false; } }
@@ -63,6 +60,12 @@ Item {
             color: Colours.tPalette.m3surfaceContainerHigh
             border.color: Qt.alpha(root.accent, 0.35)
             border.width: 1
+            HoverHandler {
+                onHoveredChanged: {
+                    if (hovered) root.pointerHasEntered = true;
+                    else if (root.opened && root.pointerHasEntered) root.opened = false;
+                }
+            }
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 20

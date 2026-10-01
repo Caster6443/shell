@@ -16,6 +16,7 @@ import qs.modules.nexus.pages.panels
 import qs.modules.nexus.pages.services
 import qs.modules.nexus.pages.wallandstyle
 import qs.modules.nexus.pages.panels.taskbar
+import qs.modules.nexus.pages.hyprland
 
 QtObject {
     id: root
@@ -172,6 +173,14 @@ QtObject {
             StackPage {
                 Component {
                     LanguageAndRegion {}
+                }
+            }
+        },
+        Component {
+            // Hyprland layout
+            StackPage {
+                Component {
+                    HyprlandLayout {}
                 }
             }
         },

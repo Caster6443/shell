@@ -1,0 +1,3 @@
+module qs.lockcosmos.themes.artdeco
+singleton Deco 1.0 Deco.qml
+DecoDial 1.0 DecoDial.qml

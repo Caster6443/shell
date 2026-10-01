@@ -1,0 +1,124 @@
+diff --git a/modules/nexus/PageCompRegistry.qml b/modules/nexus/PageCompRegistry.qml
+index 1b725a3a..9a6b61d8 100644
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -18,1 +18,2 @@
+ import qs.modules.nexus.pages.panels.taskbar
++import qs.modules.nexus.pages.hyprland
+@@ -175,6 +176,14 @@ QtObject {
+                 }
+             }
+         },
++        Component {
++            // Hyprland layout
++            StackPage {
++                Component {
++                    HyprlandLayout {}
++                }
++            }
++        },
+ 
+         // About
+         Component {
+diff --git a/modules/nexus/PageRegistry.qml b/modules/nexus/PageRegistry.qml
+index 90de4fb7..c0b32cab 100644
+--- a/modules/nexus/PageRegistry.qml
++++ b/modules/nexus/PageRegistry.qml
+@@ -82,6 +82,12 @@ QtObject {
+             description: Tr.tr("UI language, weather location, display units"),
+             category: "shell"
+         },
++        {
++            label: "布局",
++            icon: "dashboard",
++            description: "切换 Hyprland 窗口布局",
++            category: "shell"
++        },
+ 
+         // About
+         {
+--- /dev/null
++++ b/modules/nexus/pages/hyprland/HyprlandLayout.qml
+@@ -0,0 +1,82 @@
++import QtQuick
++import QtQuick.Layouts
++import Quickshell.Io
++import Caelestia.I18n
++import qs.components.controls
++import qs.modules.nexus.common
++
++PageBase {
++    id: root
++
++    property string currentLayout: ""
++    property string requestedLayout: ""
++    readonly property list<MenuItem> layoutItems: [
++        MenuItem { property string layoutId: "scrolling"; text: "滚动（Scrolling）" },
++        MenuItem { property string layoutId: "dwindle"; text: "二叉树平铺（Dwindle）" },
++        MenuItem { property string layoutId: "master"; text: "主从平铺（Master）" },
++        MenuItem { property string layoutId: "monocle"; text: "单窗口占满（Monocle）" }
++    ]
++
++    title: "Hyprland 布局"
++
++    Component.onCompleted: layoutReader.running = true
++
++    function chooseLayout(name: string): void {
++        // This host uses Hyprland's native Lua parser; legacy `hyprctl keyword` is rejected.
++        root.requestedLayout = name;
++        const escapedName = JSON.stringify(name);
++        layoutWriter.command = ["hyprctl", "eval", `hl.config({ general = { layout = ${escapedName} } })`];
++        layoutWriter.running = true;
++    }
++
++    ColumnLayout {
++        anchors.horizontalCenter: parent.horizontalCenter
++        anchors.top: parent.top
++        width: root.cappedWidth
++        spacing: Tokens.spacing.extraSmall / 2
++
++        SectionHeader {
++            first: true
++            text: "窗口布局"
++        }
++
++        SelectRow {
++            first: true
++            last: true
++            label: "Hyprland 布局"
++            subtext: "立即切换当前会话使用的窗口布局"
++            menuItems: root.layoutItems
++            active: root.layoutItems.find(item => item.layoutId === root.currentLayout) ?? null
++            fallbackText: root.currentLayout || "读取中…"
++            onSelected: item => root.chooseLayout(item.layoutId)
++        }
++
++        Process {
++            id: layoutReader
++            command: ["hyprctl", "-j", "getoption", "general:layout"]
++            running: false
++
++            stdout: StdioCollector {
++                onStreamFinished: {
++                    try {
++                        root.currentLayout = JSON.parse(text).str;
++                    } catch (error) {
++                        root.currentLayout = "未知";
++                    }
++                }
++            }
++        }
++
++        Process {
++            id: layoutWriter
++            running: false
++
++            onExited: (exitCode, exitStatus) => {
++                if (exitCode === 0)
++                    root.currentLayout = root.requestedLayout;
++                else
++                    layoutReader.running = true;
++            }
++        }
++    }
++}

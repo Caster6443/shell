@@ -59,6 +59,78 @@ cp -a "$SYSTEM_CONFIG" "$TARGET"
 echo "==> 已从 $SYSTEM_CONFIG 重建用户配置底座"
 
 # 3. 铺 fork 外挂 + 写钩子（sync-addons.sh 幂等；-r 透传）
+# 本地运行补丁：先 dry-run；若新版包已包含则跳过，否则不匹配时明确失败。
+UTILITIES_PATCH="$REPO_DIR/patches/utilities/synchronous-content.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$UTILITIES_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$UTILITIES_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$UTILITIES_PATCH" >/dev/null 2>&1; then
+  echo "==> utilities 同步加载补丁已包含，跳过"
+else
+  echo "!! utilities 同步加载补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# Dashboard 分页只在与视口有实际交集时预加载，边界相触不算可见。
+DASHBOARD_VISIBLE_PATCH="$REPO_DIR/patches/dashboard/dashboard-visible-intersection.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$DASHBOARD_VISIBLE_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$DASHBOARD_VISIBLE_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$DASHBOARD_VISIBLE_PATCH" >/dev/null 2>&1; then
+  echo "==> dashboard 视口交集预加载补丁已包含，跳过"
+else
+  echo "!! dashboard 视口交集预加载补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# Dashboard 音频导入是底座媒体页的局部补丁，连同组件文件一并部署。
+AUDIO_IMPORT_PATCH="$REPO_DIR/patches/dashboard/media-audio-import.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$AUDIO_IMPORT_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$AUDIO_IMPORT_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$AUDIO_IMPORT_PATCH" >/dev/null 2>&1; then
+  echo "==> dashboard 音频导入补丁已包含，跳过"
+else
+  echo "!! dashboard 音频导入补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# 媒体页文本输入时临时为 Dashboard 图层申请键盘焦点。
+DASHBOARD_INPUT_FOCUS_PATCH="$REPO_DIR/patches/dashboard/media-input-focus.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$DASHBOARD_INPUT_FOCUS_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$DASHBOARD_INPUT_FOCUS_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$DASHBOARD_INPUT_FOCUS_PATCH" >/dev/null 2>&1; then
+  echo "==> dashboard 输入焦点补丁已包含，跳过"
+else
+  echo "!! dashboard 输入焦点补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# Cosmos/Astral full-screen lock: restore its LockSurface patch after rebuilding the package baseline.
+COSMOS_LOCK_PATCH="$REPO_DIR/patches/lock/cosmos-lockscreen.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$COSMOS_LOCK_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$COSMOS_LOCK_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$COSMOS_LOCK_PATCH" >/dev/null 2>&1; then
+  echo "==> Cosmos 全屏锁屏补丁已包含，跳过"
+else
+  echo "!! Cosmos 全屏锁屏补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# Nexus lock-style selector page (kept in the addon; the registries are base files).
+NEXUS_LOCK_STYLE_PATCH="$REPO_DIR/patches/lock/nexus-lock-style.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$NEXUS_LOCK_STYLE_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$NEXUS_LOCK_STYLE_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$NEXUS_LOCK_STYLE_PATCH" >/dev/null 2>&1; then
+  echo "==> Nexus 锁屏样式设置页补丁已包含，跳过"
+else
+  echo "!! Nexus 锁屏样式补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+# Nexus Hyprland layout selector (applied after Nexus lock-style adds its registry entry).
+NEXUS_HYPRLAND_LAYOUT_PATCH="$REPO_DIR/patches/layout/nexus-hyprland-layout.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$NEXUS_HYPRLAND_LAYOUT_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$NEXUS_HYPRLAND_LAYOUT_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$NEXUS_HYPRLAND_LAYOUT_PATCH" >/dev/null 2>&1; then
+  echo "==> Nexus Hyprland 布局切换补丁已包含，跳过"
+else
+  echo "!! Nexus Hyprland 布局补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+cp -a "$REPO_DIR/modules/nexus/pages/hyprland" "$TARGET/modules/nexus/pages/"
+
 bash "$REPO_DIR/scripts/sync-addons.sh" "$RESTART"
 
 echo "==> 部署完成。校验建议：qs -c caelestia log | rg -i 'error|unable|failed'"

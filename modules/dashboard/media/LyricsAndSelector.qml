@@ -9,6 +9,10 @@ import qs.components.controls
 import qs.services
 
 Item {
+    id: root
+
+    required property ScreenState screenState
+
     ColumnLayout {
         id: layout
 
@@ -41,31 +45,51 @@ Item {
             Layout.fillHeight: true
         }
 
-        SplitButton {
-            Layout.alignment: Qt.AlignHCenter
+        RowLayout {
+            id: playerControls
 
-            type: SplitButton.Tonal
-            disabled: !Players.list.length
-            active: menuItems.find(m => m.modelData === Players.active) ?? menuItems[0] ?? null
-            menu.onItemSelected: item => Players.manualActive = (item as PlayerItem).modelData
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: Tokens.spacing.small
 
-            menuItems: playerList.instances
-            fallbackIcon: "music_off"
-            fallbackText: Tr.trCtx("No players", "no media players active")
+            SplitButton {
+                id: backendSelector
 
-            minLeftWidth: layout.width - expandBtn.implicitWidth - spacing
-            label.Layout.maximumWidth: minLeftWidth - iconLabel.implicitWidth - textRow.spacing - textRow.anchors.horizontalCenterOffset / 2 - horizontalPadding * 2
-            label.elide: Text.ElideRight
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
 
-            stateLayer.disabled: true
-            menuOnTop: true
+                type: SplitButton.Tonal
+                disabled: !Players.list.length
+                active: menuItems.find(m => m.modelData === Players.active) ?? menuItems[0] ?? null
+                menu.onItemSelected: item => Players.manualActive = (item as PlayerItem).modelData
 
-            Variants {
-                id: playerList
+                menuItems: playerList.instances
+                fallbackIcon: "music_off"
+                fallbackText: Tr.trCtx("No players", "no media players active")
 
-                model: Players.list
+                minLeftWidth: Math.max(0, width - expandBtn.implicitWidth - spacing)
+                label.Layout.maximumWidth: Math.max(0, minLeftWidth - iconLabel.implicitWidth - textRow.spacing - textRow.anchors.horizontalCenterOffset / 2 - horizontalPadding * 2)
+                label.elide: Text.ElideRight
 
-                PlayerItem {}
+                stateLayer.disabled: true
+                menuOnTop: true
+
+                Variants {
+                    id: playerList
+
+                    model: Players.list
+
+                    PlayerItem {}
+                }
+            }
+
+            AudioImport {
+                id: audioImport
+                screenState: root.screenState
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: visible ? implicitWidth : 0
+                Layout.minimumWidth: 0
+                Layout.maximumWidth: visible ? implicitWidth : 0
             }
         }
     }

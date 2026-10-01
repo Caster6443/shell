@@ -1,0 +1,328 @@
+--- a/services/Weather.qml
++++ b/services/Weather.qml
+@@ -21,15 +21,22 @@
+     property double ipApiBlockedUntil: 0
+     property bool citiesLoaded: false
+     property string pendingCoords
+-
++    property string apiKey
++    property string apiHost
++    property string resolvedCityName
++    property string pendingCityName
++    property string sunriseTime
++    property string sunsetTime
++    property double lastWeatherFetchAt: 0
++    readonly property string configDir: Quickshell.env("XDG_CONFIG_HOME") || `${Quickshell.env("HOME")}/.config`
+     readonly property string icon: cc ? Icons.getWeatherIcon(cc.weatherCode) : "cloud_alert"
+-    readonly property string description: cc ? getWeatherCondition(cc.weatherCode) : Tr.tr("No weather")
++    readonly property string description: cc?.description || Tr.tr("No weather")
+     readonly property string temp: formatTemp(cc?.tempC)
+     readonly property string feelsLike: formatTemp(cc?.feelsLikeC)
+     readonly property int humidity: cc?.humidity ?? 0
+     readonly property real windSpeed: cc?.windSpeed ?? 0
+-    readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+-    readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
++    readonly property string sunrise: sunriseTime ? Qt.formatDateTime(new Date(sunriseTime), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
++    readonly property string sunset: sunsetTime ? Qt.formatDateTime(new Date(sunsetTime), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+ 
+     readonly property var cachedCities: new Map()
+ 
+@@ -40,15 +47,27 @@
+     }
+ 
+     function reload(): void {
++        if (!apiKey || !apiHost)
++            return;
++
+         const configLocation = GlobalConfig.services.weatherLocation;
+ 
+         if (configLocation) {
+             if (configLocation.indexOf(",") !== -1 && !isNaN(parseFloat(configLocation.split(",")[0]))) {
+-                loc = configLocation;
++                const coords = normalizeCoordinates(configLocation);
++                if (loc === coords)
++                    fetchWeatherData();
++                else
++                    loc = coords;
+                 fetchCityFromCoords(configLocation);
+             } else {
++                if (resolvedCityName === configLocation && loc) {
++                    fetchWeatherData();
++                    return;
++                }
+                 fetchCoordsFromCity(configLocation);
+             }
++            return;
+         } else if ((!loc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
+             ipApiRequestPending = true;
+ 
+@@ -109,6 +128,11 @@
+         return true;
+     }
+ 
++    function requestLanguage(): string {
++        const language = Qt.locale().name.split(/[_.@-]/)[0].toLowerCase();
++        return /^[a-z]{2,3}$/.test(language) && language !== "c" ? language : "en";
++    }
++
+     function fixCityName(cityName: string): string {
+         if (!cityName)
+             return "";
+@@ -176,7 +200,7 @@
+         }
+ 
+         const [lat, lon] = coords.split(",").map(s => s.trim());
+-        const lang = Qt.locale().name.split("_")[0] || "en";
++        const lang = root.requestLanguage();
+ 
+         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson&accept-language=${lang}`;
+         const nominatimHeaders = {
+@@ -211,84 +235,146 @@
+     }
+ 
+     function fetchCoordsFromCity(cityName: string): void {
+-        const lang = Qt.locale().name.split("_")[0] || "en";
+-        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=${lang}&format=json`;
++        if (pendingCityName === cityName)
++            return;
+ 
+-        Requests.get(url, text => {
+-            const json = JSON.parse(text);
+-            if (json.results && json.results.length > 0) {
+-                const result = json.results[0];
+-                loc = result.latitude + "," + result.longitude;
+-                city = fixCityName(result.name);
+-            } else {
+-                loc = "";
+-                reload();
++        pendingCityName = cityName;
++        const lang = root.requestLanguage();
++        const path = `/geo/v2/city/lookup?location=${encodeURIComponent(cityName)}&lang=${encodeURIComponent(lang)}`;
++        requestQWeather(path, json => {
++            root.pendingCityName = "";
++            const result = json.location?.[0];
++            if (!result || !Number.isFinite(Number(result.lat)) || !Number.isFinite(Number(result.lon))) {
++                console.warn(lc, `QWeather city lookup returned no coordinates for ${cityName}`);
++                return;
+             }
+-        });
++
++            const coords = `${Number(result.lat).toFixed(2)},${Number(result.lon).toFixed(2)}`;
++            root.city = fixCityName(result.name || cityName);
++            root.resolvedCityName = cityName;
++            console.info(lc, `QWeather city resolved: ${root.city} (${coords})`);
++            if (root.loc === coords)
++                root.fetchWeatherData();
++            else
++                root.loc = coords;
++        }, `city lookup for ${cityName}`, () => root.pendingCityName = "");
+     }
+ 
+     function fetchWeatherData(): void {
+-        const url = getWeatherUrl();
+-        if (url === "")
++        if (!apiKey || !apiHost || !loc || loc.indexOf(",") === -1)
++            return;
++
++        if (Date.now() - lastWeatherFetchAt < 900000)
+             return;
++        lastWeatherFetchAt = Date.now();
+ 
+-        Requests.get(url, text => {
+-            const json = JSON.parse(text);
+-            if (!json.current || !json.daily)
++        const [lat, lon] = normalizeCoordinates(loc).split(",");
++        const lang = root.requestLanguage();
++        const query = `localTime=true&lang=${encodeURIComponent(lang)}`;
++
++        requestQWeather(`/weather/v1/current/${lat}/${lon}?${query}`, json => {
++            if (!json.condition || !json.temperature)
+                 return;
+ 
+-            cc = {
+-                weatherCode: json.current.weather_code,
+-                tempC: json.current.temperature_2m,
+-                feelsLikeC: json.current.apparent_temperature,
+-                humidity: json.current.relative_humidity_2m,
+-                windSpeed: json.current.wind_speed_10m,
+-                isDay: json.current.is_day,
+-                sunrise: json.daily.sunrise[0].replace("T", " "),
+-                sunset: json.daily.sunset[0].replace("T", " ")
++            root.cc = {
++                weatherCode: root.qWeatherIconCode(json.condition.code),
++                description: json.condition.text || root.getWeatherCondition(root.qWeatherIconCode(json.condition.code)),
++                tempC: Number(json.temperature.value),
++                feelsLikeC: Number(json.feelsLike?.value ?? json.temperature.value),
++                humidity: Math.round(Number(json.humidity ?? 0) * 100),
++                windSpeed: Number(json.wind?.speed?.value ?? 0) * 3.6,
++                isDay: true
+             };
++            console.info(lc, "QWeather current conditions loaded");
++        }, "current weather");
++
++        requestQWeather(`/weather/v1/daily/${lat}/${lon}?days=7&${query}`, json => {
++            if (!Array.isArray(json.days))
++                return;
+ 
+-            const forecastList = [];
+-            for (let i = 0; i < json.daily.time.length; i++)
+-                forecastList.push({
+-                    date: json.daily.time[i].replace(/-/g, "/"),
+-                    maxTempC: json.daily.temperature_2m_max[i],
+-                    minTempC: json.daily.temperature_2m_min[i],
+-                    weatherCode: json.daily.weather_code[i],
+-                    icon: Icons.getWeatherIcon(json.daily.weather_code[i])
+-                });
+-            forecast = forecastList;
++            const today = json.days[0];
++            root.sunriseTime = today?.astro?.sunrise || "";
++            root.sunsetTime = today?.astro?.sunset || "";
++            root.forecast = json.days.map(day => {
++                const code = root.qWeatherIconCode(day.daytime?.condition?.code ?? day.nighttime?.condition?.code);
++                return {
++                    date: day.forecastStartTime,
++                    maxTempC: Number(day.temperatureMax?.value),
++                    minTempC: Number(day.temperatureMin?.value),
++                    weatherCode: code,
++                    icon: Icons.getWeatherIcon(code)
++                };
++            });
++            console.info(lc, `QWeather daily forecast loaded: ${root.forecast.length} days`);
++        }, "daily forecast");
+ 
+-            const hourlyList = [];
+-            const now = new Date();
+-            for (let i = 0; i < json.hourly.time.length; i++) {
+-                const time = new Date(json.hourly.time[i].replace("T", " "));
++        requestQWeather(`/weather/v1/hourly/${lat}/${lon}?hours=24&${query}`, json => {
++            if (!Array.isArray(json.hours))
++                return;
+ 
+-                if (time < now)
+-                    continue;
++            const now = new Date();
++            root.hourlyForecast = json.hours.filter(hour => new Date(hour.forecastTime) >= now).map(hour => {
++                const date = new Date(hour.forecastTime);
++                const code = root.qWeatherIconCode(hour.condition?.code);
++                return {
++                    timestamp: hour.forecastTime,
++                    hour: date.getHours(),
++                    tempC: Math.round(Number(hour.temperature?.value)),
++                    precipChance: Math.round(Number(hour.precipitation?.probability ?? 0) * 100),
++                    weatherCode: code,
++                    icon: Icons.getWeatherIcon(code)
++                };
++            });
++            console.info(lc, `QWeather hourly forecast loaded: ${root.hourlyForecast.length} hours`);
++        }, "hourly forecast");
++    }
+ 
+-                hourlyList.push({
+-                    timestamp: json.hourly.time[i],
+-                    hour: time.getHours(),
+-                    tempC: Math.round(json.hourly.temperature_2m[i]),
+-                    precipChance: json.hourly.precipitation_probability[i],
+-                    weatherCode: json.hourly.weather_code[i],
+-                    icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
+-                });
++    function requestQWeather(path: string, onSuccess: var, label: string, onFailure = null): void {
++        const host = apiHost.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
++        const headers = {
++            "X-QW-Api-Key": apiKey
++        };
++        Requests.get(`https://${host}${path}`, text => {
++            try {
++                onSuccess(JSON.parse(text));
++            } catch (error) {
++                if (onFailure)
++                    onFailure(error);
++                console.warn(lc, `Unable to parse QWeather ${label} response: ${error}`);
+             }
+-            hourlyForecast = hourlyList;
+-        });
++        }, error => {
++            if (onFailure)
++                onFailure(error);
++            console.warn(lc, `QWeather ${label} request failed: ${error}`);
++        }, headers);
+     }
+ 
+-    function getWeatherUrl(): string {
+-        if (!loc || loc.indexOf(",") === -1)
++    function normalizeCoordinates(coords: string): string {
++        const values = coords.split(",").map(value => Number(value.trim()));
++        if (values.length !== 2 || !values.every(Number.isFinite))
+             return "";
++        return `${values[0].toFixed(2)},${values[1].toFixed(2)}`;
++    }
+ 
+-        const [lat, lon] = loc.split(",").map(s => s.trim());
+-        const baseUrl = "https://api.open-meteo.com/v1/forecast";
+-        const params = ["latitude=" + lat, "longitude=" + lon, "hourly=weather_code,temperature_2m,precipitation_probability", "daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset", "current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m", "timezone=auto", "forecast_days=7"];
+-
+-        return baseUrl + "?" + params.join("&");
++    function qWeatherIconCode(code: var): string {
++        const value = Number(code);
++        if ([100, 150].includes(value))
++            return "0";
++        if ([102, 103, 152, 153].includes(value))
++            return "2";
++        if ([101, 104, 151].includes(value))
++            return "3";
++        if (value === 302 || value === 303)
++            return "95";
++        if (value === 304)
++            return "96";
++        if (value >= 300 && value < 400)
++            return "61";
++        if (value >= 400 && value < 500)
++            return "71";
++        if (value >= 500 && value <= 515)
++            return "45";
++        return String(code ?? "");
+     }
+ 
+     function getWeatherCondition(code: string): string {
+@@ -325,7 +411,10 @@
+         return conditions[code] || Tr.trCtx("Unknown", "weather condition");
+     }
+ 
+-    onLocChanged: fetchWeatherData()
++    onLocChanged: {
++        lastWeatherFetchAt = 0;
++        fetchWeatherData();
++    }
+     onCitiesLoadedChanged: {
+         if (!citiesLoaded || !pendingCoords)
+             return;
+@@ -386,6 +475,30 @@
+     }
+ 
+     FileView {
++        id: qweatherKeyFile
++
++        printErrors: false
++        path: `${root.configDir}/caelestia/qweather-api-key`
++        onLoaded: {
++            root.apiKey = text().trim();
++            root.reload();
++        }
++        onLoadFailed: err => console.warn(lc, `Unable to read local QWeather API key: ${err}`)
++    }
++
++    FileView {
++        id: qweatherHostFile
++
++        printErrors: false
++        path: `${root.configDir}/caelestia/qweather-api-host`
++        onLoaded: {
++            root.apiHost = text().trim();
++            root.reload();
++        }
++        onLoadFailed: err => console.warn(lc, `Unable to read local QWeather API host: ${err}`)
++    }
++
++    FileView {
+         id: citiesStorage
+ 
+         printErrors: false

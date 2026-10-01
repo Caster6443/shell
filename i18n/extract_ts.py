@@ -15,7 +15,7 @@ from translations import ZH  # noqa: E402
 SRC = os.environ.get("NEXUS_SRC", os.path.expanduser("~/.config/quickshell/caelestia/modules/nexus"))
 TS = os.path.join(ROOT, "translations", "caelestia_zh_CN.ts")
 
-QS_RE = re.compile(r'qsTr\(\s*"((?:[^"\\]|\\.)*)"')
+QS_RE = re.compile(r'(?:qsTr|Tr\.tr)\(\s*"((?:[^"\\]|\\.)*)"')
 
 
 def unescape(s: str) -> str:
@@ -24,17 +24,25 @@ def unescape(s: str) -> str:
 
 def main() -> int:
     contexts = {}
-    for dirpath, _dirs, files in os.walk(SRC):
-        for fn in files:
-            if not fn.endswith(".qml"):
+    roots = [SRC, os.path.join(ROOT, "..", "lockcosmos")]
+    for source_root in roots:
+        if not os.path.isdir(source_root):
+            continue
+        for dirpath, _dirs, files in os.walk(source_root):
+            # Theme sources have their own terminology; only the Nexus page
+            # contributes strings to Caelestia's settings-center catalogue.
+            if os.path.abspath(source_root).endswith("lockcosmos") and os.path.abspath(dirpath) != os.path.abspath(source_root):
                 continue
-            path = os.path.join(dirpath, fn)
-            ctx = os.path.splitext(fn)[0]
-            with open(path, encoding="utf-8") as f:
-                text = f.read()
-            msgs = sorted({unescape(m) for m in QS_RE.findall(text)})
-            if msgs:
-                contexts.setdefault(ctx, set()).update(msgs)
+            for fn in files:
+                if not fn.endswith(".qml"):
+                    continue
+                path = os.path.join(dirpath, fn)
+                ctx = os.path.splitext(fn)[0]
+                with open(path, encoding="utf-8") as f:
+                    text = f.read()
+                msgs = sorted({unescape(m) for m in QS_RE.findall(text)})
+                if msgs:
+                    contexts.setdefault(ctx, set()).update(msgs)
 
     os.makedirs(os.path.dirname(TS), exist_ok=True)
     out = []

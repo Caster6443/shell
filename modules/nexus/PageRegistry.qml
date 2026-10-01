@@ -82,6 +82,12 @@ QtObject {
             description: Tr.tr("UI language, weather location, display units"),
             category: "shell"
         },
+        {
+            label: "布局",
+            icon: "dashboard",
+            description: "切换 Hyprland 窗口布局",
+            category: "shell"
+        },
 
         // About
         {

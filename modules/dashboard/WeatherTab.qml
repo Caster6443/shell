@@ -203,6 +203,7 @@ Item {
                 }
             }
         }
+
     }
 
     component DetailCard: StyledRect {

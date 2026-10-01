@@ -8,8 +8,9 @@
 # 仓库里的 modules/services 等本体源码一概不动（那是用户将来 git merge 官方代码的线）。
 #
 # 同步内容：
-#   1. 自包含外挂模块目录：overview / cheatsheet / spotlight / mihomo
-#   2. shell.qml 顶层实例钩子：cheatsheet / mihomo
+#   1. 自包含外挂模块目录：overview / cheatsheet / spotlight / clipboard / desktopviz / desktopperf / lockcosmos
+#   2. 数据型 QML 模块（由其他组件导入，不需 shell.qml 顶层实例）：desktoptodo
+#   3. shell.qml 顶层实例钩子：cheatsheet / clipboard / desktopviz / desktopperf
 # 底座（系统包 modules 等）不在本脚本职责内，如需刷新底座请手动执行
 #   `sudo cp -a /etc/xdg/quickshell/caelestia/. ~/.config/quickshell/caelestia/`（慎用，会覆盖本地差异）。
 set -euo pipefail
@@ -19,19 +20,25 @@ TARGET="${QS_CAELESTIA_DIR:-$HOME/.config/quickshell/caelestia}"
 RESTART=0
 [[ "${1:-}" == "-r" ]] && RESTART=1
 
-# 1. 自包含外挂模块（整目录同步）。仅这些目录会被覆盖，仓库 modules/ 其余不动。
-# 同步内容：
-#   1. 自包含外挂模块目录：overview / cheatsheet / spotlight / mihomo
-MODULES=("overview" "cheatsheet" "spotlight" "mihomo" "clipboard")
+# 同步自包含外挂模块（整目录同步）。仅这些目录会被覆盖，仓库 modules/ 其余不动。
+MODULES=("overview" "cheatsheet" "spotlight" "clipboard" "desktopviz" "desktopperf" "lockcosmos")
+DATA_MODULES=("desktoptodo")
 
-# 2. shell.qml 需要顶层实例化的模块（名字 → 实例化行）。
-INSTANCE_HOOKS=("cheatsheet" "mihomo" "clipboard")
-RETIRED_HOOKS=("aichat")
+# shell.qml 需要顶层实例化的窗口/模块（名字 → 实例化行）。
+INSTANCE_HOOKS=("cheatsheet" "clipboard" "desktopviz" "desktopperf")
+RETIRED_HOOKS=("aichat" "mihomo")
 
 # 同步自包含外挂模块
 mkdir -p "$TARGET"
 for mod in "${MODULES[@]}"; do
   echo "==> 同步 $mod 模块到 $TARGET/$mod"
+  mkdir -p "$TARGET/$mod"
+  cp -a "$REPO_DIR/$mod/." "$TARGET/$mod/"
+done
+
+# 数据型 QML 模块由其他组件通过 `qs.<module>` 导入，不在 shell.qml 直接实例化。
+for mod in "${DATA_MODULES[@]}"; do
+  echo "==> 同步 $mod 数据模块到 $TARGET/$mod"
   mkdir -p "$TARGET/$mod"
   cp -a "$REPO_DIR/$mod/." "$TARGET/$mod/"
 done
@@ -57,7 +64,12 @@ import sys
 path = sys.argv[1]
 modules = sys.argv[2].split()
 retired = sys.argv[3].split()
-instances = {"cheatsheet": "Cheatsheet {}", "mihomo": "Mihomo {}", "clipboard": "Clipboard {}"}
+instances = {
+    "cheatsheet": "Cheatsheet {}",
+    "clipboard": "Clipboard {}",
+    "desktopviz": "DesktopVisualizer {}",
+    "desktopperf": "DesktopPerformance {}",
+}
 
 with open(path, encoding="utf-8") as f:
     lines = f.read().splitlines(keepends=True)

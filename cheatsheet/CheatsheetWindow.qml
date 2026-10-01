@@ -15,6 +15,7 @@ FloatingWindow {
 	title: "cheatsheet"
 	color: "transparent"
 	visible: CheatsheetState.active
+	property bool pointerHasEntered: false
 
 	// 键帽显示名：把生硬的键名映射成人类可读的写法
 	function keyLabel(k: string): string {
@@ -100,9 +101,11 @@ FloatingWindow {
 
 	onVisibleChanged: {
 		if (visible) {
+			pointerHasEntered = false;
 			focusCatcher.forceActiveFocus();
 			scroll.contentY = 0; // 每次打开都回到顶部，不保留上次的滚动位置
-		}
+		} else
+			pointerHasEntered = false;
 	}
 
 	Item {
@@ -131,6 +134,15 @@ FloatingWindow {
 		border.color: CheatsheetTheme.primary
 		border.width: 1
 		clip: true
+
+		HoverHandler {
+			onHoveredChanged: {
+				if (hovered)
+					root.pointerHasEntered = true;
+				else if (root.visible && root.pointerHasEntered)
+					CheatsheetState.active = false;
+			}
+		}
 
 		Text {
 			id: title

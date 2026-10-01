@@ -1,0 +1,36 @@
+--- a/modules/drawers/Regions.qml
++++ b/modules/drawers/Regions.qml
+@@ -4,6 +4,7 @@
+ import Quickshell
+ import Caelestia.Config
+ import qs.modules.bar as Bar
++import qs.services
+ 
+ Region {
+     id: root
+@@ -14,6 +15,7 @@
+ 
+     readonly property real borderThickness: win.contentItem.Config.border.thickness
+     readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
++    readonly property var desktopClock: ShellState.componentsFor(root.win.screen)?.background?.desktopClock ?? null
+ 
+     x: bar.clampedWidth + win.dragMaskPadding
+     y: clampedThickness + win.dragMaskPadding
+@@ -21,6 +23,17 @@
+     height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
+     intersection: Intersection.Xor
+ 
++    // The background clock is below this full-screen surface. Combine its bounds
++    // first so the outer XOR cuts a click-through hole, then let visible drawers
++    // panels subtract their bounds back in and keep their controls interactive.
++    Region {
++        x: root.desktopClock?.x ?? 0
++        y: root.desktopClock?.y ?? 0
++        width: root.desktopClock?.width ?? 0
++        height: root.desktopClock?.height ?? 0
++        intersection: Intersection.Combine
++    }
++
+     R {
+         panel: root.panels.dashboard
+         y: 0

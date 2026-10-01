@@ -1,0 +1,4 @@
+module qs.lockcosmos.themes.gothic
+singleton Gothic 1.0 Gothic.qml
+Candle 1.0 Candle.qml
+RoseWindow 1.0 RoseWindow.qml

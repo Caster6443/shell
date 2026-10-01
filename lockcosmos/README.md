@@ -1,0 +1,7 @@
+# Cosmos / Astral lock screen port
+
+This addon contains the full-screen Cosmos/Astral lock screen and a Wabi-sabi/Enso port. Zen was removed from source at the user's request. Art Deco and Gothic remain in the source tree but are no longer offered because the user disliked them. The Enso lock screen uses a quiet Chinese mini-calendar in the upper-left corner; a small vermilion dot marks today only when there are unfinished tasks in the desktop TodoData store, without showing task titles or counts. The settings page keeps preview selection separate from the applied styles. It stores one style for light appearance and one for dark appearance; the lock surface follows Caelestia’s active scheme mode. Defaults are Enso for light and Cosmos for dark.
+
+Authentication remains Caelestia-owned: the surface is still `WlSessionLockSurface`. The Nexus preview is an ordinary `FloatingWindow` with a fake PAM adapter; Enso accepts arbitrary preview-only text to demonstrate the unlock animation, but that input never reaches real PAM. System power actions are disabled in preview. Press Escape to close the full-screen preview; a successful simulated Enso unlock returns to settings after its animation.
+
+The Cosmos shader and the Art Deco/Gothic helpers (`CaptureImage`, `DecoFrame`, `CuspFrame`, `DecoMask`, `CuspMask`, and `ThemeShapes`) are adapted from `dhrruvsharma/shell` and retained under that project's GPL-3.0 license. The included `LICENSE` contains the license text.

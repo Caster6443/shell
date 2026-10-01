@@ -241,7 +241,6 @@ Rectangle {
 				overviewRoot.setPreviewHasContent(windowAddress, screenView.hasContent);
 			if (screenView.hasContent) {
 				screenView.gaveUpNoFrame = false;
-				console.info(`[overview] ${windowAddress} capture ok`);
 			}
 		}
 

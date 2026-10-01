@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
+import Quickshell
 import Quickshell.Services.UPower
 import Caelestia.Config
 import Caelestia.I18n
@@ -9,6 +11,58 @@ import qs.services
 
 Column {
     id: root
+
+    readonly property var fanProps: FanCurveState
+    readonly property int fanMode: fanProps.powerMode === profileIndex(PowerProfiles.profile) && fanProps.fanMode >= 0 ? fanProps.fanMode : profileIndex(PowerProfiles.profile)
+
+    function profileIndex(profile: int): int {
+        if (profile === PowerProfile.PowerSaver)
+            return 0;
+        if (profile === PowerProfile.Performance)
+            return 2;
+        return 1;
+    }
+
+    function asusProfile(index: int): string {
+        return ["Quiet", "Balanced", "Performance"][index];
+    }
+
+    function setFanMode(index: int): void {
+        if (index < 0 || index > 2)
+            return;
+
+        profileCurveTimer.stop();
+        fanProps.powerMode = profileIndex(PowerProfiles.profile);
+        fanProps.fanMode = index;
+        applyFanCurve(index, asusProfile(profileIndex(PowerProfiles.profile)));
+    }
+
+    function applyFanCurve(presetIndex: int, targetProfile: string): void {
+        // Curves are the saved profile points exposed by asusctl 6.5.0
+        // on this FA507XV. Raw PWM values (0–255) avoid percentage rounding.
+        const curves = [
+            {
+                cpu: "60c:5,63c:22,66c:38,69c:45,72c:56,75c:63,78c:81,78c:81",
+                gpu: "58c:5,60c:20,63c:38,65c:43,67c:56,70c:66,72c:84,72c:84"
+            },
+            {
+                cpu: "45c:5,49c:22,54c:38,68c:45,74c:56,79c:63,84c:81,89c:94",
+                gpu: "40c:5,42c:20,43c:38,60c:43,65c:56,69c:66,74c:84,78c:112"
+            },
+            {
+                cpu: "20c:28,52c:45,57c:63,62c:81,67c:94,72c:109,81c:147,86c:181",
+                gpu: "20c:25,39c:43,45c:66,50c:84,55c:112,60c:127,70c:173,76c:201"
+            }
+        ];
+        const curve = curves[presetIndex];
+        const commands = [
+            `/usr/bin/asusctl fan-curve --mod-profile ${targetProfile} --fan cpu --data '${curve.cpu}'`,
+            `/usr/bin/asusctl fan-curve --mod-profile ${targetProfile} --fan gpu --data '${curve.gpu}'`,
+            `/usr/bin/asusctl fan-curve --mod-profile ${targetProfile} --fan cpu --enable-fan-curve true`,
+            `/usr/bin/asusctl fan-curve --mod-profile ${targetProfile} --fan gpu --enable-fan-curve true`
+        ];
+        Quickshell.execDetached(["bash", "-c", commands.join(" && ")]);
+    }
 
     function formatSeconds(s: int): string {
         const day = Math.floor(s / 86400);
@@ -170,6 +224,7 @@ Column {
 
                     Fill {
                         item: saver
+                        indicatorTarget: indicator
                     }
                 },
                 State {
@@ -177,6 +232,7 @@ Column {
 
                     Fill {
                         item: balance
+                        indicatorTarget: indicator
                     }
                 },
                 State {
@@ -184,6 +240,7 @@ Column {
 
                     Fill {
                         item: perf
+                        indicatorTarget: indicator
                     }
                 }
             ]
@@ -225,14 +282,123 @@ Column {
         }
     }
 
+    StyledText {
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: "风扇曲线"
+    }
+
+    StyledRect {
+        id: fanProfiles
+
+        property string current: ["quiet", "balanced", "performance"][root.fanMode]
+
+        anchors.horizontalCenter: parent.horizontalCenter
+
+        implicitWidth: quietFan.implicitWidth + balancedFan.implicitWidth + performanceFan.implicitWidth + Tokens.padding.medium * 2 + Tokens.spacing.largeIncreased * 2
+        implicitHeight: Math.max(quietFan.implicitHeight, balancedFan.implicitHeight, performanceFan.implicitHeight) + Tokens.padding.small
+
+        color: Colours.tPalette.m3surfaceContainer
+        radius: Tokens.rounding.full
+
+        StyledRect {
+            id: fanIndicator
+
+            color: Colours.palette.m3primary
+            radius: Tokens.rounding.full
+            state: fanProfiles.current
+
+            states: [
+                State {
+                    name: "quiet"
+                    FanFill { item: quietFan }
+                },
+                State {
+                    name: "balanced"
+                    FanFill { item: balancedFan }
+                },
+                State {
+                    name: "performance"
+                    FanFill { item: performanceFan }
+                }
+            ]
+
+            transitions: Transition {
+                AnchorAnim {}
+            }
+        }
+
+        FanMode {
+            id: quietFan
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: Tokens.padding.extraSmall
+            index: 0
+            icon: "mode_fan"
+            label: "安静曲线"
+        }
+
+        FanMode {
+            id: balancedFan
+            anchors.centerIn: parent
+            index: 1
+            icon: "mode_fan"
+            label: "均衡曲线"
+        }
+
+        FanMode {
+            id: performanceFan
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.rightMargin: Tokens.padding.extraSmall
+            index: 2
+            icon: "mode_fan"
+            label: "强散热曲线"
+        }
+    }
+
+    Connections {
+        target: PowerProfiles
+
+        function onProfileChanged(): void {
+            const nextMode = root.profileIndex(PowerProfiles.profile);
+            root.fanProps.powerMode = nextMode;
+            root.fanProps.fanMode = nextMode;
+            profileCurveTimer.restart();
+        }
+    }
+
+    Component.onCompleted: {
+        const currentMode = root.profileIndex(PowerProfiles.profile);
+        if (root.fanProps.powerMode < 0) {
+            root.fanProps.powerMode = currentMode;
+            root.fanProps.fanMode = currentMode;
+        } else if (root.fanProps.powerMode !== currentMode) {
+            root.fanProps.powerMode = currentMode;
+            root.fanProps.fanMode = currentMode;
+            profileCurveTimer.restart();
+        }
+    }
+
+    Timer {
+        id: profileCurveTimer
+        interval: 750
+        repeat: false
+        onTriggered: root.applyFanCurve(root.fanMode, root.asusProfile(root.profileIndex(PowerProfiles.profile)))
+    }
+
     component Fill: AnchorChanges {
         required property Item item
+        required property Item indicatorTarget
 
-        target: indicator
+        target: indicatorTarget
         anchors.left: item.left
         anchors.right: item.right
         anchors.top: item.top
         anchors.bottom: item.bottom
+    }
+
+    component FanFill: Fill {
+        indicatorTarget: fanIndicator
     }
 
     component Profile: Item {
@@ -257,6 +423,42 @@ Column {
             fontStyle: Tokens.font.icon.large
             color: profiles.current === text ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
             fill: profiles.current === text ? 1 : 0
+
+            Behavior on fill {
+                Anim {
+                    type: Anim.DefaultEffects
+                }
+            }
+        }
+    }
+
+    component FanMode: Item {
+        required property int index
+        required property string icon
+        required property string label
+
+        implicitWidth: iconItem.implicitHeight + Tokens.padding.small
+        implicitHeight: iconItem.implicitHeight + Tokens.padding.small
+
+        StateLayer {
+            id: fanLayer
+            radius: Tokens.rounding.full
+            color: fanProfiles.current === ["quiet", "balanced", "performance"][parent.index] ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+            onClicked: root.setFanMode(parent.index)
+        }
+
+        ToolTip.visible: fanLayer.containsMouse
+        ToolTip.text: label
+
+        MaterialIcon {
+            id: iconItem
+
+            anchors.centerIn: parent
+
+            text: parent.icon
+            fontStyle: Tokens.font.icon.large
+            color: fanProfiles.current === ["quiet", "balanced", "performance"][parent.index] ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+            fill: fanProfiles.current === ["quiet", "balanced", "performance"][parent.index] ? 1 : 0
 
             Behavior on fill {
                 Anim {

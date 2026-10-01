@@ -1,0 +1,12 @@
+--- a/modules/dashboard/Content.qml
++++ b/modules/dashboard/Content.qml
+@@ -147,7 +147,8 @@
+                                 return true;
+                             const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
+                             const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
+-                            return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
++                            // A page touching the viewport edge has no visible pixels; do not preload it yet.
++                            return vx < x + implicitWidth && vex > x;
+                         })
+                     }
+                 }

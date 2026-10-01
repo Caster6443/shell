@@ -1,0 +1,5 @@
+module qs.lockcosmos.services
+singleton Battery 1.0 Battery.qml
+singleton Media 1.0 Media.qml
+singleton DesktopTheme 1.0 DesktopTheme.qml
+singleton LockStats 1.0 LockStats.qml

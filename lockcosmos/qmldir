@@ -1,0 +1,22 @@
+module qs.lockcosmos
+singleton LockTheme 1.0 LockTheme.qml
+singleton LockStyleSettings 1.0 LockStyleSettings.qml
+LockInput 1.0 LockInput.qml
+LockStyleContext 1.0 LockStyleContext.qml
+LockStylePage 1.0 LockStylePage.qml
+CosmosStyleSurface 1.0 CosmosStyleSurface.qml
+LockStylePreviewLock 1.0 LockStylePreviewLock.qml
+LockStylePreviewPam 1.0 LockStylePreviewPam.qml
+CosmosLockScreen 1.0 CosmosLockScreen.qml
+CosmosConstellation 1.0 CosmosConstellation.qml
+HoldArea 1.0 HoldArea.qml
+Glyph 1.0 Glyph.qml
+DecoFrame 1.0 DecoFrame.qml
+CuspFrame 1.0 CuspFrame.qml
+DecoMask 1.0 DecoMask.qml
+CuspMask 1.0 CuspMask.qml
+singleton ThemeShapes 1.0 ThemeShapes.qml
+CaptureImage 1.0 CaptureImage.qml
+WabisabiSurface 1.0 themes/wabisabi/WabisabiSurface.qml
+Enso 1.0 themes/wabisabi/Enso.qml
+singleton Wabi 1.0 themes/wabisabi/Wabi.qml

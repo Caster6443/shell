@@ -5,12 +5,6 @@
 <message><source>About</source>
 <translation>关于</translation>
 </message>
-<message><source>CLI</source>
-<translation>命令行工具</translation>
-</message>
-<message><source>Device</source>
-<translation>设备</translation>
-</message>
 <message><source>Distro</source>
 <translation>发行版</translation>
 </message>
@@ -29,15 +23,6 @@
 <message><source>Plugins</source>
 <translation>插件</translation>
 </message>
-<message><source>Qt</source>
-<translation type="unfinished"></translation>
-</message>
-<message><source>Quickshell</source>
-<translation type="unfinished"></translation>
-</message>
-<message><source>Shell</source>
-<translation type="unfinished"></translation>
-</message>
 <message><source>Software</source>
 <translation>软件</translation>
 </message>
@@ -51,9 +36,6 @@
 </message>
 <message><source>Add network</source>
 <translation>添加网络</translation>
-</message>
-<message><source>Cancel</source>
-<translation>取消</translation>
 </message>
 <message><source>Connect</source>
 <translation>连接</translation>
@@ -72,9 +54,6 @@
 </message>
 <message><source>Network name is required</source>
 <translation>需要填写网络名称</translation>
-</message>
-<message><source>None (open)</source>
-<translation>无（开放网络）</translation>
 </message>
 <message><source>Password</source>
 <translation>密码</translation>
@@ -96,9 +75,6 @@
 </message>
 </context>
 <context><name>AddVpnPage</name>
-<message><source>Add</source>
-<translation>添加</translation>
-</message>
 <message><source>Add VPN provider</source>
 <translation>添加 VPN 提供商</translation>
 </message>
@@ -107,9 +83,6 @@
 </message>
 <message><source>Built-in names (wireguard, warp, tailscale, netbird) auto-fill their commands. For others, provide the connect/disconnect commands.</source>
 <translation>内置名称（wireguard、warp、tailscale、netbird）会自动填充命令；其他类型请自行填写连接/断开命令。</translation>
-</message>
-<message><source>Cancel</source>
-<translation>取消</translation>
 </message>
 <message><source>Connect command</source>
 <translation>连接命令</translation>
@@ -129,9 +102,6 @@
 <message><source>Edit VPN provider</source>
 <translation>编辑 VPN 提供商</translation>
 </message>
-<message><source>Interface</source>
-<translation>接口</translation>
-</message>
 <message><source>Leave empty to use the built-in default</source>
 <translation>留空以使用内置默认值</translation>
 </message>
@@ -144,9 +114,6 @@
 <message><source>Provider name is required</source>
 <translation>需要填写提供商名称</translation>
 </message>
-<message><source>Save</source>
-<translation>保存</translation>
-</message>
 <message><source>Shown in the list</source>
 <translation>显示在列表中</translation>
 </message>
@@ -157,23 +124,8 @@
 </message>
 </context>
 <context><name>AllNetworksPage</name>
-<message><source>2.4 GHz</source>
-<translation>2.4 GHz</translation>
-</message>
-<message><source>5 GHz</source>
-<translation>5 GHz</translation>
-</message>
 <message><source>All networks</source>
 <translation>所有网络</translation>
-</message>
-<message><source>Filters</source>
-<translation>筛选</translation>
-</message>
-<message><source>Saved</source>
-<translation>已保存</translation>
-</message>
-<message><source>Secured</source>
-<translation>已加密</translation>
 </message>
 </context>
 <context><name>AppInfo</name>
@@ -229,74 +181,27 @@
 <message><source>Apps</source>
 <translation>应用</translation>
 </message>
-<message><source>Audio</source>
-<translation>音频</translation>
-</message>
 <message><source>Browse installed apps, set favourites and hidden</source>
 <translation>浏览已安装应用，设置收藏与隐藏</translation>
 </message>
 <message><source>Default applications</source>
 <translation>默认应用</translation>
 </message>
-<message><source>File manager</source>
-<translation>文件管理器</translation>
-</message>
-<message><source>Library</source>
-<translation>应用库</translation>
-</message>
-<message><source>Media playback</source>
-<translation>媒体播放</translation>
-</message>
-<message><source>Terminal</source>
-<translation>终端</translation>
-</message>
-</context>
-<context><name>AudioDeviceList</name>
-<message><source>Unknown</source>
-<translation>未知</translation>
-</message>
 </context>
 <context><name>AudioPage</name>
-<message><source>%1 apps playing audio</source>
-<translation>%1 个应用正在播放音频</translation>
-</message>
-<message><source>1 app playing audio</source>
-<translation>1 个应用正在播放音频</translation>
-</message>
 <message><source>App volumes</source>
 <translation>应用音量</translation>
 </message>
 <message><source>Audio</source>
 <translation>音频</translation>
 </message>
-<message><source>Input</source>
-<translation>输入</translation>
-</message>
-<message><source>Muted</source>
-<translation>已静音</translation>
-</message>
 <message><source>No apps playing audio</source>
 <translation>没有应用正在播放音频</translation>
-</message>
-<message><source>No input devices</source>
-<translation>没有输入设备</translation>
-</message>
-<message><source>No output devices</source>
-<translation>没有输出设备</translation>
-</message>
-<message><source>Output</source>
-<translation>输出</translation>
 </message>
 </context>
 <context><name>BarActiveWindow</name>
 <message><source>Active window</source>
 <translation>活动窗口</translation>
-</message>
-<message><source>Compact</source>
-<translation>紧凑</translation>
-</message>
-<message><source>Inverted</source>
-<translation>反转</translation>
 </message>
 <message><source>Only show the active window title while hovering</source>
 <translation>仅在悬停时显示活动窗口标题</translation>
@@ -312,9 +217,6 @@
 </message>
 </context>
 <context><name>BarClock</name>
-<message><source>Background</source>
-<translation>背景</translation>
-</message>
 <message><source>Clock</source>
 <translation>时钟</translation>
 </message>
@@ -324,11 +226,11 @@
 <message><source>Show icon</source>
 <translation>显示图标</translation>
 </message>
+<message><source>Show seconds</source>
+<translation type="unfinished"></translation>
+</message>
 </context>
 <context><name>BarStatusIcons</name>
-<message><source>Add</source>
-<translation>添加</translation>
-</message>
 <message><source>Add entry</source>
 <translation>添加入口</translation>
 </message>
@@ -373,12 +275,6 @@
 </message>
 </context>
 <context><name>BarTray</name>
-<message><source>Background</source>
-<translation>背景</translation>
-</message>
-<message><source>Compact</source>
-<translation>紧凑</translation>
-</message>
 <message><source>Popout on hover</source>
 <translation>悬停弹出</translation>
 </message>
@@ -393,38 +289,17 @@
 </message>
 </context>
 <context><name>BarWorkspaces</name>
-<message><source>Active indicator</source>
-<translation>活动指示器</translation>
-</message>
-<message><source>Active trail</source>
-<translation>活动轨迹</translation>
-</message>
-<message><source>Max window icons</source>
-<translation>最大窗口图标数</translation>
+<message><source>Hide workspaces not on the current monitor</source>
+<translation type="unfinished"></translation>
 </message>
 <message><source>Number of workspaces displayed</source>
 <translation>显示的工作区数量</translation>
 </message>
-<message><source>Occupied background</source>
-<translation>占用背景</translation>
-</message>
-<message><source>Per-monitor workspaces</source>
-<translation>每显示器独立工作区</translation>
-</message>
-<message><source>Show each monitor&#x27;s workspaces independently</source>
-<translation>各显示器独立显示自己的工作区</translation>
-</message>
 <message><source>Show icons of open windows on each workspace</source>
 <translation>在每个工作区上显示已打开窗口的图标</translation>
 </message>
-<message><source>Show windows</source>
-<translation>显示窗口</translation>
-</message>
-<message><source>Shown</source>
-<translation>已显示</translation>
-</message>
-<message><source>Windows on special workspaces</source>
-<translation>特殊工作区上的窗口</translation>
+<message><source>Show workspaces that are inactive and empty</source>
+<translation type="unfinished"></translation>
 </message>
 <message><source>Workspaces</source>
 <translation>工作区</translation>
@@ -446,26 +321,11 @@
 <message><source>Connected devices</source>
 <translation>已连接设备</translation>
 </message>
-<message><source>Connected%1</source>
-<translation>已连接%1</translation>
-</message>
-<message><source>Discoverable</source>
-<translation>可被发现</translation>
-</message>
 <message><source>No saved devices</source>
 <translation>没有已保存的设备</translation>
 </message>
 <message><source>Pair new device</source>
 <translation>配对设备</translation>
-</message>
-<message><source>Pairable</source>
-<translation>可配对</translation>
-</message>
-<message><source>Saved</source>
-<translation>已保存</translation>
-</message>
-<message><source>Unknown</source>
-<translation>未知</translation>
 </message>
 </context>
 <context><name>BluetoothPairing</name>
@@ -486,9 +346,6 @@
 </message>
 </context>
 <context><name>BtDeviceInfo</name>
-<message><source>Address</source>
-<translation>地址</translation>
-</message>
 <message><source>Allow this device to connect automatically</source>
 <translation>允许此设备自动连接</translation>
 </message>
@@ -498,38 +355,8 @@
 <message><source>Battery</source>
 <translation>电池</translation>
 </message>
-<message><source>Blocked</source>
-<translation>已阻止</translation>
-</message>
-<message><source>Connect</source>
-<translation>连接</translation>
-</message>
-<message><source>Connected</source>
-<translation>已连接</translation>
-</message>
-<message><source>Device</source>
-<translation>设备</translation>
-</message>
-<message><source>Disconnect</source>
-<translation>断开连接</translation>
-</message>
-<message><source>Forget</source>
-<translation>忘记</translation>
-</message>
-<message><source>Not paired</source>
-<translation>未配对</translation>
-</message>
-<message><source>Paired</source>
-<translation>已配对</translation>
-</message>
 <message><source>Prevent this device from connecting</source>
 <translation>阻止此设备连接</translation>
-</message>
-<message><source>Trusted</source>
-<translation>受信任</translation>
-</message>
-<message><source>Unavailable</source>
-<translation>不可用</translation>
 </message>
 <message><source>Wake allowed</source>
 <translation>允许唤醒</translation>
@@ -559,11 +386,11 @@
 <message><source>Dashboard</source>
 <translation>仪表盘</translation>
 </message>
+<message><source>Display seconds for the clock in the main panel</source>
+<translation type="unfinished"></translation>
+</message>
 <message><source>Drag threshold</source>
 <translation>拖拽阈值</translation>
-</message>
-<message><source>Enabled</source>
-<translation>启用</translation>
 </message>
 <message><source>GPU</source>
 <translation>GPU</translation>
@@ -592,6 +419,9 @@
 <message><source>Reveal when the cursor reaches the screen edge</source>
 <translation>光标到达屏幕边缘时显示</translation>
 </message>
+<message><source>Show clock seconds</source>
+<translation type="unfinished"></translation>
+</message>
 <message><source>Show on hover</source>
 <translation>悬停显示</translation>
 </message>
@@ -603,11 +433,6 @@
 </message>
 <message><source>Weather</source>
 <translation>天气</translation>
-</message>
-</context>
-<context><name>DialogRowButton</name>
-<message><source>Cancel</source>
-<translation>取消</translation>
 </message>
 </context>
 <context><name>EthernetDetailPage</name>
@@ -628,9 +453,6 @@
 </message>
 <message><source>Connect</source>
 <translation>连接</translation>
-</message>
-<message><source>Connected</source>
-<translation>已连接</translation>
 </message>
 <message><source>Connection</source>
 <translation>连接</translation>
@@ -668,17 +490,8 @@
 <message><source>IPv4</source>
 <translation>IPv4</translation>
 </message>
-<message><source>Interface</source>
-<translation>接口</translation>
-</message>
 <message><source>MAC address</source>
 <translation>MAC 地址</translation>
-</message>
-<message><source>Manual</source>
-<translation>手动</translation>
-</message>
-<message><source>Not connected</source>
-<translation>未连接</translation>
 </message>
 <message><source>Speed</source>
 <translation>速率</translation>
@@ -686,14 +499,8 @@
 <message><source>Status</source>
 <translation>状态</translation>
 </message>
-<message><source>—</source>
-<translation type="unfinished"></translation>
-</message>
 </context>
 <context><name>EthernetSection</name>
-<message><source>Connected</source>
-<translation>已连接</translation>
-</message>
 <message><source>Data usage: %1</source>
 <translation>数据用量：%1</translation>
 </message>
@@ -702,12 +509,6 @@
 </message>
 <message><source>Local IP Address</source>
 <translation>本机 IP 地址</translation>
-</message>
-<message><source>Not connected</source>
-<translation>未连接</translation>
-</message>
-<message><source>Not connected • %1</source>
-<translation>未连接 • %1</translation>
 </message>
 <message><source>Primary DNS</source>
 <translation>主 DNS</translation>
@@ -723,17 +524,29 @@
 <message><source>24-hour</source>
 <translation>24 小时制</translation>
 </message>
+<message><source>Auto</source>
+<translation type="unfinished"></translation>
+</message>
+<message><source>Binary (KiB, MiB)</source>
+<translation type="unfinished"></translation>
+</message>
 <message><source>Choose your weather location on a map in a future update</source>
 <translation>天气位置将在后续更新中支持在地图上选择</translation>
 </message>
 <message><source>Clock format</source>
 <translation>时钟格式</translation>
 </message>
-<message><source>Follows your system locale (%1)</source>
-<translation>跟随系统语言区域（%1）</translation>
+<message><source>Data sizes</source>
+<translation type="unfinished"></translation>
+</message>
+<message><source>Decimal (KB, MB)</source>
+<translation type="unfinished"></translation>
 </message>
 <message><source>How times are shown across the shell</source>
 <translation>整个 shell 的时间显示方式</translation>
+</message>
+<message><source>K</source>
+<translation type="unfinished"></translation>
 </message>
 <message><source>Language</source>
 <translation>语言</translation>
@@ -744,17 +557,20 @@
 <message><source>Location picker coming soon</source>
 <translation>位置选择器即将推出</translation>
 </message>
-<message><source>System language</source>
-<translation>系统语言</translation>
-</message>
 <message><source>System temperatures</source>
 <translation>系统温度</translation>
 </message>
 <message><source>Temperature</source>
 <translation>温度</translation>
 </message>
+<message><source>The language used in the shell UI</source>
+<translation type="unfinished"></translation>
+</message>
 <message><source>Time &amp; date</source>
 <translation>时间与日期</translation>
+</message>
+<message><source>UI language</source>
+<translation type="unfinished"></translation>
 </message>
 <message><source>Units</source>
 <translation>单位</translation>
@@ -762,11 +578,20 @@
 <message><source>Units for CPU and GPU temperatures</source>
 <translation>CPU 与 GPU 温度单位</translation>
 </message>
+<message><source>Units for data sizes and network speeds</source>
+<translation type="unfinished"></translation>
+</message>
 <message><source>Units for weather temperatures</source>
 <translation>天气温度单位</translation>
 </message>
 <message><source>Weather</source>
 <translation>天气</translation>
+</message>
+<message><source>°C</source>
+<translation type="unfinished"></translation>
+</message>
+<message><source>°F</source>
+<translation type="unfinished"></translation>
 </message>
 </context>
 <context><name>LauncherPanel</name>
@@ -793,9 +618,6 @@
 </message>
 <message><source>Enable dangerous actions</source>
 <translation>启用危险动作</translation>
-</message>
-<message><source>Enabled</source>
-<translation>启用</translation>
 </message>
 <message><source>Fuzzy search</source>
 <translation>模糊搜索</translation>
@@ -843,6 +665,65 @@
 <translation>壁纸</translation>
 </message>
 </context>
+<context><name>LockStylePage</name>
+<message><source>An animated ink circle with the Chinese date, current solar term, weather and music.</source>
+<translation>动态墨圈与和纸背景，显示中文日期、节气、天气和媒体信息。</translation>
+</message>
+<message><source>Animated starfield, constellation input and Caelestia HUD.</source>
+<translation>动态星空、星座密码反馈与 Caelestia 信息面板。</translation>
+</message>
+<message><source>Appearance</source>
+<translation>外观</translation>
+</message>
+<message><source>Assign %1 after previewing it.</source>
+<translation>预览后，可将 %1 分别指定给浅色或深色主题。</translation>
+</message>
+<message><source>Click the preview to see the lock screen animation</source>
+<translation>点击预览图查看锁屏动画效果</translation>
+</message>
+<message><source>Cosmos · Astral</source>
+<translation>宇宙 · 星界</translation>
+</message>
+<message><source>Dark appearance</source>
+<translation>深色外观</translation>
+</message>
+<message><source>Dark appearance · Assigned</source>
+<translation>深色外观 · 已设置</translation>
+</message>
+<message><source>Light appearance</source>
+<translation>浅色外观</translation>
+</message>
+<message><source>Light appearance · Assigned</source>
+<translation>浅色外观 · 已设置</translation>
+</message>
+<message><source>Light: %1 · Dark: %2</source>
+<translation>浅色：%1 · 深色：%2</translation>
+</message>
+<message><source>Lock screen</source>
+<translation>锁屏</translation>
+</message>
+<message><source>Lock screen by theme</source>
+<translation>按主题切换锁屏</translation>
+</message>
+<message><source>Open the fullscreen preview before assigning this style.</source>
+<translation>请先打开全屏预览，再指定锁屏样式。</translation>
+</message>
+<message><source>Preview a style first, then assign it separately to light or dark appearance. The lock screen follows the active Caelestia theme.</source>
+<translation>先预览样式，再分别指定浅色或深色主题使用的锁屏。正式锁屏会跟随 Caelestia 当前主题自动切换。</translation>
+</message>
+<message><source>Preview style</source>
+<translation>预览样式</translation>
+</message>
+<message><source>Set for dark appearance</source>
+<translation>设为深色主题锁屏</translation>
+</message>
+<message><source>Set for light appearance</source>
+<translation>设为浅色主题锁屏</translation>
+</message>
+<message><source>Wabi-sabi · Enso</source>
+<translation>侘寂 · 圆相</translation>
+</message>
+</context>
 <context><name>NavPane</name>
 <message><source>Search settings</source>
 <translation>搜索设置</translation>
@@ -851,9 +732,6 @@
 <context><name>NetworkDetailPage</name>
 <message><source>%1 MHz</source>
 <translation>%1 MHz</translation>
-</message>
-<message><source>%1%</source>
-<translation>%1%</translation>
 </message>
 <message><source>Address (CIDR)</source>
 <translation>地址（CIDR）</translation>
@@ -921,14 +799,8 @@
 <message><source>MAC address</source>
 <translation>MAC 地址</translation>
 </message>
-<message><source>Manual</source>
-<translation>手动</translation>
-</message>
 <message><source>Network</source>
 <translation>网络</translation>
-</message>
-<message><source>Open</source>
-<translation>开放</translation>
 </message>
 <message><source>Security</source>
 <translation>安全类型</translation>
@@ -936,22 +808,10 @@
 <message><source>Signal</source>
 <translation>信号</translation>
 </message>
-<message><source>—</source>
-<translation type="unfinished"></translation>
-</message>
 </context>
 <context><name>NetworkList</name>
-<message><source> • Connected</source>
-<translation> • 已连接</translation>
-</message>
-<message><source> • Saved</source>
-<translation> • 已保存</translation>
-</message>
 <message><source>No networks found</source>
 <translation>没有找到网络</translation>
-</message>
-<message><source>Security: %1%2</source>
-<translation>安全类型：%1%2</translation>
 </message>
 <message><source>Wi-Fi disabled</source>
 <translation>Wi-Fi 已关闭</translation>
@@ -973,20 +833,11 @@
 <message><source>Authentication required</source>
 <translation>需要身份验证</translation>
 </message>
-<message><source>Connected</source>
-<translation>已连接</translation>
-</message>
 <message><source>Connecting...</source>
 <translation>连接中…</translation>
 </message>
-<message><source>Current Ping</source>
-<translation>当前延迟</translation>
-</message>
 <message><source>Disconnecting...</source>
 <translation>断开中…</translation>
-</message>
-<message><source>Interface</source>
-<translation>接口</translation>
 </message>
 <message><source>Network</source>
 <translation>网络</translation>
@@ -1044,9 +895,6 @@
 <message><source>Group preview count</source>
 <translation>分组预览数量</translation>
 </message>
-<message><source>Important</source>
-<translation>重要</translation>
-</message>
 <message><source>Keyboard layout changes</source>
 <translation>键盘布局变化</translation>
 </message>
@@ -1064,12 +912,6 @@
 </message>
 <message><source>Num lock changes</source>
 <translation>数字锁定变化</translation>
-</message>
-<message><source>Off</source>
-<translation>关闭</translation>
-</message>
-<message><source>On</source>
-<translation>开启</translation>
 </message>
 <message><source>Open expanded</source>
 <translation>默认展开</translation>
@@ -1141,6 +983,12 @@
 <message><source>Language &amp; region</source>
 <translation>语言与地区</translation>
 </message>
+<message><source>Lock screen</source>
+<translation>锁屏</translation>
+</message>
+<message><source>Lock screen appearance and style</source>
+<translation>锁屏外观与样式</translation>
+</message>
 <message><source>Manage plugins</source>
 <translation>管理插件</translation>
 </message>
@@ -1191,12 +1039,6 @@
 <message><source>Dashboard</source>
 <translation>仪表盘</translation>
 </message>
-<message><source>Disabled</source>
-<translation>停用</translation>
-</message>
-<message><source>Enabled</source>
-<translation>启用</translation>
-</message>
 <message><source>Launcher</source>
 <translation>启动器</translation>
 </message>
@@ -1220,20 +1062,11 @@
 </message>
 </context>
 <context><name>SavedNetworksPage</name>
-<message><source>Connected • %1</source>
-<translation>已连接 • %1</translation>
-</message>
 <message><source>No saved networks</source>
 <translation>没有已保存的网络</translation>
 </message>
-<message><source>Open</source>
-<translation>开放</translation>
-</message>
 <message><source>Saved networks</source>
 <translation>已保存网络</translation>
-</message>
-<message><source>Unknown</source>
-<translation>未知</translation>
 </message>
 </context>
 <context><name>ServicesPage</name>
@@ -1242,9 +1075,6 @@
 </message>
 <message><source>Amount the volume changes per scroll (%)</source>
 <translation>每次滚动音量变化量（%）</translation>
-</message>
-<message><source>Auto</source>
-<translation>自动</translation>
 </message>
 <message><source>Brightness step</source>
 <translation>亮度步进</translation>
@@ -1260,9 +1090,6 @@
 </message>
 <message><source>GPU</source>
 <translation>GPU</translation>
-</message>
-<message><source>Generic</source>
-<translation>通用</translation>
 </message>
 <message><source>How often available networks are rescanned (seconds)</source>
 <translation>可用网络重新扫描间隔（秒）</translation>
@@ -1287,9 +1114,6 @@
 </message>
 <message><source>Monitoring: %1</source>
 <translation>监控：%1</translation>
-</message>
-<message><source>None</source>
-<translation>无</translation>
 </message>
 <message><source>Notifications</source>
 <translation>通知</translation>
@@ -1340,9 +1164,6 @@
 <context><name>SidebarPanel</name>
 <message><source>Drag threshold</source>
 <translation>拖拽阈值</translation>
-</message>
-<message><source>Enabled</source>
-<translation>启用</translation>
 </message>
 <message><source>General</source>
 <translation>通用</translation>
@@ -1443,9 +1264,6 @@
 </message>
 <message><source>Do not disturb</source>
 <translation>勿扰模式</translation>
-</message>
-<message><source>Enabled</source>
-<translation>启用</translation>
 </message>
 <message><source>Game mode</source>
 <translation>游戏模式</translation>

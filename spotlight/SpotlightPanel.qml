@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
@@ -12,14 +13,26 @@ import qs.services
 import qs.spotlight
 
 // Spotlight 内容面板：左 overview 工作区列 + 右应用列表；壁纸模式双视图。
-// 由 launcher 弹出面板实例化（原浮动窗已退役）。
+// 由 Spotlight 独立居中 FloatingWindow 实例化。
 Item {
 	id: root
 
+	required property var screenState
 	signal closeRequested()
 
-	implicitWidth: Math.round(Screen.width * 0.4)
+	implicitWidth: Math.min(Math.round(Screen.width * 0.50), 1280)
 	implicitHeight: Math.round(Screen.height * 0.6)
+	readonly property int overviewPaneWidth: Math.max(320, Math.min(Math.round((width - 11) * 0.60), width - 11 - 400))
+	property bool pointerHasEntered: false
+
+	HoverHandler {
+		onHoveredChanged: {
+			if (hovered)
+				root.pointerHasEntered = true;
+			else if (root.visible && root.pointerHasEntered)
+				root.closeRequested();
+		}
+	}
 
 	property var pendingLaunch: null
 	property var launchWatch: null
@@ -29,7 +42,6 @@ Item {
 	// 把当前标签页回写给 SpotlightState：IPC（如 Super+V）据此判断「同一标签再按一次 = 收回」
 	onModeChanged: {
 		SpotlightState.currentMode = root.mode;
-		root.hideAppTip();
 		root.closeAppMenu();
 		Qt.callLater(root.primeWallStrip);
 		// 切到应用标签时，让当前分类的胶囊处在可视区
@@ -39,10 +51,55 @@ Item {
 	// 顶部标签顺序（胶囊按索引滑动，cycleMode 也用这个顺序）
 	readonly property var modeOrder: ["apps", "wallpaper", "clipboard", "emoji"]
 	readonly property int modeIndex: Math.max(0, root.modeOrder.indexOf(root.mode))
+	// 触摸板会把一次滑动拆成许多小滚轮事件；离散选项累计到门槛才切一次。
+	property string wheelTarget: ""
+	property real wheelAccum: 0
+	property bool wheelUsesPixels: false
+	Timer {
+		id: wheelResetTimer
+		interval: 400
+		onTriggered: {
+			root.wheelTarget = "";
+			root.wheelAccum = 0;
+		}
+	}
+	function wheelStep(target: string, wheel: var, horizontalFirst: bool): int {
+		const pixels = horizontalFirst
+			? (wheel.pixelDelta.x || wheel.pixelDelta.y)
+			: (wheel.pixelDelta.y || wheel.pixelDelta.x);
+		const angle = horizontalFirst
+			? (wheel.angleDelta.x || wheel.angleDelta.y)
+			: (wheel.angleDelta.y || wheel.angleDelta.x);
+		const usePixels = pixels !== 0;
+		const isSmoothScroll = usePixels || wheel.phase !== Qt.NoScrollPhase;
+		const rawDelta = usePixels ? pixels : angle;
+		// 归一化触摸板增量后再反向：适配 Spotlight 胶囊实际的自然滚动方向。
+		// inverted=true 表示 Qt 已依系统设置反转过增量，先尊重该状态，再统一翻转一次。
+		const naturalDelta = isSmoothScroll && !wheel.inverted ? -rawDelta : rawDelta;
+		const delta = isSmoothScroll ? -naturalDelta : naturalDelta;
+		if (delta === 0)
+			return 0;
+		// 没有滚动 phase 且没有像素增量时，按传统鼠标滚轮每格切一步。
+		// 触摸板即使只提供 angleDelta，也会带 ScrollBegin/Update/End，仍进入累计门槛。
+		if (!isSmoothScroll)
+			return delta < 0 ? -1 : 1;
+		if (root.wheelTarget !== target || root.wheelUsesPixels !== usePixels || root.wheelAccum * delta < 0)
+			root.wheelAccum = 0;
+		root.wheelTarget = target;
+		root.wheelUsesPixels = usePixels;
+		root.wheelAccum += delta;
+		wheelResetTimer.restart();
+		const threshold = usePixels ? 160 : 240;
+		if (Math.abs(root.wheelAccum) < threshold)
+			return 0;
+		const step = root.wheelAccum < 0 ? -1 : 1;
+		root.wheelAccum -= step * threshold;
+		return step;
+	}
 
 	function modeLabel(m: string): string {
 		if (m === "apps")
-			return "应用";
+			return "总览应用";
 		if (m === "wallpaper")
 			return "壁纸";
 		if (m === "clipboard")
@@ -68,7 +125,6 @@ Item {
 			return false;
 		root.mode = requested;
 		SpotlightState.requestedMode = "";
-		console.info(`[spotlight] 按外部请求切到 ${requested} 标签`);
 		return true;
 	}
 	// 壁纸模式视图：carousel（竖排，2026-09-04 起）/ grid（网格）/ strip（横向胶片条，2026-09-14 新增，
@@ -79,13 +135,15 @@ Item {
 	// 当前居中卡通过真实宽度展开并推动相邻卡片；不是左右镜像的扇形，也没有上下错落。
 	// stripSlant 设 0 可退回普通矩形；展开倍率刻意明显，接近参考图里“窄卡 → 横向大画幅”的变化。
 	property real stripSlant: -17
-	property real stripCenterStretch: 2.8
-	property real stripCenterGrow: 1.1
+	property real stripCenterStretch: 2.35
+	property real stripCenterGrow: 1.03
 	property int stripMotionDuration: 400
 	// 视图切换后把新视图的选中项重新对准“正在用的壁纸”（各视图的 currentIndex 是各自维护的）
 	onWallViewChanged: {
 		Qt.callLater(root.resetWallSelection);
 		Qt.callLater(root.primeWallStrip);
+		if (root.wallView === "online")
+			Qt.callLater(() => OnlineWallpapers.configureGroupSize(24, input.text));
 	}
 	// 在给定底色上取对比色。M3Palette 没暴露 onPrimary/onTertiary，用相对亮度判断即可
 	// （0.299/0.587/0.114 是 Rec.601 亮度权重；阈值 0.55 偏保守，宁可给白字）。
@@ -100,7 +158,7 @@ Item {
 
 	// ---------------- 壁纸结果缓存（三个视图共用一份） ----------------
 	// 2026-09-14 用户反馈"壁纸动不动就要加载画面"的根因：三个视图原来各自绑定 wallpaperResults(input.text)，
-	// 查询串一变（包括每次打开面板把搜索框清空）就产生**新数组实例**，ListView/GridView 视为换模型 →
+	// 查询串一变（包括每次打开面板把搜索框清空）就产生**新数组实例**，ListView 视为换模型 →
 	// 全部委托重建 → 缩略图整批重新解码。现在改成：查询串没变就复用同一个数组实例，
 	// 只有壁纸目录本身增删文件才强制重查（应用壁纸只改 actualCurrent，不该重建列表）。
 	property var wallResults: []
@@ -120,7 +178,12 @@ Item {
 
 		interval: 130
 		repeat: false
-		onTriggered: root.syncWallResults(false)
+			onTriggered: {
+			if (root.wallView === "online")
+				OnlineWallpapers.refresh(input.text);
+			else
+				root.syncWallResults(false);
+		}
 	}
 
 	Connections {
@@ -154,44 +217,50 @@ Item {
 	// 「点开壁纸选项卡后把缩略图一次全部渲染出来」：进入标签后把 strip 的 cacheBuffer 放大到远超列表总长，
 	// ListView 就会把**全部**委托一次性实例化并解码；之后滚动不会再触发新的解码。
 	// 原来 cacheBuffer 只有 1400px，滚到没有缓存的位置就要现场解码（表现就是"动不动加载"）。
-	// 刻意用"进入标签才置位"而不是一开始就置位：面板预热时常驻在内存里，提前渲染会拖慢启动器打开。
+	// 刻意用"进入标签才置位"而不是一开始就置位：Spotlight 窗口按需显示，提前渲染会拖慢窗口打开。
 	property bool wallStripPrimed: false
 
 	function primeWallStrip(): void {
 		if (root.wallStripPrimed || root.mode !== "wallpaper" || root.wallView !== "strip" || !root.visible)
 			return;
 		root.wallStripPrimed = true;
-		console.info(`[spotlight] 胶片条预热：一次性渲染 ${root.wallResults.length} 张缩略图`);
 	}
 
 	// ---------------- 应用标签：分类视图 + 结果缓存 + 悬浮提示 + 右键归类菜单 ----------------
 	// 2026-09-14 第二轮改版（用户要求）：删掉原来的"列表 / 网格"两个视图，改成**分类视图**——
-	// 顶部一排分类胶囊（定义与自动归类规则在 AppCategories.qml），下面按当前分类渲染图标网格；
-	// 右键图标 = 归类菜单（「添加到常用」/「归类到 X」/「恢复自动归类」）。
+	// 顶部一排分类胶囊（定义与自动归类规则在 AppCategories.qml），下面按当前分类渲染名称常显名单；
+	// 右键应用行 = 归类菜单（「添加到常用」/「归类到 X」/「恢复自动归类」）。
 	// 启动器默认落在「常用」分类。用户 2026-09-15 要求：每次打开都先看常用
 	property string appCategory: "favorite"
 	property string appResultsKey: "\u0000"
 	property var appFilteredApps: []
 	property var appPendingResults: []
+	// 应用数据库异步刷新时保留焦点身份；若旧选中项已不存在，则保留原索引并夹到新列表范围。
+	property bool appSelectionRestorePending: false
+	property string appSelectionRestoreId: ""
+	property int appSelectionRestoreIndex: 0
 	// 右键菜单状态
 	property bool appMenuVisible: false
 	property var appMenuEntry: null
 	property real appMenuX: 0
 	property real appMenuY: 0
-	property string appTipText: ""
-	property real appTipX: 0
-	property real appTipY: 0
-	property bool appTipVisible: false
-	property int appTipIndex: -1
-	property string appTipPending: ""
 
 	function syncAppResults(force: bool): void {
 		const key = (input.text || "").trim();
 		root.appResultsKey = key;
 		// 分类视图只在应用数据库刷新或首次初始化时取一次完整应用表；敲搜索词时只过滤当前分类，
 		// 不再重复调用 Apps.search(key) 生成跨分类结果。
-		if (force || AppCategories.allApps.length === 0)
+		if (force || AppCategories.allApps.length === 0) {
+			if (force) {
+				const selected = appList.currentIndex >= 0
+					? (appList.currentItem?.modelData ?? appList.model?.[appList.currentIndex])
+					: null;
+				root.appSelectionRestoreId = AppCategories.entryId(selected);
+				root.appSelectionRestoreIndex = Math.max(0, appList.currentIndex);
+				root.appSelectionRestorePending = true;
+			}
 			AppCategories.allApps = Apps.search("").filter(a => !!a);
+		}
 		root.refreshAppResults();
 	}
 
@@ -204,7 +273,6 @@ Item {
 		root.appResultsKey = key;
 		root.appPendingResults = AppCategories.searchIn(source, key);
 		appResultsCommitTimer.restart();
-		console.info(`[spotlight-search] calculate query="${key}" category=${root.appCategory} source=${source.length} matched=${root.appPendingResults.length}`);
 	}
 
 	Timer {
@@ -218,9 +286,12 @@ Item {
 			root.appFilteredApps = [];
 			Qt.callLater(() => {
 				root.appFilteredApps = committed;
-				console.info(`[spotlight-search] commit query="${root.appResultsKey}" category=${root.appCategory} model=${root.appFilteredApps.length}`);
-				if (root.mode === "apps")
-					root.resetAppSelection();
+				if (root.mode === "apps") {
+					if (root.appSelectionRestorePending)
+						root.restoreAppSelection();
+					else
+						root.resetAppSelection();
+				}
 			});
 		}
 	}
@@ -229,7 +300,6 @@ Item {
 		if (root.appCategory === id)
 			return;
 		root.closeAppMenu();
-		root.hideAppTip();
 		root.appCategory = id;
 		root.refreshAppResults();
 		Qt.callLater(root.resetAppSelection);
@@ -272,7 +342,6 @@ Item {
 		root.appMenuEntry = cell?.modelData ?? null;
 		if (!root.appMenuEntry)
 			return;
-		root.hideAppTip();
 		root.appMenuX = pos.x;
 		root.appMenuY = pos.y;
 		root.appMenuVisible = true;
@@ -288,7 +357,6 @@ Item {
 			return;
 		const entry = root.appMenuEntry;
 		const added = AppCategories.toggleFavorite(entry);
-		console.info(`[spotlight-apps] ${added ? "加入" : "移出"}常用: ${entry.id ?? ""}`);
 		// 2026-09-14 用户更正：加常用**不要**跳转（原来加完会切到「常用」标签，很烦）；
 		// 原地只给图标加 ★ 角标就行，视图不动；菜单点完即关。
 		root.closeAppMenu();
@@ -300,84 +368,30 @@ Item {
 			return;
 		const entry = root.appMenuEntry;
 		AppCategories.assign(entry, id);
-		console.info(`[spotlight-apps] 归类 ${entry.id ?? ""} -> ${id}`);
 		// 同理：不在"全部"下时跟着应用一起换标签（"恢复自动归类"则跟到自动判断出来的那个分类）
 		if (root.appCategory !== "all")
 			Qt.callLater(() => root.setAppCategory(id === "" || id === "auto" ? AppCategories.categoryFor(entry) : id));
 		root.closeAppMenu();
 	}
 
-	// 悬停判定：整块网格上一个 HoverHandler + GridView.indexAt 算命中的格子。
+	// 列表委托显示完整名称，无需悬停提示。
 	// 原来靠每个委托自己的 onEntered/onExited —— 委托被回收/重建时那些事件会漏，表现就是"有时不显示应用名"。
-	function updateAppTipFromHover(handler: var): void {
-		if (!handler.hovered) {
-			root.hideAppTip();
-			return;
-		}
-		const p = handler.point.position;
-		const idx = appGrid.indexAt(p.x + appGrid.contentX, p.y + appGrid.contentY);
-		if (idx < 0 || idx >= appGrid.count) {
-			root.hideAppTip();
-			return;
-		}
-		if (idx === root.appTipIndex && (root.appTipVisible || appTipTimer.running))
-			return;
-		const entry = appGrid.model?.[idx] ?? null;
-		if (!entry) {
-			root.hideAppTip();
-			return;
-		}
-		appGrid.currentIndex = idx;
-		root.appTipIndex = idx;
-		root.appTipPending = entry.name ?? "";
-		appTipTimer.restart();
-	}
-
-	function hideAppTip(): void {
-		appTipTimer.stop();
-		root.appTipVisible = false;
-		root.appTipIndex = -1;
-		root.appTipPending = "";
-	}
-
-	Timer {
-		id: appTipTimer
-
-		interval: 600
-		repeat: false
-		onTriggered: {
-			const idx = root.appTipIndex;
-			if (idx < 0 || idx >= appGrid.count || root.appTipPending === "")
-				return;
-			const cols = Math.max(1, Math.floor(appGrid.width / appGrid.cellWidth));
-			const cx = (idx % cols) * appGrid.cellWidth - appGrid.contentX;
-			const cy = Math.floor(idx / cols) * appGrid.cellHeight - appGrid.contentY;
-			// 完全滚出视口就不弹
-			if (cy + appGrid.cellHeight < 0 || cy > appGrid.height)
-				return;
-			const p = appGrid.mapToItem(shell, cx + appGrid.cellWidth / 2, cy);
-			root.appTipText = root.appTipPending;
-			root.appTipX = p.x;
-			root.appTipY = p.y;
-			root.appTipVisible = true;
-		}
-	}
 
 	// 应用委托的点击/拖放共用逻辑：
-	//   网格内拖动松手 = 调整该分类的顺序（写进 sidecar 的 order）；
-	//   拖到网格外（左侧 overview 卡片）= 在指定工作区启动（原有行为）。
+	//   列表内拖动松手 = 调整该分类的顺序（写进 sidecar 的 order）；
+	//   拖到列表外（左侧 overview 卡片）= 在指定工作区启动（原有行为）。
 	property int appDragFromIndex: -1
 	property int appDragToIndex: -1
 
-	// 指针落在网格的哪个格子上（用 indexAt，不依赖委托对象）；不在网格内返回 -1
-	function appGridIndexAt(area: var, mouse: var): int {
-		const p = area.mapToItem(appGrid, mouse.x, mouse.y);
-		if (p.x < 0 || p.y < 0 || p.x > appGrid.width || p.y > appGrid.height)
+	// 指针落在列表的哪个条目上（用 indexAt，不依赖委托对象）；不在列表内返回 -1
+	function appListIndexAt(area: var, mouse: var): int {
+		const p = area.mapToItem(appList, mouse.x, mouse.y);
+		if (p.x < 0 || p.y < 0 || p.x > appList.width || p.y > appList.height)
 			return -1;
-		return appGrid.indexAt(p.x + appGrid.contentX, p.y + appGrid.contentY);
+		return appList.indexAt(p.x + appList.contentX, p.y + appList.contentY);
 	}
 
-	// 把第 fromIndex 个图标插到 toIndex 那个格子的位置，并把结果顺序落盘
+	// 把第 fromIndex 个图标插到 toIndex 的位置，并把结果顺序落盘
 	function reorderApp(fromIndex: int, toIndex: int): void {
 		const list = appZone.visibleApps;
 		if (fromIndex < 0 || fromIndex >= list.length || toIndex < 0 || toIndex >= list.length)
@@ -386,7 +400,6 @@ Item {
 		const moved = ids.splice(fromIndex, 1)[0];
 		ids.splice(toIndex > fromIndex ? toIndex - 1 : toIndex, 0, moved);
 		AppCategories.setCategoryOrder(root.appCategory, ids);
-		console.info(`[spotlight-apps] 排序 ${root.appCategory}: ${fromIndex} → ${toIndex}`);
 	}
 
 	function appDragPressed(area: var, mouse: var, index: int): void {
@@ -403,23 +416,22 @@ Item {
 			target.opacity = 0.45;
 			root.ghostIcon = Quickshell.iconPath(entry.icon ?? "", "image-missing");
 			root.ghostVisible = true;
-			root.hideAppTip();
-				}
+					}
 		if (target.Drag.active) {
 			const p = area.mapToItem(shell, mouse.x, mouse.y);
 			dragGhost.x = p.x - 28;
 			dragGhost.y = p.y - 28;
-			// 网格内排序：记录落点格子；搜索状态下不排序（结果集是临时的，顺序没意义）
-			const inGrid = root.appGridIndexAt(area, mouse);
-			root.appDragToIndex = root.appResultsKey === "" ? inGrid : -1;
-			// 拖到网格上下边缘时自动滚动，方便跨屏排序
-			if (inGrid >= 0) {
-				const g = area.mapToItem(appGrid, mouse.x, mouse.y);
-				const maxY = Math.max(0, appGrid.contentHeight - appGrid.height);
-				if (g.y < 28)
-					appGrid.contentY = Math.max(0, appGrid.contentY - 16);
-				else if (g.y > appGrid.height - 28)
-					appGrid.contentY = Math.min(maxY, appGrid.contentY + 16);
+			// 列表内排序：记录落点条目；搜索状态下不排序（结果集是临时的，顺序没意义）
+			const inList = root.appListIndexAt(area, mouse);
+			root.appDragToIndex = root.appResultsKey === "" ? inList : -1;
+			// 拖到列表上下边缘时自动滚动，方便跨屏排序
+			if (inList >= 0) {
+				const p = area.mapToItem(appList, mouse.x, mouse.y);
+				const maxY = Math.max(0, appList.contentHeight - appList.height);
+				if (p.y < 28)
+					appList.contentY = Math.max(0, appList.contentY - 16);
+				else if (p.y > appList.height - 28)
+					appList.contentY = Math.min(maxY, appList.contentY + 16);
 			}
 		}
 	}
@@ -430,14 +442,13 @@ Item {
 		const fromIndex = root.appDragFromIndex;
 		if (wasDrag) {
 			if (dropIndex >= 0 && fromIndex >= 0 && dropIndex !== fromIndex) {
-				// 在网格里松手 → 只排序，不启动应用
+				// 在列表里松手 → 只排序，不启动应用
 				root.reorderApp(fromIndex, dropIndex);
 			} else {
-				const p = area.mapToItem(ov, mouse.x, mouse.y);
-				const hitWs = ov.workspaceAt(p);
-				console.info(`[spotlight-drag] release ${entry.name ?? ""} ws=${hitWs}`);
+				const p = area.mapToItem(overviewContent, mouse.x, mouse.y);
+				const hitWs = overviewContent.workspaceAt(p);
 				if (hitWs !== "")
-					root.launchOnWorkspace(entry, hitWs, ov.isSpecialWorkspaceKey(hitWs));
+					root.launchOnWorkspace(entry, hitWs, overviewContent.isSpecialWorkspaceKey(hitWs));
 			}
 		}
 		target.Drag.active = false;
@@ -447,7 +458,6 @@ Item {
 		root.appDragFromIndex = -1;
 		root.appDragToIndex = -1;
 		if (!wasDrag) {
-			console.info(`[spotlight-click] launch ${entry.name ?? ""}`);
 			Apps.launch(entry);
 			launchRefreshTimer.restart();
 			root.closeRequested();
@@ -455,7 +465,7 @@ Item {
 	}
 
 	// ---------------- 生命周期 ----------------
-	// 面板内容现在常驻（launcher Wrapper 的本地补丁：首次打开后不再销毁重建），
+	// 面板组件随 Caelestia 常驻（关闭浮窗时仅隐藏，不销毁内容树），
 	// 所以这里同时负责「每次打开」和「完全关闭后」的重置工作。
 	Component.onCompleted: Qt.callLater(() => {
 		root.applyRequestedMode();
@@ -479,14 +489,13 @@ Item {
 
 	onVisibleChanged: {
 		if (visible) {
-			hoverCloseTimer.stop();
 			input.text = "";
 			// 搜索框清空后结果要立刻回到全量（查询串没变时这里什么都不做）
 			root.syncWallResults(false);
 			root.syncAppResults(false);
 			// 打开面板时若停在壁纸标签，也补一次一次性渲染
 			Qt.callLater(root.primeWallStrip);
-			// 用户要求：每次打开启动器都回到「常用」分类，并把胶囊条对齐过去
+			// 用户要求：每次打开 Spotlight 都回到「常用」分类，并把胶囊条对齐过去
 			root.appCategory = "favorite";
 			root.refreshAppResults();
 			Qt.callLater(root.ensureAppCategoryVisible);
@@ -497,16 +506,18 @@ Item {
 			root.applyRequestedMode();
 			// 剪贴板历史每次打开刷新一次（一个 cliphist list 进程，很便宜）
 			clipboardRefreshTimer.restart();
-			ov.refresh();
-			ov.unlockCaptureSequence();
-			Qt.callLater(() => ov.settleToActive());
+			overviewContent.refresh();
+			overviewContent.unlockCaptureSequence();
+			Qt.callLater(() => overviewContent.settleToActive());
 			input.forceActiveFocus();
 			Qt.callLater(root.resetAppSelection);
 		} else {
+			root.pointerHasEntered = false;
 			SpotlightState.active = false;
+			if (root.screenState)
+				root.screenState.spotlightTextInput = false;
 			clipboardRefreshTimer.stop();
-			root.hideAppTip();
-			root.closeAppMenu();
+				root.closeAppMenu();
 			// 面板常驻后不再随关闭销毁重建，这里显式回到默认标签页，
 			// 保持与之前「每次打开都停在应用标签」一致的手感。
 			root.mode = "apps";
@@ -522,31 +533,14 @@ Item {
 		}
 	}
 
-	// 鼠标离开面板即自动关闭；给 150ms 宽限，避免贴着边缘/拖动时被误关。
-	HoverHandler {
-		onHoveredChanged: {
-			if (hovered)
-				hoverCloseTimer.stop();
-			else if (root.visible)
-				hoverCloseTimer.restart();
-		}
+	Component.onDestruction: {
+		if (root.screenState)
+			root.screenState.spotlightTextInput = false;
+		SpotlightState.active = false;
 	}
-
-	Timer {
-		id: hoverCloseTimer
-
-		interval: 150
-		repeat: false
-		onTriggered: {
-			if (root.visible)
-				root.closeRequested();
-		}
-	}
-
-	Component.onDestruction: SpotlightState.active = false
 
 	// overview 内点击工作区卡/窗口缩略图会经 closeOverview() 把 SpotlightState 置 false，
-	// 此时启动器面板仍可见 → 视为“已选定目标”，自动关闭启动器
+	// 此时 Spotlight 浮窗仍可见 → 视为“已选定目标”，自动关闭窗口
 	Connections {
 		target: SpotlightState
 
@@ -583,7 +577,7 @@ Item {
 	function cycleWallView(deltaY: real): void {
 		if (deltaY === 0)
 			return;
-		const order = ["carousel", "grid", "strip"];
+		const order = ["carousel", "grid", "strip", "online"];
 		const idx = Math.max(0, order.indexOf(root.wallView));
 		const step = deltaY < 0 ? 1 : -1;
 		root.wallView = order[(idx + step + order.length) % order.length];
@@ -601,7 +595,6 @@ Item {
 		const cmdline = argv.map(root.shq).join(" ");
 		const luaCmd = String(cmdline).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 		const expr = `hl.dispatch(hl.dsp.exec_cmd("${luaCmd}", { workspace = "${ws} silent" }))`;
-		console.info(`[spotlight-launch] eval ws=${ws}: ${cmdline.slice(0, 120)}`);
 		Quickshell.execDetached(["hyprctl", "eval", expr]);
 	}
 
@@ -610,7 +603,7 @@ Item {
 
 		interval: 1000
 		repeat: false
-		onTriggered: ov.refresh()
+		onTriggered: overviewContent.refresh()
 	}
 
 	// wsId 这里其实是工作区选择符（普通 "3" / 特殊 "special:slot1"），用 var 接收
@@ -628,7 +621,6 @@ Item {
 			snapshot: new Set(snapshot),
 			tries: 0
 		};
-		console.info(`[spotlight-launch] watch ws=${wsId} special=${isSpecial} expected=[${[...expected].join(",")}]`);
 		Apps.launch(entry);
 		root.pollLaunch();
 	}
@@ -637,7 +629,6 @@ Item {
 		if (!root.launchWatch)
 			return;
 		if (root.launchWatch.tries++ >= 40) {
-			console.info("[spotlight-launch] timeout: 未发现可移动的新窗口");
 			root.launchWatch = null;
 			return;
 		}
@@ -676,7 +667,6 @@ Item {
 						if (!matched)
 							continue;
 						const ws = String(watch.ws);
-						console.info(`[spotlight-launch] move ${c.class ?? ""} ${c.address} -> ws ${ws}`);
 						HyprDispatch.call(
 							`movetoworkspacesilent ${ws},address:${HyprDispatch.addressArg(c.address)}`,
 							`hl.dsp.window.move({ window = "address:${HyprDispatch.addressArg(c.address)}", workspace = "${ws}", follow = false })`
@@ -738,15 +728,23 @@ Item {
 		clip: true
 
 		Column {
+			id: contentColumn
+
 			anchors.fill: parent
 			anchors.margins: 12
 			spacing: 10
+
+			Item {
+				id: topControls
+
+				width: parent.width
+				height: 40
 
 			TextField {
 				id: input
 
 				objectName: "spotlightSearch"
-				width: parent.width
+				width: parent.width - modeHeader.width - 10
 				height: 40
 				leftPadding: 40
 				rightPadding: 14
@@ -755,6 +753,10 @@ Item {
 				placeholderTextColor: Qt.alpha(M3Palette.m3onSurface, 0.45)
 				color: M3Palette.m3onSurface
 				font: Tokens.font.body.large
+				onActiveFocusChanged: {
+					if (root.screenState)
+						root.screenState.spotlightTextInput = activeFocus;
+				}
 
 				IconImage {
 					asynchronous: true
@@ -813,7 +815,7 @@ Item {
 					if (root.mode === "apps") {
 						root.moveAppSelection(-1, 0);
 						event.accepted = true;
-					} else if (root.mode === "wallpaper" && (root.wallView === "grid" || root.wallView === "strip")) {
+					} else if (root.mode === "wallpaper" && (root.wallView === "grid" || root.wallView === "strip" || root.wallView === "online")) {
 						root.moveWallSelection(-1, 0);
 						event.accepted = true;
 					} else if (root.mode === "emoji") {
@@ -825,7 +827,7 @@ Item {
 					if (root.mode === "apps") {
 						root.moveAppSelection(1, 0);
 						event.accepted = true;
-					} else if (root.mode === "wallpaper" && (root.wallView === "grid" || root.wallView === "strip")) {
+					} else if (root.mode === "wallpaper" && (root.wallView === "grid" || root.wallView === "strip" || root.wallView === "online")) {
 						root.moveWallSelection(1, 0);
 						event.accepted = true;
 					} else if (root.mode === "emoji") {
@@ -847,7 +849,7 @@ Item {
 					}
 				}
 				onTextChanged: {
-					// 壁纸结果走防抖，其余标签仍是即时反应
+					// 本地/网络壁纸都走防抖，其余标签仍是即时反应
 					// 注意：wallQueryDebounce 是 root 的直接子对象（靠 id 在组件内可见），
 					// 不是 root 的属性——写成 root.wallQueryDebounce.restart() 会取到 undefined，
 					// 导致防抖永不触发、壁纸搜索不随输入刷新（2026-09-23 修复）。
@@ -867,19 +869,24 @@ Item {
 				}
 				// TextInput.textEdited 专门在用户实际编辑时发出。当前环境中键入字符没有稳定进入
 				// onTextChanged，但分类切换能读到新 text；这里为应用搜索建立明确的用户输入入口。
-				onTextEdited: {
+					onTextEdited: {
 					if (root.mode === "apps")
 						root.syncAppResults(false);
+					else if (root.mode === "wallpaper" && root.wallView === "online")
+						wallQueryDebounce.restart();
 				}
 				onAccepted: {
 					if (root.mode === "apps") {
-						// 两个视图都可能显示结果，用当前视图的条目数判断
+						// 总览应用页用当前列表条目数判断是否可启动
 						if (appZone.appCount > 0)
 							root.launchSelectedApp();
 						else if (input.text.trim())
 							root.openWebSearch(input.text);
 					} else if (root.mode === "wallpaper") {
-						root.applySelectedWallpaper();
+						if (root.wallView === "online")
+							root.applySelectedOnlineWallpaper();
+						else
+							root.applySelectedWallpaper();
 					} else if (root.mode === "clipboard") {
 						root.copySelectedClip();
 					} else if (root.mode === "emoji") {
@@ -894,6 +901,8 @@ Item {
 
 				width: 300
 				height: 30
+				anchors.right: parent.right
+				anchors.verticalCenter: parent.verticalCenter
 				radius: 15
 				// 轨道底色加深：0.55 在浅色/低饱和配色方案下和面板糊在一起（2026-09-14 用户反馈"配色太淡"）
 				color: Qt.alpha(M3Palette.m3surface, 0.9)
@@ -952,7 +961,7 @@ Item {
 								// 悬停在选项卡上滚轮也能切换模式
 								onWheel: wheel => {
 									wheel.accepted = true;
-									root.cycleMode(wheel.angleDelta.y);
+									root.cycleMode(root.wheelStep("mode", wheel, false));
 								}
 								onClicked: {
 									root.mode = modeTab.modelData;
@@ -964,14 +973,16 @@ Item {
 					}
 				}
 			}
+			}
 
-			// ---------------- 应用模式 ----------------
+			// ---------------- 总览与应用模式 ----------------
 			Item {
 				id: appsBody
 
+				// Overview 与应用列表共用此页；离开此标签后其他页面获得完整宽度。
 				visible: root.mode === "apps"
 				width: parent.width
-				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+				height: parent.height - topControls.height - parent.spacing
 
 				Row {
 					anchors.fill: parent
@@ -980,21 +991,21 @@ Item {
 					Item {
 						id: leftZone
 
-						width: 566
+						width: root.overviewPaneWidth
 						height: parent.height
 
 						OverviewContent {
-							id: ov
-
+							id: overviewContent
 							anchors.fill: parent
 							surfaceState: SpotlightState
 							visibleCards: 2
-							cardWidth: 560
-							cardHeight: 360
+							cardWidth: leftZone.width - 6
+							cardHeight: Math.floor((leftZone.height - 16) / 2)
 							showPanel: false
 							settleTopAlign: true
 							launchOnWorkspace: root.launchOnWorkspace
 						}
+
 					}
 
 					Rectangle {
@@ -1006,11 +1017,12 @@ Item {
 					Item {
 						id: appZone
 
-						width: parent.width - leftZone.width - 11
+						visible: root.mode === "apps"
+						width: parent.width - leftZone.width - 21
 						height: parent.height
 						// 由 refreshAppResults() 显式更新，不依赖 QML 对 JS 函数内部属性的隐式依赖追踪。
 						readonly property var visibleApps: root.appFilteredApps
-						readonly property int appCount: appGrid.count
+						readonly property int appCount: appList.count
 
 						Text {
 							id: appTitle
@@ -1091,7 +1103,7 @@ Item {
 											hoverEnabled: true
 											onWheel: wheel => {
 												wheel.accepted = true;
-												root.cycleAppCategory(wheel.angleDelta.y);
+												root.cycleAppCategory(root.wheelStep("category", wheel, false));
 											}
 											onClicked: root.setAppCategory(catPill.modelData.id)
 										}
@@ -1124,119 +1136,135 @@ Item {
 							anchors.topMargin: 10
 							visible: root.appResultsKey === "" && appZone.visibleApps.length === 0
 							text: root.appCategory === "favorite"
-								? "「常用」还是空的 — 右键任意应用图标 →「添加到常用」"
-								: "这个分类下没有应用 — 右键任意应用图标 →「归类到…」"
+								? "「常用」还是空的 — 右键任意应用 →「添加到常用」"
+								: "这个分类下没有应用 — 右键任意应用 →「归类到…」"
 							color: Qt.alpha(M3Palette.m3onSurface, 0.45)
 							font.pixelSize: 12
 						}
 
 						GridView {
-							id: appGrid
-
+							id: appList
 							anchors.top: appCatBar.bottom
 							anchors.topMargin: 8
 							anchors.left: parent.left
 							anchors.right: parent.right
 							anchors.bottom: parent.bottom
 							clip: true
-							// 按可用宽度决定列数（每格目标 92px、至少 3 列），正方形格子
-							cellWidth: Math.max(78, Math.floor(width / Math.max(3, Math.floor(width / 92))))
-							cellHeight: cellWidth
+							cellWidth: Math.max(1, width)
+							cellHeight: 48
+							flow: GridView.LeftToRight
 							model: appZone.visibleApps
 							currentIndex: -1
-							cacheBuffer: 900
-
-							onCountChanged: {
-								if (root.mode === "apps")
-									Qt.callLater(root.resetAppSelection);
+							cacheBuffer: 500
+							reuseItems: true
+							property bool wheelGestureStepTaken: false
+							Timer {
+								id: appWheelGestureResetTimer
+								interval: 400
+								onTriggered: {
+									appList.wheelGestureStepTaken = false;
+									root.wheelAccum = 0;
+									root.wheelTarget = "";
+								}
 							}
-							// 滚起来就收起提示，免得提示粘在屏幕上跟着乱飘
-							onContentYChanged: {
-								if (root.appTipVisible)
-									root.hideAppTip();
+							WheelHandler {
+								target: null
+								blocking: true
+								acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+								onWheel: event => {
+									const smooth = event.phase !== Qt.NoScrollPhase || event.pixelDelta.x !== 0 || event.pixelDelta.y !== 0;
+									if (event.phase === Qt.ScrollBegin) {
+										appList.wheelGestureStepTaken = false;
+										root.wheelAccum = 0;
+										root.wheelTarget = "";
+									}
+									if (!smooth || !appList.wheelGestureStepTaken) {
+										const delta = root.wheelStep("appList", event, false);
+										if (delta !== 0) {
+											root.moveAppSelection(0, delta < 0 ? 1 : -1);
+											if (smooth)
+												appList.wheelGestureStepTaken = true;
+										}
+									}
+									if (smooth && event.phase === Qt.NoScrollPhase)
+										appWheelGestureResetTimer.restart();
+									if (event.phase === Qt.ScrollEnd) {
+										appWheelGestureResetTimer.stop();
+										appList.wheelGestureStepTaken = false;
+										root.wheelAccum = 0;
+										root.wheelTarget = "";
+									}
+									event.accepted = true;
+								}
 							}
-
-							// 悬停命中判定：整块网格一个 HoverHandler + indexAt（不依赖每个委托的进入/离开事件）
-							HoverHandler {
-								id: appGridHover
-
-								onPointChanged: root.updateAppTipFromHover(appGridHover)
-								onHoveredChanged: root.updateAppTipFromHover(appGridHover)
-							}
-
+							ScrollBar.vertical: ScrollBar {}
 							delegate: Item {
 								id: appCell
-
 								required property var modelData
 								required property int index
-
-								width: appGrid.cellWidth
-								height: appGrid.cellHeight
-
+								width: appList.cellWidth
+								height: appList.cellHeight
 								Drag.keys: ["app"]
 								Drag.source: appCell
-								// 拖拽排序时的落点高亮（appDragToIndex 由 appDragMoved 里的 indexAt 算出）
 								readonly property bool isDropTarget: root.appDragFromIndex >= 0
 									&& root.appDragToIndex === appCell.index
 									&& root.appDragToIndex !== root.appDragFromIndex
-
 								Rectangle {
-									id: appCellBg
-
-									anchors.centerIn: parent
-									width: Math.min(parent.width, parent.height) - 14
-									height: width
-									radius: 16
+									anchors.fill: parent
+									anchors.margins: 2
+									radius: 11
 									color: appCell.isDropTarget
-										? Qt.alpha(M3Palette.m3tertiary, 0.35)
+										? Qt.alpha(M3Palette.m3tertiary, 0.32)
 										: (appCell.GridView.isCurrentItem
-											? Qt.alpha(M3Palette.m3tertiary, 0.28)
-											: (cellMouse.containsMouse ? Qt.alpha(M3Palette.m3onSurface, 0.1) : "transparent"))
-									border.color: (appCell.isDropTarget || appCell.GridView.isCurrentItem)
-										? Qt.alpha(M3Palette.m3tertiary, 0.8)
+											? Qt.alpha(M3Palette.m3tertiary, 0.2)
+											: "transparent")
+									border.color: appCell.isDropTarget || appCell.GridView.isCurrentItem
+										? Qt.alpha(M3Palette.m3tertiary, appCell.isDropTarget ? 0.9 : 0.75)
 										: "transparent"
-									border.width: appCell.isDropTarget ? 2 : 1
-
-									IconImage {
-										anchors.centerIn: parent
-										asynchronous: true
-										implicitSize: Math.round(parent.width * 0.62)
-										source: Quickshell.iconPath(modelData.icon ?? "", "image-missing")
-									}
-
-									// 「常用」角标：提醒"这个应用已在常用里"——在「常用」标签页里显示它没有意义，所以那里不显示
-									Text {
-										anchors.top: parent.top
-										anchors.right: parent.right
-										anchors.margins: 6
-										visible: {
-											if (root.appCategory === "favorite")
-												return false;
-											const rev = AppCategories.revision;
-											return AppCategories.isFavorite(appCell.modelData);
+									border.width: appCell.isDropTarget ? 2 : (appCell.GridView.isCurrentItem ? 1 : 0)
+									Row {
+										anchors.fill: parent
+										anchors.leftMargin: 8
+										anchors.rightMargin: 10
+										spacing: 10
+										IconImage {
+											anchors.verticalCenter: parent.verticalCenter
+											width: 26
+											height: 26
+											asynchronous: true
+											source: Quickshell.iconPath(appCell.modelData.icon ?? "", "image-missing")
 										}
-										text: "★"
-										color: M3Palette.m3tertiary
-										font.pixelSize: 12
+										Text {
+											anchors.verticalCenter: parent.verticalCenter
+											width: parent.width - 26 - 10 - 24
+											text: appCell.modelData.name ?? ""
+											color: M3Palette.m3onSurface
+											font: Tokens.font.body.large
+											elide: Text.ElideRight
+											verticalAlignment: Text.AlignVCenter
+										}
+										Text {
+											anchors.verticalCenter: parent.verticalCenter
+											visible: root.appCategory !== "favorite" && AppCategories.isFavorite(appCell.modelData)
+											text: "★"
+											color: M3Palette.m3tertiary
+											font.pixelSize: 14
+										}
 									}
 								}
-
 								MouseArea {
 									id: cellMouse
-
 									anchors.fill: parent
 									hoverEnabled: true
 									acceptedButtons: Qt.LeftButton | Qt.RightButton
 									preventStealing: true
-
 									property bool pressMightDrag: false
 									property point pressPos
-
-									// 悬停选中 + 0.6s 弹应用名：统一由 appGrid 上的 HoverHandler 处理（见下）
-									onPressed: mouse => {
-										if (mouse.button === Qt.LeftButton)
-											root.appDragPressed(cellMouse, mouse, appCell.index);
-									}
+								onPressed: mouse => {
+									appList.currentIndex = appCell.index;
+									if (mouse.button === Qt.LeftButton)
+										root.appDragPressed(cellMouse, mouse, appCell.index);
+								}
 									onPositionChanged: mouse => root.appDragMoved(cellMouse, appCell, mouse, appCell.modelData)
 									onReleased: mouse => {
 										if (mouse.button === Qt.LeftButton)
@@ -1244,12 +1272,13 @@ Item {
 									}
 									onClicked: mouse => {
 										if (mouse.button === Qt.RightButton) {
-											// 右键：在指针处弹分类菜单（归类 / 加到常用）
 											const p = cellMouse.mapToItem(shell, mouse.x, mouse.y);
 											root.openAppMenu(appCell, p);
-											return;
+										} else {
+											Apps.launch(appCell.modelData);
+											launchRefreshTimer.restart();
+											root.closeRequested();
 										}
-										root.hideAppTip();
 									}
 								}
 							}
@@ -1264,7 +1293,7 @@ Item {
 
 				visible: root.mode === "wallpaper"
 				width: parent.width
-				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+				height: parent.height - topControls.height - parent.spacing
 
 				Row {
 					id: wallToolbar
@@ -1278,6 +1307,7 @@ Item {
 					Rectangle {
 						id: booruButton
 
+						visible: root.wallView !== "online"
 						width: booruLabel.implicitWidth + 20
 						height: parent.height
 						radius: 9
@@ -1305,17 +1335,69 @@ Item {
 
 					Text {
 						anchors.verticalCenter: parent.verticalCenter
-						visible: BooruWallpaper.status !== ""
-						text: BooruWallpaper.status
+						visible: root.wallView === "online"
+							? OnlineWallpapers.status !== ""
+							: BooruWallpaper.status !== ""
+						width: root.wallView === "online"
+							? Math.max(52, wallBody.width - 82 - 88 - wallViewSwitch.width - wallToolbar.spacing * 3)
+							: Math.min(180, Math.max(0, wallBody.width - booruButton.width - wallToolbar.spacing * 2))
+						elide: Text.ElideRight
+						text: root.wallView === "online" ? OnlineWallpapers.status : BooruWallpaper.status
 						color: Qt.alpha(M3Palette.m3onSurface, 0.55)
 						font.pixelSize: 11
 					}
 
-					// 竖排 / 网格 / 胶片条 切换：单一滑块 + 滚轮切换（与顶部标签同一套手势方向）
+					Rectangle {
+						visible: root.wallView === "online"
+						width: 82
+						height: parent.height
+						radius: 9
+						color: !OnlineWallpapers.canGoBack
+							? Qt.alpha(M3Palette.m3surface, 0.35)
+							: (onlinePreviousArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(M3Palette.m3surface, 0.72))
+						Text {
+							anchors.centerIn: parent
+							text: "← 上一组"
+							color: OnlineWallpapers.canGoBack ? M3Palette.m3onSurface : Qt.alpha(M3Palette.m3onSurface, 0.4)
+							font.pixelSize: 12
+						}
+						MouseArea {
+							id: onlinePreviousArea
+							anchors.fill: parent
+							hoverEnabled: true
+							enabled: OnlineWallpapers.canGoBack
+							onClicked: OnlineWallpapers.previousGroup()
+						}
+					}
+
+					Rectangle {
+						visible: root.wallView === "online"
+						width: 88
+						height: parent.height
+						radius: 9
+						color: OnlineWallpapers.loading
+							? Qt.alpha(M3Palette.m3surfaceVariant, 0.55)
+							: (onlineRefreshArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(M3Palette.m3surface, 0.72))
+						Text {
+							anchors.centerIn: parent
+							text: OnlineWallpapers.loading ? "加载中…" : "↻ 下一组"
+							color: M3Palette.m3onSurface
+							font.pixelSize: 12
+						}
+						MouseArea {
+							id: onlineRefreshArea
+							anchors.fill: parent
+							hoverEnabled: true
+							enabled: !OnlineWallpapers.loading
+							onClicked: OnlineWallpapers.nextGroup(input.text)
+						}
+					}
+
+					// 竖排 / 网格 / 胶片条 / 网络切换：单一滑块 + 滚轮切换
 					Rectangle {
 						id: wallViewSwitch
 
-						width: 156
+						width: 208
 						height: parent.height
 						radius: 9
 						// 底色加深 + 描边：0.6 透明度在浅色配色方案下几乎糊在面板上（2026-09-14 用户反馈"配色是淡的"）
@@ -1323,8 +1405,8 @@ Item {
 						border.color: Qt.alpha(M3Palette.m3onSurface, 0.16)
 						border.width: 1
 						// 格子宽度统一由总宽推算，滑块绝不可能超出轨道
-						readonly property int cellWidth: Math.floor(width / 3)
-						readonly property int viewIndex: Math.max(0, ["carousel", "grid", "strip"].indexOf(root.wallView))
+						readonly property int cellWidth: Math.floor(width / 4)
+						readonly property int viewIndex: Math.max(0, ["carousel", "grid", "strip", "online"].indexOf(root.wallView))
 						clip: true
 
 						Rectangle {
@@ -1368,7 +1450,7 @@ Item {
 									hoverEnabled: true
 									onWheel: wheel => {
 										wheel.accepted = true;
-										root.cycleWallView(wheel.angleDelta.y);
+										root.cycleWallView(root.wheelStep("wallView", wheel, false));
 									}
 									onClicked: root.wallView = "carousel"
 								}
@@ -1393,7 +1475,7 @@ Item {
 									hoverEnabled: true
 									onWheel: wheel => {
 										wheel.accepted = true;
-										root.cycleWallView(wheel.angleDelta.y);
+										root.cycleWallView(root.wheelStep("wallView", wheel, false));
 									}
 									onClicked: root.wallView = "grid"
 								}
@@ -1419,9 +1501,34 @@ Item {
 									hoverEnabled: true
 									onWheel: wheel => {
 										wheel.accepted = true;
-										root.cycleWallView(wheel.angleDelta.y);
+										root.cycleWallView(root.wheelStep("wallView", wheel, false));
 									}
 									onClicked: root.wallView = "strip"
+								}
+							}
+
+							Item {
+								width: wallViewSwitch.cellWidth
+								height: wallViewSwitch.height
+
+								Text {
+									anchors.centerIn: parent
+									text: "☁"
+									color: root.wallView === "online"
+										? root.contrastOn(M3Palette.m3primary)
+										: Qt.alpha(M3Palette.m3onSurfaceVariant, 0.85)
+									font.pixelSize: 15
+									font.bold: root.wallView === "online"
+								}
+
+								MouseArea {
+									anchors.fill: parent
+									hoverEnabled: true
+									onWheel: wheel => {
+										wheel.accepted = true;
+										root.cycleWallView(root.wheelStep("wallView", wheel, false));
+									}
+									onClicked: root.wallView = "online"
 								}
 							}
 						}
@@ -1598,7 +1705,9 @@ Item {
 						anchors.fill: parent
 						acceptedButtons: Qt.NoButton
 						onWheel: wheel => {
-							const delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+							const delta = root.wheelStep("carousel", wheel, false);
+							if (delta === 0)
+								return;
 							let idx = wallList.currentIndex + (delta < 0 ? 1 : -1);
 							idx = Math.max(0, Math.min(idx, wallList.count - 1));
 							wallList.currentIndex = idx;
@@ -1728,9 +1837,276 @@ Item {
 					}
 				}
 
+				// 网络壁纸网格：卡片比例、间距和点击反馈与本地壁纸网格一致。
+				Item {
+					id: onlineWallView
+					visible: root.wallView === "online"
+					anchors.top: wallToolbar.bottom
+					anchors.topMargin: 6
+					anchors.left: parent.left
+					anchors.right: parent.right
+					anchors.bottom: parent.bottom
+					clip: true
+
+					GridView {
+						id: onlineGrid
+						anchors.top: parent.top
+						anchors.left: parent.left
+						anchors.right: parent.right
+						anchors.bottom: onlineCaption.top
+						anchors.bottomMargin: 6
+						clip: true
+						// 让缩略图保持壁纸的 16:9 观感；列数按约 220px 的舒适卡宽自适应。
+						readonly property int columns: Math.max(1, Math.min(4, Math.floor(width / 220)))
+						cellWidth: Math.max(1, Math.floor(width / columns))
+						cellHeight: Math.round(cellWidth * 9 / 16) + 14
+						model: OnlineWallpapers.items
+						cacheBuffer: 900
+						currentIndex: 0
+						property int groupRevision: 0
+						property int settledThumbs: 0
+						property bool groupCompletionPlayed: false
+						property real loadingPhase: 0
+						property real completionPulse: 0
+						scale: 1 + completionPulse
+						function thumbSettled(revision: int): void {
+							if (revision !== groupRevision)
+								return;
+							settledThumbs++;
+							if (count > 0 && settledThumbs >= count && !groupCompletionPlayed) {
+								groupCompletionPlayed = true;
+								groupEnterAnimation.restart();
+							}
+						}
+
+						onModelChanged: {
+							groupRevision++;
+							settledThumbs = 0;
+							groupCompletionPlayed = false;
+							completionPulse = 0;
+						}
+						ParallelAnimation {
+							id: groupEnterAnimation
+							NumberAnimation {
+								target: onlineGrid; property: "completionPulse"; from: 0.018; to: 0
+								duration: 360; easing.type: Easing.OutBack
+							}
+						}
+						NumberAnimation {
+							target: onlineGrid; property: "loadingPhase"; from: 0; to: 1
+							duration: 1000; loops: Animation.Infinite
+							running: onlineGrid.count > 0 && onlineGrid.settledThumbs < onlineGrid.count
+						}
+						onCountChanged: {
+							if (onlineGrid.count > 0 && onlineGrid.currentIndex < 0)
+								onlineGrid.currentIndex = 0;
+						}
+
+						delegate: Item {
+							id: onlineCard
+							required property var modelData
+							required property int index
+							property int loadRevision: onlineGrid.groupRevision
+							property bool previewSettled: false
+							width: onlineGrid.cellWidth
+							height: onlineGrid.cellHeight
+
+							function settlePreview(): void {
+								if (previewSettled || (previewImage.status !== Image.Ready && previewImage.status !== Image.Error))
+									return;
+								previewSettled = true;
+								onlineGrid.thumbSettled(loadRevision);
+							}
+
+							Component.onCompleted: Qt.callLater(onlineCard.settlePreview)
+
+							Rectangle {
+								id: onlineFrame
+								anchors.fill: parent
+								anchors.margins: 4
+								radius: 12
+								clip: true
+								color: Qt.alpha(M3Palette.m3surface, 0.35)
+								border.color: (onlineHover.containsMouse || onlineGrid.currentIndex === onlineCard.index)
+									? M3Palette.m3tertiary : Qt.alpha(M3Palette.m3onSurface, 0.12)
+								border.width: (onlineHover.containsMouse || onlineGrid.currentIndex === onlineCard.index) ? 2 : 1
+								Behavior on border.color { ColorAnimation { duration: 150 } }
+								property real pressScale: 1
+								scale: pressScale * (onlineHover.containsMouse ? 1.025 : 1)
+								Behavior on scale {
+									NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+								}
+								Image {
+									id: previewImage
+									anchors.fill: parent
+									source: onlineCard.modelData.preview || ""
+									fillMode: Image.PreserveAspectCrop
+									asynchronous: true
+									cache: true
+									retainWhileLoading: true
+									sourceSize: Qt.size(Math.max(480, onlineFrame.width * 2), Math.max(270, onlineFrame.height * 2))
+									opacity: status === Image.Ready ? 1 : 0
+									scale: status === Image.Ready ? 1 : 1.035
+									Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+									Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+									onStatusChanged: onlineCard.settlePreview()
+								}
+								Rectangle {
+									anchors.fill: parent
+									visible: previewImage.status !== Image.Ready
+									color: Qt.alpha(M3Palette.m3surfaceContainerHigh, 0.96)
+									Text {
+										anchors.centerIn: parent
+										visible: previewImage.status === Image.Error
+										text: "预览加载失败"
+										color: Qt.alpha(M3Palette.m3onSurface, 0.7)
+										font.pixelSize: 12
+									}
+									Item {
+										anchors.centerIn: parent
+										width: 34; height: 34
+										visible: previewImage.status !== Image.Error
+										rotation: onlineGrid.loadingPhase * 360
+										Shape {
+											anchors.fill: parent
+											preferredRendererType: Shape.CurveRenderer
+											ShapePath {
+												fillColor: "transparent"
+												strokeColor: Qt.alpha(M3Palette.m3primary, 0.9)
+												strokeWidth: 3; capStyle: ShapePath.RoundCap
+												PathAngleArc {
+													centerX: 17; centerY: 17; radiusX: 13; radiusY: 13
+													startAngle: -35; sweepAngle: 245
+												}
+											}
+										}
+									}
+								}
+								Rectangle {
+									anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+									height: 26; color: Qt.alpha("#000000", 0.58)
+									Text {
+										anchors.left: parent.left; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter
+										text: `${onlineCard.modelData.resolution} · Wallhaven`
+										color: "#FFFFFF"; font.pixelSize: 11; elide: Text.ElideRight
+										width: parent.width - 16
+									}
+								}
+								Rectangle {
+									id: onlineFavoriteButton
+								anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 6
+								width: 30; height: 30; radius: 15; z: 3
+								color: onlineFavoriteArea.containsMouse ? Qt.alpha(M3Palette.m3tertiary, 0.95) : Qt.alpha("#000000", 0.62)
+								Behavior on color { ColorAnimation { duration: 140 } }
+								Text {
+									anchors.centerIn: parent
+									text: OnlineWallpapers.isSaved(onlineCard.modelData.id) ? "♥" : "♡"
+									color: "#FFFFFF"; font.pixelSize: 18
+								}
+								MouseArea {
+									id: onlineFavoriteArea; anchors.fill: parent; hoverEnabled: true
+									onClicked: OnlineWallpapers.startDownload(onlineCard.modelData, "favorite")
+								}
+								}
+								MouseArea {
+									id: onlineHover; anchors.fill: parent; z: 1; hoverEnabled: true
+									onEntered: onlineGrid.currentIndex = onlineCard.index
+									onClicked: {
+										onlineGrid.currentIndex = onlineCard.index;
+										onlinePressAnim.restart();
+										OnlineWallpapers.startDownload(onlineCard.modelData, "apply");
+									}
+									}
+								Item {
+									id: onlineDownloadProgress
+									anchors.centerIn: parent
+									width: 78; height: 78; z: 5
+									readonly property bool activeDownload: OnlineWallpapers.downloading
+										&& !OnlineWallpapers.favoritingFromCache
+										&& OnlineWallpapers.downloadingId === String(onlineCard.modelData.id)
+									visible: activeDownload || opacity > 0.01
+									opacity: activeDownload ? 1 : 0
+									scale: activeDownload ? 1 : 0.86
+									Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+									Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
+									Rectangle {
+										anchors.centerIn: parent
+										width: 60; height: 60; radius: 30
+										color: Qt.alpha("#000000", 0.72)
+									}
+									Shape {
+										anchors.fill: parent
+										preferredRendererType: Shape.CurveRenderer
+										ShapePath {
+											fillColor: "transparent"
+											strokeColor: Qt.alpha("#FFFFFF", 0.42)
+											strokeWidth: 5; capStyle: ShapePath.RoundCap
+											PathAngleArc {
+												centerX: 39; centerY: 39; radiusX: 33; radiusY: 33
+												startAngle: -90; sweepAngle: 360
+											}
+										}
+										ShapePath {
+											fillColor: "transparent"
+											strokeColor: M3Palette.m3primary
+											strokeWidth: 5; capStyle: ShapePath.RoundCap
+											PathAngleArc {
+												centerX: 39; centerY: 39; radiusX: 33; radiusY: 33
+													startAngle: -90
+													sweepAngle: Math.max(0.5, 360 * OnlineWallpapers.downloadProgress)
+													Behavior on sweepAngle { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+											}
+										}
+									}
+									Text {
+										anchors.centerIn: parent
+										text: `${Math.round(OnlineWallpapers.downloadProgress * 100)}%`
+										color: "#FFFFFF"
+										font.pixelSize: 13; font.bold: true
+									}
+								}
+								SequentialAnimation {
+									id: onlinePressAnim; running: false
+									NumberAnimation { target: onlineFrame; property: "pressScale"; to: 0.94; duration: 60 }
+									NumberAnimation { target: onlineFrame; property: "pressScale"; to: 1; duration: 170; easing.type: Easing.OutBack }
+								}
+							}
+						}
+					}
+
+					Rectangle {
+						id: onlineCaption
+						anchors.bottom: parent.bottom
+						anchors.horizontalCenter: parent.horizontalCenter
+						width: Math.min(parent.width - 16, 560)
+						height: 30
+						radius: 15
+						color: Qt.alpha(M3Palette.m3surface, 0.72)
+						border.color: Qt.alpha(M3Palette.m3onSurface, 0.12)
+						border.width: 1
+						Text {
+							anchors.left: parent.left; anchors.leftMargin: 14; anchors.verticalCenter: parent.verticalCenter
+							width: parent.width - onlineCaptionHint.width - 48
+							text: onlineGrid.count > 0
+								? `${onlineGrid.count} 张 · 第 ${OnlineWallpapers.page}/${OnlineWallpapers.lastPage} 组 · 月度热门`
+								: (OnlineWallpapers.status || "点云朵加载网络壁纸")
+							color: M3Palette.m3onSurface
+							font.pixelSize: 12
+							elide: Text.ElideRight
+						}
+						Text {
+							id: onlineCaptionHint
+							anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+							text: "预览 · 点击应用"
+							color: Qt.alpha(M3Palette.m3onSurface, 0.58)
+							font.pixelSize: 11
+						}
+					}
+
+				}
+
 					// ---------------- 胶片条视图（2026-09-14 新增） ----------------
-					// 对齐 Denial 壁纸选择器的外观：横向一条竖版海报卡片（胶片条）+ 选中项铺底当氛围底图 +
-					// 底部胶囊信息条。旧 carousel / grid 视图原样保留，供对比评估后再决定取舍。
+					// 横向一条竖版海报卡片（胶片条）+ 底部胶囊信息条。
 					Item {
 						id: wallStripView
 
@@ -1744,43 +2120,6 @@ Item {
 						anchors.right: parent.right
 						anchors.bottom: parent.bottom
 						clip: true
-						// 面板每次打开也刷一次氛围底图（选中项没变化时不会有 targetPathChanged 信号）
-						onVisibleChanged: {
-							if (visible)
-								stripAmbientTimer.restart();
-						}
-
-						// 氛围底图：跟随选中项，压暗后垫在胶片条下面（复刻 Denial 选择器"壁纸铺满、缩略图浮在上面"的观感）。
-						// 只按 512×288 解码，不为一张背景图付全尺寸解码成本。
-						Image {
-							id: stripAmbient
-
-							// 目标路径跟着选中项走，但延迟 140ms 才真正换图：快速滑动时不会每张都解码一遍
-							property string targetPath: wallStrip.focusPath
-							onTargetPathChanged: stripAmbientTimer.restart()
-							anchors.fill: parent
-							asynchronous: true
-							cache: true
-							// 换图期间保留上一帧，避免异步解码那一下闪空白
-							retainWhileLoading: true
-							fillMode: Image.PreserveAspectCrop
-							opacity: 0.3
-							source: ""
-							sourceSize: Qt.size(512, 288)
-						}
-
-						Timer {
-							id: stripAmbientTimer
-
-							interval: 140
-							repeat: false
-							onTriggered: stripAmbient.source = stripAmbient.targetPath !== "" ? "file://" + stripAmbient.targetPath : ""
-						}
-
-						Rectangle {
-							anchors.fill: parent
-							color: Qt.alpha(Colours.tPalette.m3surfaceContainerHigh, 0.78)
-						}
 
 						Text {
 							anchors.centerIn: parent
@@ -1810,7 +2149,7 @@ Item {
 							highlightMoveVelocity: -1
 							highlightRangeMode: ListView.StrictlyEnforceRange
 							model: root.wallResults
-						// 横向一屏约 4~5 张，缓冲放大一些，左右滑回来不会重新解码
+						// 卡片宽度按视口和中心展开倍率计算，使完整卡片最多显示中心一张、两侧各一张。
 						// 进入壁纸标签后 wallStripPrimed 置位 → 缓冲放大到远超列表长度，等于把整条列表一次性实例化
 						// （列表特别大时不做全量渲染，留个安全阀，避免一次性吃掉太多显存）
 							readonly property bool stripEager: root.wallStripPrimed && root.wallResults.length <= 400
@@ -1820,13 +2159,13 @@ Item {
 							// 若 sourceSize 跟 delegate 动画中的 width/height 走，换中心项时旧图与新图会每帧重新解码，
 							// 表现为两三张卡先黑一下再出现。
 							readonly property int cardBaseHeight: Math.round(height * 0.78)
-							readonly property int cardBaseWidth: Math.round(cardBaseHeight * 0.4)
+							readonly property int cardBaseWidth: Math.max(1, Math.floor((width - spacing * 2) / (root.stripCenterStretch + 2)))
 							readonly property size cardDecodeSize: Qt.size(
 								Math.max(240, Math.round(cardBaseWidth * root.stripCenterStretch * 1.15)),
 								Math.max(360, Math.round(cardBaseHeight * root.stripCenterGrow * 1.15))
 							)
 
-							// 选中项路径：氛围底图与底部信息条都读它（用 model + index 取值，不绑 currentItem 防抖动）
+							// 选中项路径：底部信息条读取（用 model + index 取值，不绑 currentItem 防抖动）
 							readonly property string focusPath: {
 								const m = wallStrip.model;
 								const i = wallStrip.currentIndex;
@@ -1855,8 +2194,7 @@ Item {
 								required property var modelData
 								required property int index
 
-								// 参考图的普通项是窄长卡，选中项不是盖住邻居，而是自身槽位一起变宽、
-								// 把左右邻居推开。这样滚动切换时旧卡收窄、新卡展开，才是图里的手风琴效果。
+								// 普通项保持清楚可辨，选中项适度加宽并推动邻居，避免中心项吞掉两侧候选。
 								readonly property int cardHeight: wallStrip.cardBaseHeight
 								readonly property int cardWidth: wallStrip.cardBaseWidth
 								readonly property int dist: index - wallStrip.currentIndex
@@ -1998,7 +2336,6 @@ Item {
 									repeat: false
 									onTriggered: {
 										if (stripCard.pendingApplyPath !== "") {
-											console.info(`[spotlight-wallpaper] set ${stripCard.pendingApplyPath}`);
 											Wallpapers.setWallpaper(stripCard.pendingApplyPath);
 										}
 									}
@@ -2051,14 +2388,16 @@ Item {
 							}
 						}
 
-						// 滚轮：水平滚轮优先（触控板横滑），否则用垂直滚轮，一格一张。
+						// 滚轮：水平滚轮优先（触控板横滑），累计到门槛后一张。
 						// 用户实测确认：负向（滚轮向下/横向向左）= 下一张。
 						MouseArea {
 							visible: root.wallView === "strip"
 							anchors.fill: parent
 							acceptedButtons: Qt.NoButton
 							onWheel: wheel => {
-								const delta = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y;
+								const delta = root.wheelStep("strip", wheel, true);
+								if (delta === 0)
+									return;
 								let idx = wallStrip.currentIndex + (delta < 0 ? 1 : -1);
 								idx = Math.max(0, Math.min(idx, wallStrip.count - 1));
 								wallStrip.currentIndex = idx;
@@ -2125,7 +2464,7 @@ Item {
 
 				visible: root.mode === "clipboard"
 				width: parent.width
-				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+				height: parent.height - topControls.height - parent.spacing
 
 				// 切走或关面板时清掉未决确认框，避免下次打开还挂着旧弹窗
 				onVisibleChanged: {
@@ -2595,7 +2934,7 @@ Item {
 
 				visible: root.mode === "emoji"
 				width: parent.width
-				height: parent.height - input.height - modeHeader.height - parent.spacing * 2
+				height: parent.height - topControls.height - parent.spacing
 
 				Text {
 					anchors.centerIn: parent
@@ -2651,6 +2990,7 @@ Item {
 			}
 
 		}
+
 			// 拖拽幽灵
 		Item {
 			id: dragGhost
@@ -2675,35 +3015,7 @@ Item {
 			}
 		}
 
-		// 应用网格的悬浮提示：停 0.6s 后出现在图标上方（位置由 appTipTimer 换算，做左右/上边界夹取）
-		Rectangle {
-		id: appTip
-
-			visible: root.appTipVisible
-			z: 900
-			width: Math.min(appTipLabel.implicitWidth + 18, 260)
-			height: 26
-			radius: 9
-			color: Qt.alpha(M3Palette.m3surfaceContainerHigh, 0.97)
-			border.color: Qt.alpha(M3Palette.m3onSurface, 0.18)
-			border.width: 1
-			x: Math.max(6, Math.min(root.appTipX - width / 2, shell.width - width - 6))
-			y: Math.max(6, root.appTipY - height - 8)
-
-			Text {
-				id: appTipLabel
-
-				anchors.centerIn: parent
-				width: parent.width - 12
-				text: root.appTipText
-				color: M3Palette.m3onSurface
-				font.pixelSize: 12
-				elide: Text.ElideRight
-				horizontalAlignment: Text.AlignHCenter
-			}
-		}
-
-	// 应用归类菜单（右键图标弹出）：常用开关 + 归类到某分类 + 恢复自动归类
+	// 应用归类菜单（右键应用行弹出）：常用开关 + 归类到某分类 + 恢复自动归类
 		Rectangle {
 			id: appMenu
 
@@ -2863,7 +3175,12 @@ Item {
 	// ---------------- 数据 ----------------
 	// 壁纸选中（carousel 竖排 / grid 网格 / strip 胶片条）当前项定位到“正在用的壁纸”
 	function resetWallSelection(): void {
-		if (root.wallView === "grid") {
+		if (root.wallView === "online") {
+			if (onlineGrid.count > 0) {
+				onlineGrid.currentIndex = 0;
+				onlineGrid.positionViewAtIndex(0, GridView.Beginning);
+			}
+		} else if (root.wallView === "grid") {
 			if (wallGrid.count > 0) {
 				for (let i = 0; i < wallGrid.count; ++i) {
 					if (wallGrid.model?.[i]?.path === Wallpapers.actualCurrent) {
@@ -2902,7 +3219,24 @@ Item {
 
 	// 方向键移动壁纸选中：carousel 只用 dy（上下），grid 用 dx+dy（四向），strip 用 dx（左右，dy 兼容）
 	function moveWallSelection(dx: int, dy: int): void {
-		if (root.wallView === "grid") {
+		if (root.wallView === "online") {
+			const cols = Math.max(1, Math.floor(onlineGrid.width / onlineGrid.cellWidth));
+			const total = onlineGrid.count;
+			if (total === 0)
+				return;
+			let next = onlineGrid.currentIndex;
+			if (dx !== 0) {
+				const row = Math.floor(next / cols);
+				next += dx;
+				next = Math.max(row * cols, Math.min(next, Math.min((row + 1) * cols - 1, total - 1)));
+			}
+			if (dy !== 0)
+				next = Math.max(0, Math.min(total - 1, next + dy * cols));
+			if (next !== onlineGrid.currentIndex) {
+				onlineGrid.currentIndex = next;
+				onlineGrid.positionViewAtIndex(next, GridView.Contain);
+			}
+		} else if (root.wallView === "grid") {
 			const cols = Math.max(1, Math.floor(wallGrid.width / wallGrid.cellWidth));
 			const total = wallGrid.count;
 			if (total === 0)
@@ -2961,8 +3295,13 @@ Item {
 		}
 		if (!entry?.path)
 			return;
-		console.info(`[spotlight-key] wallpaper set ${entry.path}`);
 		Wallpapers.setWallpaper(entry.path);
+	}
+
+	function applySelectedOnlineWallpaper(): void {
+		const entry = onlineGrid.currentItem?.modelData ?? onlineGrid.model?.[onlineGrid.currentIndex];
+		if (entry)
+			OnlineWallpapers.startDownload(entry, "apply");
 	}
 
 	// ---------------- 剪贴板历史（cliphist） ----------------
@@ -3038,7 +3377,6 @@ Item {
 			return;
 		const id = entry.id;
 		const pinned = ClipboardData.togglePin(entry);
-		console.info(`[spotlight-clip] ${pinned ? "置顶" : "取消置顶"} id=${id}`);
 		// 置顶会让列表重排（置顶块在最前），让同一条尽量保持在选中状态
 		Qt.callLater(() => root.selectClipById(id));
 	}
@@ -3095,42 +3433,64 @@ Item {
 	}
 
 	function resetAppSelection(): void {
-		// 分类视图只有网格一种形态
-		if (appGrid.count > 0) {
-			appGrid.currentIndex = 0;
-			appGrid.positionViewAtIndex(0, GridView.Beginning);
+		// 分类视图使用常显名称的列表
+		if (appList.count > 0) {
+			appList.currentIndex = 0;
+			appList.positionViewAtIndex(0, GridView.Beginning);
 		} else {
-			appGrid.currentIndex = -1;
+			appList.currentIndex = -1;
 		}
 	}
 
-	// 方向键移动应用选中：网格语义（左右换列、上下换行）
-	function moveAppSelection(dx: int, dy: int): void {
-		root.hideAppTip();
-		const cols = Math.max(1, Math.floor(appGrid.width / appGrid.cellWidth));
-		const total = appGrid.count;
-		if (total === 0)
+	function restoreAppSelection(): void {
+		const total = appList.count;
+		if (total === 0) {
+			appList.currentIndex = -1;
+			root.appSelectionRestorePending = false;
 			return;
-		let idx = appGrid.currentIndex < 0 ? 0 : appGrid.currentIndex;
-		if (dx !== 0) {
-			const row = Math.floor(idx / cols);
-			idx = Math.max(row * cols, Math.min(idx + dx, Math.min((row + 1) * cols - 1, total - 1)));
 		}
+		let idx = -1;
+		if (root.appSelectionRestoreId !== "") {
+			for (let i = 0; i < total; ++i) {
+				if (AppCategories.entryId(appList.model?.[i]) === root.appSelectionRestoreId) {
+					idx = i;
+					break;
+				}
+			}
+		}
+		if (idx < 0)
+			idx = Math.min(root.appSelectionRestoreIndex, total - 1);
+		appList.currentIndex = idx;
+		appList.positionViewAtIndex(idx, GridView.Contain);
+		root.appSelectionRestorePending = false;
+	}
+
+	// 单列应用列表只响应上下导航；左右键不改变选中项。
+	function moveAppSelection(dx: int, dy: int): void {
+		const total = appList.count;
+		if (total === 0 || dx !== 0)
+			return;
+		if (dy < 0 && appList.currentIndex <= 0) {
+			appList.currentIndex = 0;
+			appList.positionViewAtIndex(0, GridView.Beginning);
+			return;
+		}
+		let idx = appList.currentIndex < 0 ? 0 : appList.currentIndex;
 		if (dy !== 0)
-			idx = Math.max(0, Math.min(idx + dy * cols, total - 1));
-		if (idx !== appGrid.currentIndex) {
-			appGrid.currentIndex = idx;
-			appGrid.positionViewAtIndex(idx, GridView.Contain);
+			idx += dy;
+		idx = Math.max(0, Math.min(idx, total - 1));
+		if (idx !== appList.currentIndex) {
+			appList.currentIndex = idx;
+			appList.positionViewAtIndex(idx, GridView.Contain);
 		}
 	}
 
 	function launchSelectedApp(): void {
-		const entry = appGrid.count > 0
-			? (appGrid.currentItem?.modelData ?? appGrid.model?.[appGrid.currentIndex])
+		const entry = appList.count > 0
+			? (appList.currentItem?.modelData ?? appList.model?.[appList.currentIndex])
 			: null;
 		if (!entry)
 			return;
-		console.info(`[spotlight-key] launch ${entry.name ?? ""}`);
 		Apps.launch(entry);
 		root.closeRequested();
 	}
@@ -3140,7 +3500,6 @@ Item {
 		if (!q)
 			return;
 		const url = root.webSearchBase + encodeURIComponent(q);
-		console.info(`[spotlight-web] open ${url}`);
 		Quickshell.execDetached(["xdg-open", url]);
 		root.closeRequested();
 	}

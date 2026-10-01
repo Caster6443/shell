@@ -1,0 +1,40 @@
+--- a/modules/nexus/PageRegistry.qml
++++ b/modules/nexus/PageRegistry.qml
+@@ -14,6 +14,12 @@
+             description: Tr.tr("Wallpaper, fonts, colours"),
+             category: "appearance"
+         },
++        {
++            label: "锁屏",
++            icon: "lock",
++            description: "锁屏外观与样式",
++            category: "appearance"
++        },
+ 
+         // Connectivity
+         // TODO
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -16,6 +16,7 @@
+ import qs.modules.nexus.pages.services
+ import qs.modules.nexus.pages.wallandstyle
+ import qs.modules.nexus.pages.panels.taskbar
++import qs.lockcosmos
+ 
+ QtObject {
+     id: root
+@@ -39,6 +40,14 @@
+                 }
+             }
+         },
++        Component {
++            // Lock screen
++            StackPage {
++                Component {
++                    LockStylePage {}
++                }
++            }
++        },
+ 
+         // Connectivity
+         Component {

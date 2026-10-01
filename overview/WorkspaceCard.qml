@@ -27,8 +27,10 @@ Item {
 	readonly property string specialDispatchName: specialWsName.startsWith("special:") ? specialWsName.slice(8) : (specialWsName || "special")
 	readonly property string cardLabel: isSpecial ? (specialDispatchName === "special" ? "S" : specialDispatchName) : String(wsId)
 	property bool hasActiveDrag: false
-	// 入场动画进度（0 = 还没出现，1 = 完全出现）：「+」新增的插槽从 0 撑开 + 淡入，普通卡片恒为 1
+	// 新增特殊工作区插槽的入场状态
 	property real appearProgress: 1
+	property bool isEntering: false
+	property bool animatePosition: false
 
 	readonly property real workspaceW: cardW
 	readonly property real workspaceH: cardH
@@ -71,8 +73,16 @@ Item {
 
 	width: workspaceW
 	height: workspaceH
-	opacity: Math.min(1, appearProgress * 1.6)
-	z: hasActiveDrag ? 100 : 0
+	opacity: appearProgress
+	z: hasActiveDrag ? 100 : (isEntering ? 5 : 0)
+
+	Behavior on y {
+		enabled: animatePosition
+		NumberAnimation {
+			duration: 320
+			easing.type: Easing.OutCubic
+		}
+	}
 
 	Rectangle {
 		anchors.fill: parent

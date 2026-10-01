@@ -1,0 +1,12 @@
+pragma Singleton
+
+import Quickshell
+
+PersistentProperties {
+    // Preserve the current machine's observed manual selection while moving
+    // state out of the popout Loader: Balanced power profile, Performance fan curve.
+    property int powerMode: 1
+    property int fanMode: 2
+
+    reloadableId: "bar-fan-curves"
+}

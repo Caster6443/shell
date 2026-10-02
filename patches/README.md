@@ -12,7 +12,7 @@
 
 | 补丁 | 目标文件 | 作用 |
 |---|---|---|
-| `layout/nexus-hyprland-layout.patch` | Nexus `PageRegistry.qml`、`PageCompRegistry.qml` 与新增 `pages/hyprland/HyprlandLayout.qml` | 设置中心增加 Hyprland 布局页，可在 Hyprland 四种内置布局 `scrolling`、`dwindle`、`master`、`monocle` 间即时切换（通过 Lua `hl.config`）；页面打开时读取实际布局状态 |
+| `layout/nexus-hyprland-layout.patch` | Nexus `PageRegistry.qml`、`PageCompRegistry.qml` 与新增 `pages/hyprland/HyprlandLayout.qml` | 设置中心增加 Hyprland 布局页，可在四种内置布局间即时切换，并同步滚动布局专属参数、Shift+滚轮快捷键和工作区动画方向（Scrolling 纵向、平铺横向）；三指横滑在 Scrolling 下滚列、其他布局下跟手切换工作区；页面打开时读取实际布局状态 |
 | `lock/cosmos-lockscreen.patch` | `modules/lock/LockSurface.qml` | 当前正式锁屏按 Caelestia 实际亮暗主题分别加载 Nexus 设置中指定的样式（默认浅色 Enso、深色 Cosmos）；仍由 Caelestia PAM 认证；`deploy-upgrade.sh` 自动应用 |
 | `lock/nexus-lock-style.patch` | Nexus `PageRegistry.qml`、`PageCompRegistry.qml` | 在 Caelestia 图形化设置中心新增“锁屏”页入口，设置页由 `lockcosmos/LockStylePage.qml` 提供；`deploy-upgrade.sh` 自动应用 |
 | `background/desktop-clock-calendar.patch` | `modules/background/DesktopClock.qml` | 保留大号时钟与原主题风格；文字强调色使用壁纸动态生成的 `primary/secondary/tertiary`，开启反转颜色时改用对应容器色；星期/日期共用周一开始的 7 列网格，仅绘制本月日期并按需显示 4–6 周；时间顶部下方沿用原三张 96×126 卡片尺寸，改为显示未来逐小时的时间、降水概率、图标和温度，滚轮按小时浏览；待办与闹钟页使用 `Colours.palette` 壁纸动态主色（启用/未完成条目强调、已完成/停用条目弱化）；日期格用 ButtonBase 整格接收点击，点击本月日期后切换到当日待办清单，待办与闹钟界面复用桌面时钟配置的底板透明度并带淡入淡出/轻缩放转场；待办到期时整张卡片切换成提醒场景并播放由 `~/.config/quickshell/caelestia/desktop-clock.json` 的 `reminderGif` 单独指定的 GIF（默认回退到 `paths.mediaGif`，不影响 Dashboard），按比例填满原组件尺寸并尝试以圆角 Mask 裁切；左上角标题、右上角任务名、底部居中的操作按钮；发出一次桌面通知，9 秒后自动返回；点击时钟时间切换整个组件到闹钟设置页，支持名称、一次/每周与周日到周六逐日多选、启停、删除及 10 分钟稍后提醒 |

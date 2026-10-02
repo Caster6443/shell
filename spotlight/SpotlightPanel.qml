@@ -1157,6 +1157,35 @@ Item {
 							currentIndex: -1
 							cacheBuffer: 500
 							reuseItems: true
+							property bool navigationOwnsSelection: false
+							HoverHandler {
+								id: appListHover
+								property point lastScenePosition: Qt.point(-1, -1)
+								function updatePointerSelection(force: bool): void {
+									const scene = point.scenePosition;
+									const moved = Math.abs(scene.x - lastScenePosition.x) >= 0.5
+										|| Math.abs(scene.y - lastScenePosition.y) >= 0.5;
+									if (!force && !moved)
+										return;
+									if (moved)
+										appList.navigationOwnsSelection = false;
+									lastScenePosition = scene;
+									if (!hovered || appList.navigationOwnsSelection)
+										return;
+									const p = appList.mapFromItem(null, scene.x, scene.y);
+									if (p.x < 0 || p.y < 0 || p.x >= appList.width || p.y >= appList.height)
+										return;
+									const index = appList.indexAt(p.x + appList.contentX, p.y + appList.contentY);
+									if (index >= 0 && index < appList.count) {
+										appList.currentIndex = index;
+									}
+								}
+								onHoveredChanged: {
+									if (hovered)
+										updatePointerSelection(true);
+								}
+								onPointChanged: updatePointerSelection(false)
+							}
 							property bool wheelGestureStepTaken: false
 							Timer {
 								id: appWheelGestureResetTimer
@@ -1258,10 +1287,11 @@ Item {
 									hoverEnabled: true
 									acceptedButtons: Qt.LeftButton | Qt.RightButton
 									preventStealing: true
-									property bool pressMightDrag: false
-									property point pressPos
+								property bool pressMightDrag: false
+								property point pressPos
 								onPressed: mouse => {
 									appList.currentIndex = appCell.index;
+									appList.navigationOwnsSelection = false;
 									if (mouse.button === Qt.LeftButton)
 										root.appDragPressed(cellMouse, mouse, appCell.index);
 								}
@@ -3470,6 +3500,7 @@ Item {
 		const total = appList.count;
 		if (total === 0 || dx !== 0)
 			return;
+		appList.navigationOwnsSelection = true;
 		if (dy < 0 && appList.currentIndex <= 0) {
 			appList.currentIndex = 0;
 			appList.positionViewAtIndex(0, GridView.Beginning);

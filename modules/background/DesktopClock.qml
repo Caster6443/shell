@@ -263,7 +263,7 @@ Item {
                 RowLayout {
                     Layout.alignment: Qt.AlignLeft
 
-                    CustomMouseArea {
+                    MouseArea {
                         id: forecastArea
 
                         Layout.preferredWidth: root.forecastCardWidth * 3 + root.forecastCardSpacing * 2
@@ -271,14 +271,32 @@ Item {
                         hoverEnabled: true
                         acceptedButtons: Qt.NoButton
 
-                        function onWheel(event: WheelEvent): void {
-                            if (event.angleDelta.y < 0)
-                                root.forecastStartIndex = Math.min(root.forecastStartIndex + 1, root.forecastMaxStartIndex);
-                            else if (event.angleDelta.y > 0)
-                                root.forecastStartIndex = Math.max(root.forecastStartIndex - 1, 0);
+                        property real horizontalScroll: 0
+                        property bool pixelScroll: false
+
+                        function scrollWeather(event): void {
+                            const pixels = event.pixelDelta.x !== 0 || event.pixelDelta.y !== 0;
+                            const delta = pixels ? (event.pixelDelta.x || event.pixelDelta.y) : (event.angleDelta.x || event.angleDelta.y);
+                            if (delta === 0) {
+                                event.accepted = false;
+                                return;
+                            }
+                            if (pixels !== pixelScroll || Math.sign(delta) !== Math.sign(horizontalScroll))
+                                horizontalScroll = 0;
+                            pixelScroll = pixels;
+                            horizontalScroll += delta;
+                            const threshold = pixels ? 40 : 120;
+                            const steps = Math.trunc(horizontalScroll / threshold);
+                            if (steps !== 0) {
+                                root.forecastStartIndex = Math.max(0, Math.min(root.forecastStartIndex - steps, root.forecastMaxStartIndex));
+                                horizontalScroll -= steps * threshold;
+                            }
+                            event.accepted = true;
                         }
 
-                        onExited: root.forecastStartIndex = 0
+                        onWheel: event => scrollWeather(event)
+
+                        onExited: { horizontalScroll = 0; root.forecastStartIndex = 0; }
 
                         Item {
                             anchors.fill: parent

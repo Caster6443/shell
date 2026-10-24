@@ -1,6 +1,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
+import Caelestia.Config
+import qs.services
 import Quickshell
 import Quickshell.Hyprland
 import qs.overview
@@ -69,7 +72,68 @@ Item {
 		return Math.max(monW, totalW);
 	}
 
-	readonly property real scaleRatio: workspaceW / contentMaxWidth
+	// Fit the actual window group into the area below the workspace label.
+	readonly property var spatialBounds: {
+		let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+		for (let i = 0; i < windowModel.count; ++i) {
+			const row = windowModel.get(i);
+			if (!rowMatches(row)) continue;
+			const w = row.m_sizeW > 0 ? row.m_sizeW : (Hyprland.focusedMonitor?.width || 1920) / 2;
+			const h = row.m_sizeH > 0 ? row.m_sizeH : (Hyprland.focusedMonitor?.height || 1080);
+			left = Math.min(left, row.m_atX); top = Math.min(top, row.m_atY);
+			right = Math.max(right, row.m_atX + w);
+			bottom = Math.max(bottom, row.m_atY + h);
+		}
+		return Number.isFinite(left) ? { x: left, y: top, width: right - left, height: bottom - top }
+			: { x: 0, y: 0, width: 1, height: 1 };
+	}
+    readonly property real contentTop: 12
+    readonly property var linearLayout: {
+        const rows = [];
+        const monW = Hyprland.focusedMonitor?.width || 1920;
+        const monH = Hyprland.focusedMonitor?.height || 1080;
+        for (let i = 0; i < windowModel.count; ++i) {
+            const row = windowModel.get(i);
+            if (!rowMatches(row)) continue;
+            rows.push({address: row.m_address || String(i), x: row.m_atX,
+                       w: row.m_sizeW > 0 ? row.m_sizeW : monW / 2,
+                       h: row.m_sizeH > 0 ? row.m_sizeH : monH});
+        }
+        rows.sort((a, b) => a.x - b.x || a.address.localeCompare(b.address));
+        if (!rows.length) return {scale: 1, slots: {}};
+        const reserve = rows.length === 1 ? 1.08 : 1.20;
+        const halfExtra = (reserve - 1) / 2;
+        const gap = 4;
+        const sumW = rows.reduce((total, row) => total + row.w, 0);
+        const maxH = Math.max(...rows.map(row => row.h));
+        const first = rows[0].w, last = rows[rows.length - 1].w;
+        // Only one preview is enlarged at a time: reserve the larger half-growth
+        // at each seam, rather than adding both neighbours' hover envelopes.
+        let seamW = 0;
+        for (let i = 0; i + 1 < rows.length; ++i)
+            seamW += halfExtra * Math.max(rows[i].w, rows[i + 1].w);
+        const visibleW = sumW + seamW;
+        const fitW = visibleW + 2 * halfExtra * Math.max(first, last);
+        const scale = Math.max(0.0001, Math.min(
+            Math.max(1, workspaceW - 24 - gap * (rows.length - 1)) / fitW,
+            Math.max(1, workspaceH - contentTop - 12) / (maxH * reserve)));
+        const groupW = visibleW * scale + gap * (rows.length - 1);
+        let x = (workspaceW - groupW) / 2;
+        const slots = {};
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i];
+            slots[row.address] = {x: x, y: contentTop + (workspaceH - contentTop - 12 - row.h * scale) / 2};
+            if (i + 1 < rows.length) x += row.w * scale + gap + halfExtra * Math.max(row.w, rows[i + 1].w) * scale;
+        }
+        return {scale: scale, slots: slots};
+    }
+    readonly property real singleWindowRatio: linearLayout.scale
+
+	readonly property real scaleRatio: overviewRoot.spatialWindows
+		? Math.min(Math.max(1, workspaceW - 24) / spatialBounds.width, Math.max(1, workspaceH - contentTop - 12) / spatialBounds.height) / (matchingCount <= 1 ? 1.08 : 1.20)
+		: singleWindowRatio
+	readonly property real spatialOffsetX: (workspaceW - spatialBounds.width * scaleRatio) / 2
+	readonly property real spatialOffsetY: contentTop + (Math.max(1, workspaceH - contentTop - 12) - spatialBounds.height * scaleRatio) / 2
 
 	width: workspaceW
 	height: workspaceH
@@ -85,24 +149,34 @@ Item {
 	}
 
 	Rectangle {
+		id: cardFrame
 		anchors.fill: parent
-		radius: 18
+		radius: 14
 		clip: true
 
-		color: {
-			if (isSpecial)
-				return Qt.darker(M3Palette.m3surfaceContainer, 1.4);
-			return Hyprland.focusedMonitor?.activeWorkspace?.id === wsId ? M3Palette.m3surfaceContainer : M3Palette.m3surface;
-		}
-		border.width: 1
-		border.color: isSpecial ? Qt.alpha(M3Palette.m3onSurface, 0.12) : (Hyprland.focusedMonitor?.activeWorkspace?.id === wsId ? M3Palette.m3primary : M3Palette.m3outlineVariant)
-
-		Image {
-			anchors.fill: parent
-			source: isSpecial ? "" : overviewRoot.currentWallpaperPath
-			fillMode: Image.PreserveAspectCrop
-			opacity: 0.6
-		}
+        readonly property bool current: !isSpecial && Hyprland.focusedMonitor?.activeWorkspace?.id === wsId
+        color: Colours.palette.m3surfaceContainer
+        border.width: current ? 2 : 1
+        border.color: current ? M3Palette.m3primary : Qt.alpha(M3Palette.m3onSurface, 0.25)
+        Image {
+            id: wallpaper
+            x: 6; y: 6
+            width: parent.width - 12
+            height: parent.height - 12
+            source: isSpecial ? "" : overviewRoot.currentWallpaperPath
+            fillMode: Image.PreserveAspectCrop
+            opacity: workspaceContainer.matchingCount > 0 ? 0.6 : 1
+            layer.enabled: true
+            layer.effect: MultiEffect { maskEnabled: true; maskSource: wallpaperMask; maskThresholdMin: 0.5; maskSpreadAtMin: 1 }
+        }
+        Rectangle {
+            id: wallpaperMask
+            width: wallpaper.width; height: wallpaper.height
+            radius: 9
+            visible: false
+            layer.enabled: true
+            color: "white"
+        }
 
 		MouseArea {
 			anchors.fill: parent
@@ -115,18 +189,6 @@ Item {
 			}
 		}
 
-		Text {
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.margins: 8
-			text: cardLabel
-			elide: Text.ElideRight
-			width: parent.width - 16
-			color: isSpecial ? M3Palette.m3onTertiaryContainer : M3Palette.m3onSurface
-			font.pixelSize: 13
-			font.bold: true
-			z: 10
-		}
 
 		DropArea {
 			anchors.fill: parent
@@ -162,6 +224,20 @@ Item {
 			}
 		}
 	}
+
+    Item {
+        anchors.fill: parent
+        z: 40
+        // Overlay identity without reserving a separate header row.
+        Text {
+            x: 12; y: 12
+            text: cardLabel
+            color: cardFrame.current ? M3Palette.m3primary : M3Palette.m3onSurface
+            font: Tokens.font.label.builders.medium.weight(Font.DemiBold).build()
+            renderType: Text.NativeRendering
+        }
+
+    }
 
 	Item {
 		id: windowLayer

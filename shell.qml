@@ -11,7 +11,7 @@ import "modules/areapicker"
 import "modules/lock"
 import "desktopviz"
 import "desktopperf"
-import "spotlight"
+import "console"
 import QtQuick
 import Quickshell
 import qs.services
@@ -45,5 +45,5 @@ ShellRoot {
 
     DesktopVisualizer {}
     DesktopPerformance {}
-    Spotlight {}
+    Console {}
 }

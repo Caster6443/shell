@@ -1,0 +1,1931 @@
+# Emoji 数据：每行 "<emoji> <关键词…>"（">" 用于搜索匹配）
+# 来源：end-4/dots-hyprland (GPL-3.0) 的 hypr/hyprland/scripts/fuzzel-emoji.sh 内嵌 DATA 段
+# 格式：emoji<TAB>中文分类<TAB>原关键词；分类依据 Unicode emoji-test 18.0，非标准组合归其他。
+😀	表情	grinning face face smile happy joy :D grin
+😃	表情	grinning face with big eyes face happy joy haha :D :) smile funny
+😄	表情	grinning face with smiling eyes face happy joy funny haha laugh like :D :) smile
+😁	表情	beaming face with smiling eyes face happy smile joy kawaii
+😆	表情	grinning squinting face happy joy lol satisfied haha face glad XD laugh
+😅	表情	grinning face with sweat face hot happy laugh sweat smile relief
+🤣	表情	rolling on the floor laughing face rolling floor laughing lol haha rofl
+😂	表情	face with tears of joy face cry tears weep happy happytears haha
+🙂	表情	slightly smiling face face smile
+🙃	表情	upside down face face flipped silly smile
+😉	表情	winking face face happy mischievous secret ;) smile eye
+😊	表情	smiling face with smiling eyes face smile happy flushed crush embarrassed shy joy
+😇	表情	smiling face with halo face angel heaven halo
+🥰	表情	smiling face with hearts face love like affection valentines infatuation crush hearts adore
+😍	表情	smiling face with heart eyes face love like affection valentines infatuation crush heart
+🤩	表情	star struck face smile starry eyes grinning
+😘	表情	face blowing a kiss face love like affection valentines infatuation kiss
+😗	表情	kissing face love like face 3 valentines infatuation kiss
+☺️	表情	smiling face face blush massage happiness
+😚	表情	kissing face with closed eyes face love like affection valentines infatuation kiss
+😙	表情	kissing face with smiling eyes face affection valentines infatuation kiss
+😋	表情	face savoring food happy joy tongue smile face silly yummy nom delicious savouring
+😛	表情	face with tongue face prank childish playful mischievous smile tongue
+😜	表情	winking face with tongue face prank childish playful mischievous smile wink tongue
+🤪	表情	zany face face goofy crazy
+😝	表情	squinting face with tongue face prank playful mischievous smile tongue
+🤑	表情	money mouth face face rich dollar money
+🤗	表情	hugging face face smile hug
+🤭	表情	face with hand over mouth face whoops shock surprise
+🤫	表情	shushing face face quiet shhh
+🤔	表情	thinking face face hmmm think consider
+🤐	表情	zipper mouth face face sealed zipper secret
+🤨	表情	face with raised eyebrow face distrust scepticism disapproval disbelief surprise
+😐	表情	neutral face indifference meh :| neutral
+😑	表情	expressionless face face indifferent - - meh deadpan
+😶	表情	face without mouth face hellokitty
+😏	表情	smirking face face smile mean prank smug sarcasm
+😒	表情	unamused face indifference bored straight face serious sarcasm unimpressed skeptical dubious side eye
+🙄	表情	face with rolling eyes face eyeroll frustrated
+😬	表情	grimacing face face grimace teeth
+🤥	表情	lying face face lie pinocchio
+😌	表情	relieved face face relaxed phew massage happiness
+😔	表情	pensive face face sad depressed upset
+😪	表情	sleepy face face tired rest nap
+🤤	表情	drooling face face
+😴	表情	sleeping face face tired sleepy night zzz
+😷	表情	face with medical mask face sick ill disease
+🤒	表情	face with thermometer sick temperature thermometer cold fever
+🤕	表情	face with head bandage injured clumsy bandage hurt
+🤢	表情	nauseated face face vomit gross green sick throw up ill
+🤮	表情	face vomiting face sick
+🤧	表情	sneezing face face gesundheit sneeze sick allergy
+🥵	表情	hot face face feverish heat red sweating
+🥶	表情	cold face face blue freezing frozen frostbite icicles
+🥴	表情	woozy face face dizzy intoxicated tipsy wavy
+😵	表情	dizzy face spent unconscious xox dizzy
+🤯	表情	exploding head face shocked mind blown
+🤠	表情	cowboy hat face face cowgirl hat
+🥳	表情	partying face face celebration woohoo
+😎	表情	smiling face with sunglasses face cool smile summer beach sunglass
+🤓	表情	nerd face face nerdy geek dork
+🧐	表情	face with monocle face stuffy wealthy
+😕	表情	confused face face indifference huh weird hmmm :/
+😟	表情	worried face face concern nervous :(
+🙁	表情	slightly frowning face face frowning disappointed sad upset
+☹️	表情	frowning face face sad upset frown
+😮	表情	face with open mouth face surprise impressed wow whoa :O
+😯	表情	hushed face face woo shh
+😲	表情	astonished face face xox surprised poisoned
+😳	表情	flushed face face blush shy flattered sex
+🥺	表情	pleading face face begging mercy
+😦	表情	frowning face with open mouth face aw what
+😧	表情	anguished face face stunned nervous
+😨	表情	fearful face face scared terrified nervous oops huh
+😰	表情	anxious face with sweat face nervous sweat
+😥	表情	sad but relieved face face phew sweat nervous
+😢	表情	crying face face tears sad depressed upset :'(
+😭	表情	loudly crying face face cry tears sad upset depressed sob
+😱	表情	face screaming in fear face munch scared omg
+😖	表情	confounded face face confused sick unwell oops :S
+😣	表情	persevering face face sick no upset oops
+😞	表情	disappointed face face sad upset depressed :(
+😓	表情	downcast face with sweat face hot sad tired exercise
+😩	表情	weary face face tired sleepy sad frustrated upset
+😫	表情	tired face sick whine upset frustrated
+🥱	表情	yawning face tired sleepy
+😤	表情	face with steam from nose face gas phew proud pride
+😡	表情	pouting face angry mad hate despise
+😠	表情	angry face mad face annoyed frustrated
+🤬	表情	face with symbols on mouth face swearing cursing cussing profanity expletive
+😈	表情	smiling face with horns devil horns
+👿	表情	angry face with horns devil angry horns
+💀	表情	skull dead skeleton creepy death
+☠️	表情	skull and crossbones poison danger deadly scary death pirate evil
+💩	表情	pile of poo hankey shitface fail turd shit
+🤡	表情	clown face face
+👹	表情	ogre monster red mask halloween scary creepy devil demon japanese ogre
+👺	表情	goblin red evil mask monster scary creepy japanese goblin
+👻	表情	ghost halloween spooky scary
+👽	表情	alien UFO paul weird outer space
+👾	表情	alien monster game arcade play
+🤖	表情	robot computer machine bot
+😺	表情	grinning cat animal cats happy smile
+😸	表情	grinning cat with smiling eyes animal cats smile
+😹	表情	cat with tears of joy animal cats haha happy tears
+😻	表情	smiling cat with heart eyes animal love like affection cats valentines heart
+😼	表情	cat with wry smile animal cats smirk
+😽	表情	kissing cat animal cats kiss
+🙀	表情	weary cat animal cats munch scared scream
+😿	表情	crying cat animal tears weep sad cats upset cry
+😾	表情	pouting cat animal cats
+🙈	表情	see no evil monkey monkey animal nature haha
+🙉	表情	hear no evil monkey animal monkey nature
+🙊	表情	speak no evil monkey monkey animal nature omg
+💋	表情	kiss mark face lips love like affection valentines
+💌	表情	love letter email like affection envelope valentines
+💘	表情	heart with arrow love like heart affection valentines
+💝	表情	heart with ribbon love valentines
+💖	表情	sparkling heart love like affection valentines
+💗	表情	growing heart like love affection valentines pink
+💓	表情	beating heart love like affection valentines pink heart
+💞	表情	revolving hearts love like affection valentines
+💕	表情	two hearts love like affection valentines heart
+💟	表情	heart decoration purple-square love like
+❣️	表情	heart exclamation decoration love
+💔	表情	broken heart sad sorry break heart heartbreak
+❤️	表情	red heart love like valentines
+🧡	表情	orange heart love like affection valentines
+💛	表情	yellow heart love like affection valentines
+💚	表情	green heart love like affection valentines
+💙	表情	blue heart love like affection valentines
+💜	表情	purple heart love like affection valentines
+🤎	表情	brown heart coffee
+🖤	表情	black heart evil
+🤍	表情	white heart pure
+💯	表情	hundred points score perfect numbers century exam quiz test pass hundred
+💢	表情	anger symbol angry mad
+💥	表情	collision bomb explode explosion collision blown
+💫	表情	dizzy star sparkle shoot magic
+💦	表情	sweat droplets water drip oops
+💨	表情	dashing away wind air fast shoo fart smoke puff
+🕳️	表情	hole embarrassing
+💣	物品	bomb boom explode explosion terrorism
+💬	表情	speech balloon bubble words message talk chatting
+👁️‍🗨️	表情	eye in speech bubble info
+🗨️	表情	left speech bubble words message talk chatting
+🗯️	表情	right anger bubble caption speech thinking mad
+💭	表情	thought balloon bubble cloud speech thinking dream
+💤	表情	zzz sleepy tired dream
+👋	人物	waving hand hands gesture goodbye solong farewell hello hi palm
+🤚	人物	raised back of hand fingers raised backhand
+🖐️	人物	hand with fingers splayed hand fingers palm
+✋	人物	raised hand fingers stop highfive palm ban
+🖖	人物	vulcan salute hand fingers spock star trek
+👌	人物	ok hand fingers limbs perfect ok okay
+🤏	人物	pinching hand tiny small size
+✌️	人物	victory hand fingers ohyeah hand peace victory two
+🤞	人物	crossed fingers good lucky
+🤟	人物	love you gesture hand fingers gesture
+🤘	人物	sign of the horns hand fingers evil eye sign of horns rock on
+🤙	人物	call me hand hands gesture shaka
+👈	人物	backhand index pointing left direction fingers hand left
+👉	人物	backhand index pointing right fingers hand direction right
+👆	人物	backhand index pointing up fingers hand direction up
+🖕	人物	middle finger hand fingers rude middle flipping
+👇	人物	backhand index pointing down fingers hand direction down
+☝️	人物	index pointing up hand fingers direction up
+👍	人物	thumbs up thumbsup yes awesome good agree accept cool hand like +1
+👎	人物	thumbs down thumbsdown no dislike hand -1
+✊	人物	raised fist fingers hand grasp
+👊	人物	oncoming fist angry violence fist hit attack hand
+🤛	人物	left facing fist hand fistbump
+🤜	人物	right facing fist hand fistbump
+👏	人物	clapping hands hands praise applause congrats yay
+🙌	人物	raising hands gesture hooray yea celebration hands
+👐	人物	open hands fingers butterfly hands open
+🤲	人物	palms up together hands gesture cupped prayer
+🤝	人物	handshake agreement shake
+🙏	人物	folded hands please hope wish namaste highfive pray
+✍️	人物	writing hand lower left ballpoint pen stationery write compose
+💅	人物	nail polish beauty manicure finger fashion nail
+🤳	人物	selfie camera phone
+💪	人物	flexed biceps arm flex hand summer strong biceps
+🦾	人物	mechanical arm accessibility
+🦿	人物	mechanical leg accessibility
+🦵	人物	leg kick limb
+🦶	人物	foot kick stomp
+👂	人物	ear face hear sound listen
+🦻	人物	ear with hearing aid accessibility
+👃	人物	nose smell sniff
+🧠	人物	brain smart intelligent
+🦷	人物	tooth teeth dentist
+🦴	人物	bone skeleton
+👀	人物	eyes look watch stalk peek see
+👁️	人物	eye face look see watch stare
+👅	人物	tongue mouth playful
+👄	人物	mouth mouth kiss
+👶	人物	baby child boy girl toddler
+🧒	人物	child gender-neutral young
+👦	人物	boy man male guy teenager
+👧	人物	girl female woman teenager
+🧑	人物	person gender-neutral person
+👱	人物	person blond hair hairstyle
+👨	人物	man mustache father dad guy classy sir moustache
+🧔	人物	man beard person bewhiskered
+👨‍🦰	人物	man red hair hairstyle
+👨‍🦱	人物	man curly hair hairstyle
+👨‍🦳	人物	man white hair old elder
+👨‍🦲	人物	man bald hairless
+👩	人物	woman female girls lady
+👩‍🦰	人物	woman red hair hairstyle
+🧑‍🦰	人物	person red hair hairstyle
+👩‍🦱	人物	woman curly hair hairstyle
+🧑‍🦱	人物	person curly hair hairstyle
+👩‍🦳	人物	woman white hair old elder
+🧑‍🦳	人物	person white hair elder old
+👩‍🦲	人物	woman bald hairless
+🧑‍🦲	人物	person bald hairless
+👱‍♀️	人物	woman blond hair woman female girl blonde person
+👱‍♂️	人物	man blond hair man male boy blonde guy person
+🧓	人物	older person human elder senior gender-neutral
+👴	人物	old man human male men old elder senior
+👵	人物	old woman human female women lady old elder senior
+🙍	人物	person frowning worried
+🙍‍♂️	人物	man frowning male boy man sad depressed discouraged unhappy
+🙍‍♀️	人物	woman frowning female girl woman sad depressed discouraged unhappy
+🙎	人物	person pouting upset
+🙎‍♂️	人物	man pouting male boy man
+🙎‍♀️	人物	woman pouting female girl woman
+🙅	人物	person gesturing no decline
+🙅‍♂️	人物	man gesturing no male boy man nope
+🙅‍♀️	人物	woman gesturing no female girl woman nope
+🙆	人物	person gesturing ok agree
+🙆‍♂️	人物	man gesturing ok men boy male blue human man
+🙆‍♀️	人物	woman gesturing ok women girl female pink human woman
+💁	人物	person tipping hand information
+💁‍♂️	人物	man tipping hand male boy man human information
+💁‍♀️	人物	woman tipping hand female girl woman human information
+🙋	人物	person raising hand question
+🙋‍♂️	人物	man raising hand male boy man
+🙋‍♀️	人物	woman raising hand female girl woman
+🧏	人物	deaf person accessibility
+🧏‍♂️	人物	deaf man accessibility
+🧏‍♀️	人物	deaf woman accessibility
+🙇	人物	person bowing respectiful
+🙇‍♂️	人物	man bowing man male boy
+🙇‍♀️	人物	woman bowing woman female girl
+🤦	人物	person facepalming disappointed
+🤦‍♂️	人物	man facepalming man male boy disbelief
+🤦‍♀️	人物	woman facepalming woman female girl disbelief
+🤷	人物	person shrugging regardless
+🤷‍♂️	人物	man shrugging man male boy confused indifferent doubt
+🤷‍♀️	人物	woman shrugging woman female girl confused indifferent doubt
+🧑‍⚕️	人物	health worker hospital
+👨‍⚕️	人物	man health worker doctor nurse therapist healthcare man human
+👩‍⚕️	人物	woman health worker doctor nurse therapist healthcare woman human
+🧑‍🎓	人物	student learn
+👨‍🎓	人物	man student graduate man human
+👩‍🎓	人物	woman student graduate woman human
+🧑‍🏫	人物	teacher professor
+👨‍🏫	人物	man teacher instructor professor man human
+👩‍🏫	人物	woman teacher instructor professor woman human
+🧑‍⚖️	人物	judge law
+👨‍⚖️	人物	man judge justice court man human
+👩‍⚖️	人物	woman judge justice court woman human
+🧑‍🌾	人物	farmer crops
+👨‍🌾	人物	man farmer rancher gardener man human
+👩‍🌾	人物	woman farmer rancher gardener woman human
+🧑‍🍳	人物	cook food kitchen culinary
+👨‍🍳	人物	man cook chef man human
+👩‍🍳	人物	woman cook chef woman human
+🧑‍🔧	人物	mechanic worker technician
+👨‍🔧	人物	man mechanic plumber man human wrench
+👩‍🔧	人物	woman mechanic plumber woman human wrench
+🧑‍🏭	人物	factory worker labor
+👨‍🏭	人物	man factory worker assembly industrial man human
+👩‍🏭	人物	woman factory worker assembly industrial woman human
+🧑‍💼	人物	office worker business
+👨‍💼	人物	man office worker business manager man human
+👩‍💼	人物	woman office worker business manager woman human
+🧑‍🔬	人物	scientist chemistry
+👨‍🔬	人物	man scientist biologist chemist engineer physicist man human
+👩‍🔬	人物	woman scientist biologist chemist engineer physicist woman human
+🧑‍💻	人物	technologist computer
+👨‍💻	人物	man technologist coder developer engineer programmer software man human laptop computer
+👩‍💻	人物	woman technologist coder developer engineer programmer software woman human laptop computer
+🧑‍🎤	人物	singer song artist performer
+👨‍🎤	人物	man singer rockstar entertainer man human
+👩‍🎤	人物	woman singer rockstar entertainer woman human
+🧑‍🎨	人物	artist painting draw creativity
+👨‍🎨	人物	man artist painter man human
+👩‍🎨	人物	woman artist painter woman human
+🧑‍✈️	人物	pilot fly plane airplane
+👨‍✈️	人物	man pilot aviator plane man human
+👩‍✈️	人物	woman pilot aviator plane woman human
+🧑‍🚀	人物	astronaut outerspace
+👨‍🚀	人物	man astronaut space rocket man human
+👩‍🚀	人物	woman astronaut space rocket woman human
+🧑‍🚒	人物	firefighter fire
+👨‍🚒	人物	man firefighter fireman man human
+👩‍🚒	人物	woman firefighter fireman woman human
+👮	人物	police officer cop
+👮‍♂️	人物	man police officer man police law legal enforcement arrest 911
+👮‍♀️	人物	woman police officer woman police law legal enforcement arrest 911 female
+🕵️	人物	detective human spy detective
+🕵️‍♂️	人物	man detective crime
+🕵️‍♀️	人物	woman detective human spy detective female woman
+💂	人物	guard protect
+💂‍♂️	人物	man guard uk gb british male guy royal
+💂‍♀️	人物	woman guard uk gb british female royal woman
+👷	人物	construction worker labor build
+👷‍♂️	人物	man construction worker male human wip guy build construction worker labor
+👷‍♀️	人物	woman construction worker female human wip build construction worker labor woman
+🤴	人物	prince boy man male crown royal king
+👸	人物	princess girl woman female blond crown royal queen
+👳	人物	person wearing turban headdress
+👳‍♂️	人物	man wearing turban male indian hinduism arabs
+👳‍♀️	人物	woman wearing turban female indian hinduism arabs woman
+👲	人物	man with skullcap male boy chinese
+🧕	人物	woman with headscarf female hijab mantilla tichel
+🤵	人物	man in tuxedo couple marriage wedding groom
+👰	人物	bride with veil couple marriage wedding woman bride
+🤰	人物	pregnant woman baby
+🤱	人物	breast feeding nursing baby
+👼	人物	baby angel heaven wings halo
+🎅	人物	santa claus festival man male xmas father christmas
+🤶	人物	mrs claus woman female xmas mother christmas
+🦸	人物	superhero marvel
+🦸‍♂️	人物	man superhero man male good hero superpowers
+🦸‍♀️	人物	woman superhero woman female good heroine superpowers
+🦹	人物	supervillain marvel
+🦹‍♂️	人物	man supervillain man male evil bad criminal hero superpowers
+🦹‍♀️	人物	woman supervillain woman female evil bad criminal heroine superpowers
+🧙	人物	mage magic
+🧙‍♂️	人物	man mage man male mage sorcerer
+🧙‍♀️	人物	woman mage woman female mage witch
+🧚	人物	fairy wings magical
+🧚‍♂️	人物	man fairy man male
+🧚‍♀️	人物	woman fairy woman female
+🧛	人物	vampire blood twilight
+🧛‍♂️	人物	man vampire man male dracula
+🧛‍♀️	人物	woman vampire woman female
+🧜	人物	merperson sea
+🧜‍♂️	人物	merman man male triton
+🧜‍♀️	人物	mermaid woman female merwoman ariel
+🧝	人物	elf magical
+🧝‍♂️	人物	man elf man male
+🧝‍♀️	人物	woman elf woman female
+🧞	人物	genie magical wishes
+🧞‍♂️	人物	man genie man male
+🧞‍♀️	人物	woman genie woman female
+🧟	人物	zombie dead
+🧟‍♂️	人物	man zombie man male dracula undead walking dead
+🧟‍♀️	人物	woman zombie woman female undead walking dead
+💆	人物	person getting massage relax
+💆‍♂️	人物	man getting massage male boy man head
+💆‍♀️	人物	woman getting massage female girl woman head
+💇	人物	person getting haircut hairstyle
+💇‍♂️	人物	man getting haircut male boy man
+💇‍♀️	人物	woman getting haircut female girl woman
+🚶	人物	person walking move
+🚶‍♂️	人物	man walking human feet steps
+🚶‍♀️	人物	woman walking human feet steps woman female
+🧍	人物	person standing still
+🧍‍♂️	人物	man standing still
+🧍‍♀️	人物	woman standing still
+🧎	人物	person kneeling pray respectful
+🧎‍♂️	人物	man kneeling pray respectful
+🧎‍♀️	人物	woman kneeling respectful pray
+🧑‍🦯	人物	person with probing cane blind
+👨‍🦯	人物	man with probing cane blind
+👩‍🦯	人物	woman with probing cane blind
+🧑‍🦼	人物	person in motorized wheelchair disability accessibility
+👨‍🦼	人物	man in motorized wheelchair disability accessibility
+👩‍🦼	人物	woman in motorized wheelchair disability accessibility
+🧑‍🦽	人物	person in manual wheelchair disability accessibility
+👨‍🦽	人物	man in manual wheelchair disability accessibility
+👩‍🦽	人物	woman in manual wheelchair disability accessibility
+🏃	人物	person running move
+🏃‍♂️	人物	man running man walking exercise race running
+🏃‍♀️	人物	woman running woman walking exercise race running female
+💃	人物	woman dancing female girl woman fun
+🕺	人物	man dancing male boy fun dancer
+🕴️	人物	man in suit levitating suit business levitate hover jump
+👯	人物	people with bunny ears perform costume
+👯‍♂️	人物	men with bunny ears male bunny men boys
+👯‍♀️	人物	women with bunny ears female bunny women girls
+🧖	人物	person in steamy room relax spa
+🧖‍♂️	人物	man in steamy room male man spa steamroom sauna
+🧖‍♀️	人物	woman in steamy room female woman spa steamroom sauna
+🧗	人物	person climbing sport
+🧗‍♂️	人物	man climbing sports hobby man male rock
+🧗‍♀️	人物	woman climbing sports hobby woman female rock
+🤺	人物	person fencing sports fencing sword
+🏇	人物	horse racing animal betting competition gambling luck
+⛷️	人物	skier sports winter snow
+🏂	人物	snowboarder sports winter
+🏌️	人物	person golfing sports business
+🏌️‍♂️	人物	man golfing sport
+🏌️‍♀️	人物	woman golfing sports business woman female
+🏄	人物	person surfing sport sea
+🏄‍♂️	人物	man surfing sports ocean sea summer beach
+🏄‍♀️	人物	woman surfing sports ocean sea summer beach woman female
+🚣	人物	person rowing boat sport move
+🚣‍♂️	人物	man rowing boat sports hobby water ship
+🚣‍♀️	人物	woman rowing boat sports hobby water ship woman female
+🏊	人物	person swimming sport pool
+🏊‍♂️	人物	man swimming sports exercise human athlete water summer
+🏊‍♀️	人物	woman swimming sports exercise human athlete water summer woman female
+⛹️	人物	person bouncing ball sports human
+⛹️‍♂️	人物	man bouncing ball sport
+⛹️‍♀️	人物	woman bouncing ball sports human woman female
+🏋️	人物	person lifting weights sports training exercise
+🏋️‍♂️	人物	man lifting weights sport
+🏋️‍♀️	人物	woman lifting weights sports training exercise woman female
+🚴	人物	person biking sport move
+🚴‍♂️	人物	man biking sports bike exercise hipster
+🚴‍♀️	人物	woman biking sports bike exercise hipster woman female
+🚵	人物	person mountain biking sport move
+🚵‍♂️	人物	man mountain biking transportation sports human race bike
+🚵‍♀️	人物	woman mountain biking transportation sports human race bike woman female
+🤸	人物	person cartwheeling sport gymnastic
+🤸‍♂️	人物	man cartwheeling gymnastics
+🤸‍♀️	人物	woman cartwheeling gymnastics
+🤼	人物	people wrestling sport
+🤼‍♂️	人物	men wrestling sports wrestlers
+🤼‍♀️	人物	women wrestling sports wrestlers
+🤽	人物	person playing water polo sport
+🤽‍♂️	人物	man playing water polo sports pool
+🤽‍♀️	人物	woman playing water polo sports pool
+🤾	人物	person playing handball sport
+🤾‍♂️	人物	man playing handball sports
+🤾‍♀️	人物	woman playing handball sports
+🤹	人物	person juggling performance balance
+🤹‍♂️	人物	man juggling juggle balance skill multitask
+🤹‍♀️	人物	woman juggling juggle balance skill multitask
+🧘	人物	person in lotus position meditate
+🧘‍♂️	人物	man in lotus position man male meditation yoga serenity zen mindfulness
+🧘‍♀️	人物	woman in lotus position woman female meditation yoga serenity zen mindfulness
+🛀	人物	person taking bath clean shower bathroom
+🛌	人物	person in bed bed rest
+🧑‍🤝‍🧑	人物	people holding hands friendship
+👭	人物	women holding hands pair friendship couple love like female people human
+👫	人物	woman and man holding hands pair people human love date dating like affection valentines marriage
+👬	人物	men holding hands pair couple love like bromance friendship people human
+💏	人物	kiss pair valentines love like dating marriage
+👩‍❤️‍💋‍👨	人物	kiss woman man love
+👨‍❤️‍💋‍👨	人物	kiss man man pair valentines love like dating marriage
+👩‍❤️‍💋‍👩	人物	kiss woman woman pair valentines love like dating marriage
+💑	人物	couple with heart pair love like affection human dating valentines marriage
+👩‍❤️‍👨	人物	couple with heart woman man love
+👨‍❤️‍👨	人物	couple with heart man man pair love like affection human dating valentines marriage
+👩‍❤️‍👩	人物	couple with heart woman woman pair love like affection human dating valentines marriage
+👪	人物	family home parents child mom dad father mother people human
+👨‍👩‍👦	人物	family man woman boy love
+👨‍👩‍👧	人物	family man woman girl home parents people human child
+👨‍👩‍👧‍👦	人物	family man woman girl boy home parents people human children
+👨‍👩‍👦‍👦	人物	family man woman boy boy home parents people human children
+👨‍👩‍👧‍👧	人物	family man woman girl girl home parents people human children
+👨‍👨‍👦	人物	family man man boy home parents people human children
+👨‍👨‍👧	人物	family man man girl home parents people human children
+👨‍👨‍👧‍👦	人物	family man man girl boy home parents people human children
+👨‍👨‍👦‍👦	人物	family man man boy boy home parents people human children
+👨‍👨‍👧‍👧	人物	family man man girl girl home parents people human children
+👩‍👩‍👦	人物	family woman woman boy home parents people human children
+👩‍👩‍👧	人物	family woman woman girl home parents people human children
+👩‍👩‍👧‍👦	人物	family woman woman girl boy home parents people human children
+👩‍👩‍👦‍👦	人物	family woman woman boy boy home parents people human children
+👩‍👩‍👧‍👧	人物	family woman woman girl girl home parents people human children
+👨‍👦	人物	family man boy home parent people human child
+👨‍👦‍👦	人物	family man boy boy home parent people human children
+👨‍👧	人物	family man girl home parent people human child
+👨‍👧‍👦	人物	family man girl boy home parent people human children
+👨‍👧‍👧	人物	family man girl girl home parent people human children
+👩‍👦	人物	family woman boy home parent people human child
+👩‍👦‍👦	人物	family woman boy boy home parent people human children
+👩‍👧	人物	family woman girl home parent people human child
+👩‍👧‍👦	人物	family woman girl boy home parent people human children
+👩‍👧‍👧	人物	family woman girl girl home parent people human children
+🗣️	人物	speaking head user person human sing say talk
+👤	人物	bust in silhouette user person human
+👥	人物	busts in silhouette user person human group team
+👣	人物	footprints feet tracking walking beach
+🐵	动物	monkey face animal nature circus
+🐒	动物	monkey animal nature banana circus
+🦍	动物	gorilla animal nature circus
+🦧	动物	orangutan animal
+🐶	动物	dog face animal friend nature woof puppy pet faithful
+🐕	动物	dog animal nature friend doge pet faithful
+🦮	动物	guide dog animal blind
+🐕‍🦺	动物	service dog blind animal
+🐩	动物	poodle dog animal 101 nature pet
+🐺	动物	wolf animal nature wild
+🦊	动物	fox animal nature face
+🦝	动物	raccoon animal nature
+🐱	动物	cat face animal meow nature pet kitten
+🐈	动物	cat animal meow pet cats
+🦁	动物	lion animal nature
+🐯	动物	tiger face animal cat danger wild nature roar
+🐅	动物	tiger animal nature roar
+🐆	动物	leopard animal nature
+🐴	动物	horse face animal brown nature
+🐎	动物	horse animal gamble luck
+🦄	动物	unicorn animal nature mystical
+🦓	动物	zebra animal nature stripes safari
+🦌	动物	deer animal nature horns venison
+🐮	动物	cow face beef ox animal nature moo milk
+🐂	动物	ox animal cow beef
+🐃	动物	water buffalo animal nature ox cow
+🐄	动物	cow beef ox animal nature moo milk
+🐷	动物	pig face animal oink nature
+🐖	动物	pig animal nature
+🐗	动物	boar animal nature
+🐽	动物	pig nose animal oink
+🐏	动物	ram animal sheep nature
+🐑	动物	ewe animal nature wool shipit
+🐐	动物	goat animal nature
+🐪	动物	camel animal hot desert hump
+🐫	动物	two hump camel animal nature hot desert hump
+🦙	动物	llama animal nature alpaca
+🦒	动物	giraffe animal nature spots safari
+🐘	动物	elephant animal nature nose th circus
+🦏	动物	rhinoceros animal nature horn
+🦛	动物	hippopotamus animal nature
+🐭	动物	mouse face animal nature cheese wedge rodent
+🐁	动物	mouse animal nature rodent
+🐀	动物	rat animal mouse rodent
+🐹	动物	hamster animal nature
+🐰	动物	rabbit face animal nature pet spring magic bunny
+🐇	动物	rabbit animal nature pet magic spring
+🐿️	动物	chipmunk animal nature rodent squirrel
+🦔	动物	hedgehog animal nature spiny
+🦇	动物	bat animal nature blind vampire
+🐻	动物	bear animal nature wild
+🐨	动物	koala animal nature
+🐼	动物	panda animal nature panda
+🦥	动物	sloth animal
+🦦	动物	otter animal
+🦨	动物	skunk animal
+🦘	动物	kangaroo animal nature australia joey hop marsupial
+🦡	动物	badger animal nature honey
+🐾	动物	paw prints animal tracking footprints dog cat pet feet
+🦃	动物	turkey animal bird
+🐔	动物	chicken animal cluck nature bird
+🐓	动物	rooster animal nature chicken
+🐣	动物	hatching chick animal chicken egg born baby bird
+🐤	动物	baby chick animal chicken bird
+🐥	动物	front facing baby chick animal chicken baby bird
+🐦	动物	bird animal nature fly tweet spring
+🐧	动物	penguin animal nature
+🕊️	动物	dove animal bird
+🦅	动物	eagle animal nature bird
+🦆	动物	duck animal nature bird mallard
+🦢	动物	swan animal nature bird
+🦉	动物	owl animal nature bird hoot
+🦩	动物	flamingo animal
+🦚	动物	peacock animal nature peahen bird
+🦜	动物	parrot animal nature bird pirate talk
+🐸	动物	frog animal nature croak toad
+🐊	动物	crocodile animal nature reptile lizard alligator
+🐢	动物	turtle animal slow nature tortoise
+🦎	动物	lizard animal nature reptile
+🐍	动物	snake animal evil nature hiss python
+🐲	动物	dragon face animal myth nature chinese green
+🐉	动物	dragon animal myth nature chinese green
+🦕	动物	sauropod animal nature dinosaur brachiosaurus brontosaurus diplodocus extinct
+🦖	动物	t rex animal nature dinosaur tyrannosaurus extinct
+🐳	动物	spouting whale animal nature sea ocean
+🐋	动物	whale animal nature sea ocean
+🐬	动物	dolphin animal nature fish sea ocean flipper fins beach
+🐟	动物	fish animal food nature
+🐠	动物	tropical fish animal swim ocean beach nemo
+🐡	动物	blowfish animal nature food sea ocean
+🦈	动物	shark animal nature fish sea ocean jaws fins beach
+🐙	动物	octopus animal creature ocean sea nature beach
+🐚	动物	spiral shell nature sea beach
+🐌	动物	snail slow animal shell
+🦋	动物	butterfly animal insect nature caterpillar
+🐛	动物	bug animal insect nature worm
+🐜	动物	ant animal insect nature bug
+🐝	动物	honeybee animal insect nature bug spring honey
+🐞	动物	lady beetle animal insect nature ladybug
+🦗	动物	cricket animal cricket chirp
+🕷️	动物	spider animal arachnid
+🕸️	动物	spider web animal insect arachnid silk
+🦂	动物	scorpion animal arachnid
+🦟	动物	mosquito animal nature insect malaria
+🦠	动物	microbe amoeba bacteria germs virus
+💐	动物	bouquet flowers nature spring
+🌸	动物	cherry blossom nature plant spring flower
+💮	动物	white flower japanese spring
+🏵️	动物	rosette flower decoration military
+🌹	动物	rose flowers valentines love spring
+🥀	动物	wilted flower plant nature flower
+🌺	动物	hibiscus plant vegetable flowers beach
+🌻	动物	sunflower nature plant fall
+🌼	动物	blossom nature flowers yellow
+🌷	动物	tulip flowers plant nature summer spring
+🌱	动物	seedling plant nature grass lawn spring
+🌲	动物	evergreen tree plant nature
+🌳	动物	deciduous tree plant nature
+🌴	动物	palm tree plant vegetable nature summer beach mojito tropical
+🌵	动物	cactus vegetable plant nature
+🌾	动物	sheaf of rice nature plant
+🌿	动物	herb vegetable plant medicine weed grass lawn
+☘️	动物	shamrock vegetable plant nature irish clover
+🍀	动物	four leaf clover vegetable plant nature lucky irish
+🍁	动物	maple leaf nature plant vegetable ca fall
+🍂	动物	fallen leaf nature plant vegetable leaves
+🍃	动物	leaf fluttering in wind nature plant tree vegetable grass lawn spring
+🍇	食物	grapes fruit food wine
+🍈	食物	melon fruit nature food
+🍉	食物	watermelon fruit food picnic summer
+🍊	食物	tangerine food fruit nature orange
+🍋	食物	lemon fruit nature
+🍌	食物	banana fruit food monkey
+🍍	食物	pineapple fruit nature food
+🥭	食物	mango fruit food tropical
+🍎	食物	red apple fruit mac school
+🍏	食物	green apple fruit nature
+🍐	食物	pear fruit nature food
+🍑	食物	peach fruit nature food
+🍒	食物	cherries food fruit
+🍓	食物	strawberry fruit food nature
+🥝	食物	kiwi fruit fruit food
+🍅	食物	tomato fruit vegetable nature food
+🥥	食物	coconut fruit nature food palm
+🥑	食物	avocado fruit food
+🍆	食物	eggplant vegetable nature food aubergine
+🥔	食物	potato food tuber vegatable starch
+🥕	食物	carrot vegetable food orange
+🌽	食物	ear of corn food vegetable plant
+🌶️	食物	hot pepper food spicy chilli chili
+🥒	食物	cucumber fruit food pickle
+🥬	食物	leafy green food vegetable plant bok choy cabbage kale lettuce
+🥦	食物	broccoli fruit food vegetable
+🧄	食物	garlic food spice cook
+🧅	食物	onion cook food spice
+🍄	动物	mushroom plant vegetable
+🥜	食物	peanuts food nut
+🌰	食物	chestnut food squirrel
+🍞	食物	bread food wheat breakfast toast
+🥐	食物	croissant food bread french
+🥖	食物	baguette bread food bread french
+🥨	食物	pretzel food bread twisted
+🥯	食物	bagel food bread bakery schmear
+🥞	食物	pancakes food breakfast flapjacks hotcakes
+🧇	食物	waffle food breakfast
+🧀	食物	cheese wedge food chadder
+🍖	食物	meat on bone good food drumstick
+🍗	食物	poultry leg food meat drumstick bird chicken turkey
+🥩	食物	cut of meat food cow meat cut chop lambchop porkchop
+🥓	食物	bacon food breakfast pork pig meat
+🍔	食物	hamburger meat fast food beef cheeseburger mcdonalds burger king
+🍟	食物	french fries chips snack fast food
+🍕	食物	pizza food party
+🌭	食物	hot dog food frankfurter
+🥪	食物	sandwich food lunch bread
+🌮	食物	taco food mexican
+🌯	食物	burrito food mexican
+🥙	食物	stuffed flatbread food flatbread stuffed gyro
+🧆	食物	falafel food
+🥚	食物	egg food chicken breakfast
+🍳	食物	cooking food breakfast kitchen egg
+🥘	食物	shallow pan of food food cooking casserole paella
+🍲	食物	pot of food food meat soup
+🥣	食物	bowl with spoon food breakfast cereal oatmeal porridge
+🥗	食物	green salad food healthy lettuce
+🍿	食物	popcorn food movie theater films snack
+🧈	食物	butter food cook
+🧂	食物	salt condiment shaker
+🥫	食物	canned food food soup
+🍱	食物	bento box food japanese box
+🍘	食物	rice cracker food japanese
+🍙	食物	rice ball food japanese
+🍚	食物	cooked rice food china asian
+🍛	食物	curry rice food spicy hot indian
+🍜	食物	steaming bowl food japanese noodle chopsticks
+🍝	食物	spaghetti food italian noodle
+🍠	食物	roasted sweet potato food nature
+🍢	食物	oden food japanese
+🍣	食物	sushi food fish japanese rice
+🍤	食物	fried shrimp food animal appetizer summer
+🍥	食物	fish cake with swirl food japan sea beach narutomaki pink swirl kamaboko surimi ramen
+🥮	食物	moon cake food autumn
+🍡	食物	dango food dessert sweet japanese barbecue meat
+🥟	食物	dumpling food empanada pierogi potsticker
+🥠	食物	fortune cookie food prophecy
+🥡	食物	takeout box food leftovers
+🦀	动物	crab animal crustacean
+🦞	动物	lobster animal nature bisque claws seafood
+🦐	动物	shrimp animal ocean nature seafood
+🦑	动物	squid animal nature ocean sea
+🦪	动物	oyster food
+🍦	食物	soft ice cream food hot dessert summer
+🍧	食物	shaved ice hot dessert summer
+🍨	食物	ice cream food hot dessert
+🍩	食物	doughnut food dessert snack sweet donut
+🍪	食物	cookie food snack oreo chocolate sweet dessert
+🎂	食物	birthday cake food dessert cake
+🍰	食物	shortcake food dessert
+🧁	食物	cupcake food dessert bakery sweet
+🥧	食物	pie food dessert pastry
+🍫	食物	chocolate bar food snack dessert sweet
+🍬	食物	candy snack dessert sweet lolly
+🍭	食物	lollipop food snack candy sweet
+🍮	食物	custard dessert food
+🍯	食物	honey pot bees sweet kitchen
+🍼	食物	baby bottle food container milk
+🥛	食物	glass of milk beverage drink cow
+☕	食物	hot beverage beverage caffeine latte espresso coffee
+🍵	食物	teacup without handle drink bowl breakfast green british
+🍶	食物	sake wine drink drunk beverage japanese alcohol booze
+🍾	食物	bottle with popping cork drink wine bottle celebration
+🍷	食物	wine glass drink beverage drunk alcohol booze
+🍸	食物	cocktail glass drink drunk alcohol beverage booze mojito
+🍹	食物	tropical drink beverage cocktail summer beach alcohol booze mojito
+🍺	食物	beer mug relax beverage drink drunk party pub summer alcohol booze
+🍻	食物	clinking beer mugs relax beverage drink drunk party pub summer alcohol booze
+🥂	食物	clinking glasses beverage drink party alcohol celebrate cheers wine champagne toast
+🥃	食物	tumbler glass drink beverage drunk alcohol liquor booze bourbon scotch whisky glass shot
+🥤	食物	cup with straw drink soda
+🧃	食物	beverage box drink
+🧉	食物	mate drink tea beverage
+🧊	食物	ice water cold
+🥢	食物	chopsticks food
+🍽️	食物	fork and knife with plate food eat meal lunch dinner restaurant
+🍴	食物	fork and knife cutlery kitchen
+🥄	食物	spoon cutlery kitchen tableware
+🔪	食物	kitchen knife knife blade cutlery kitchen weapon
+🏺	食物	amphora vase jar
+🌍	出行	globe showing europe africa globe world international
+🌎	出行	globe showing americas globe world USA international
+🌏	出行	globe showing asia australia globe world east international
+🌐	出行	globe with meridians earth international world internet interweb i18n
+🗺️	出行	world map location direction
+🗾	出行	map of japan nation country japanese asia
+🧭	出行	compass magnetic navigation orienteering
+🏔️	出行	snow capped mountain photo nature environment winter cold
+⛰️	出行	mountain photo nature environment
+🌋	出行	volcano photo nature disaster
+🗻	出行	mount fuji photo mountain nature japanese
+🏕️	出行	camping photo outdoors tent
+🏖️	出行	beach with umbrella weather summer sunny sand mojito
+🏜️	出行	desert photo warm saharah
+🏝️	出行	desert island photo tropical mojito
+🏞️	出行	national park photo environment nature
+🏟️	出行	stadium photo place sports concert venue
+🏛️	出行	classical building art culture history
+🏗️	出行	building construction wip working progress
+🧱	出行	brick bricks
+🏘️	出行	houses buildings photo
+🏚️	出行	derelict house abandon evict broken building
+🏠	出行	house building home
+🏡	出行	house with garden home plant nature
+🏢	出行	office building building bureau work
+🏣	出行	japanese post office building envelope communication
+🏤	出行	post office building email
+🏥	出行	hospital building health surgery doctor
+🏦	出行	bank building money sales cash business enterprise
+🏨	出行	hotel building accomodation checkin
+🏩	出行	love hotel like affection dating
+🏪	出行	convenience store building shopping groceries
+🏫	出行	school building student education learn teach
+🏬	出行	department store building shopping mall
+🏭	出行	factory building industry pollution smoke
+🏯	出行	japanese castle photo building
+🏰	出行	castle building royalty history
+💒	出行	wedding love like affection couple marriage bride groom
+🗼	出行	tokyo tower photo japanese
+🗽	出行	statue of liberty american newyork
+⛪	出行	church building religion christ
+🕌	出行	mosque islam worship minaret
+🛕	出行	hindu temple religion
+🕍	出行	synagogue judaism worship temple jewish
+⛩️	出行	shinto shrine temple japan kyoto
+🕋	出行	kaaba mecca mosque islam
+⛲	出行	fountain photo summer water fresh
+⛺	出行	tent photo camping outdoors
+🌁	出行	foggy photo mountain
+🌃	出行	night with stars evening city downtown
+🏙️	出行	cityscape photo night life urban
+🌄	出行	sunrise over mountains view vacation photo
+🌅	出行	sunrise morning view vacation photo
+🌆	出行	cityscape at dusk photo evening sky buildings
+🌇	出行	sunset photo good morning dawn
+🌉	出行	bridge at night photo sanfrancisco
+♨️	出行	hot springs bath warm relax
+🎠	出行	carousel horse photo carnival
+🎡	出行	ferris wheel photo carnival londoneye
+🎢	出行	roller coaster carnival playground photo fun
+💈	出行	barber pole hair salon style
+🎪	出行	circus tent festival carnival party
+🚂	出行	locomotive transportation vehicle train
+🚃	出行	railway car transportation vehicle
+🚄	出行	high speed train transportation vehicle
+🚅	出行	bullet train transportation vehicle speed fast public travel
+🚆	出行	train transportation vehicle
+🚇	出行	metro transportation blue-square mrt underground tube
+🚈	出行	light rail transportation vehicle
+🚉	出行	station transportation vehicle public
+🚊	出行	tram transportation vehicle
+🚝	出行	monorail transportation vehicle
+🚞	出行	mountain railway transportation vehicle
+🚋	出行	tram car transportation vehicle carriage public travel
+🚌	出行	bus car vehicle transportation
+🚍	出行	oncoming bus vehicle transportation
+🚎	出行	trolleybus bart transportation vehicle
+🚐	出行	minibus vehicle car transportation
+🚑	出行	ambulance health 911 hospital
+🚒	出行	fire engine transportation cars vehicle
+🚓	出行	police car vehicle cars transportation law legal enforcement
+🚔	出行	oncoming police car vehicle law legal enforcement 911
+🚕	出行	taxi uber vehicle cars transportation
+🚖	出行	oncoming taxi vehicle cars uber
+🚗	出行	automobile red transportation vehicle
+🚘	出行	oncoming automobile car vehicle transportation
+🚙	出行	sport utility vehicle transportation vehicle
+🚚	出行	delivery truck cars transportation
+🚛	出行	articulated lorry vehicle cars transportation express
+🚜	出行	tractor vehicle car farming agriculture
+🏎️	出行	racing car sports race fast formula f1
+🏍️	出行	motorcycle race sports fast
+🛵	出行	motor scooter vehicle vespa sasha
+🦽	出行	manual wheelchair accessibility
+🦼	出行	motorized wheelchair accessibility
+🛺	出行	auto rickshaw move transportation
+🚲	出行	bicycle sports bicycle exercise hipster
+🛴	出行	kick scooter vehicle kick razor
+🛹	出行	skateboard board
+🚏	出行	bus stop transportation wait
+🛣️	出行	motorway road cupertino interstate highway
+🛤️	出行	railway track train transportation
+🛢️	出行	oil drum barrell
+⛽	出行	fuel pump gas station petroleum
+🚨	出行	police car light police ambulance 911 emergency alert error pinged law legal
+🚥	出行	horizontal traffic light transportation signal
+🚦	出行	vertical traffic light transportation driving
+🛑	出行	stop sign stop
+🚧	出行	construction wip progress caution warning
+⚓	出行	anchor ship ferry sea boat
+⛵	出行	sailboat ship summer transportation water sailing
+🛶	出行	canoe boat paddle water ship
+🚤	出行	speedboat ship transportation vehicle summer
+🛳️	出行	passenger ship yacht cruise ferry
+⛴️	出行	ferry boat ship yacht
+🛥️	出行	motor boat ship
+🚢	出行	ship transportation titanic deploy
+✈️	出行	airplane vehicle transportation flight fly
+🛩️	出行	small airplane flight transportation fly vehicle
+🛫	出行	airplane departure airport flight landing
+🛬	出行	airplane arrival airport flight boarding
+🪂	出行	parachute fly glide
+💺	出行	seat sit airplane transport bus flight fly
+🚁	出行	helicopter transportation vehicle fly
+🚟	出行	suspension railway vehicle transportation
+🚠	出行	mountain cableway transportation vehicle ski
+🚡	出行	aerial tramway transportation vehicle ski
+🛰️	出行	satellite communication gps orbit spaceflight NASA ISS
+🚀	出行	rocket launch ship staffmode NASA outer space outer space fly
+🛸	出行	flying saucer transportation vehicle ufo
+🛎️	出行	bellhop bell service
+🧳	出行	luggage packing travel
+⌛	出行	hourglass done time clock oldschool limit exam quiz test
+⏳	出行	hourglass not done oldschool time countdown
+⌚	出行	watch time accessories
+⏰	出行	alarm clock time wake
+⏱️	出行	stopwatch time deadline
+⏲️	出行	timer clock alarm
+🕰️	出行	mantelpiece clock time
+🕛	出行	twelve o clock time noon midnight midday late early schedule
+🕧	出行	twelve thirty time late early schedule
+🕐	出行	one o clock time late early schedule
+🕜	出行	one thirty time late early schedule
+🕑	出行	two o clock time late early schedule
+🕝	出行	two thirty time late early schedule
+🕒	出行	three o clock time late early schedule
+🕞	出行	three thirty time late early schedule
+🕓	出行	four o clock time late early schedule
+🕟	出行	four thirty time late early schedule
+🕔	出行	five o clock time late early schedule
+🕠	出行	five thirty time late early schedule
+🕕	出行	six o clock time late early schedule dawn dusk
+🕡	出行	six thirty time late early schedule
+🕖	出行	seven o clock time late early schedule
+🕢	出行	seven thirty time late early schedule
+🕗	出行	eight o clock time late early schedule
+🕣	出行	eight thirty time late early schedule
+🕘	出行	nine o clock time late early schedule
+🕤	出行	nine thirty time late early schedule
+🕙	出行	ten o clock time late early schedule
+🕥	出行	ten thirty time late early schedule
+🕚	出行	eleven o clock time late early schedule
+🕦	出行	eleven thirty time late early schedule
+🌑	出行	new moon nature twilight planet space night evening sleep
+🌒	出行	waxing crescent moon nature twilight planet space night evening sleep
+🌓	出行	first quarter moon nature twilight planet space night evening sleep
+🌔	出行	waxing gibbous moon nature night sky gray twilight planet space evening sleep
+🌕	出行	full moon nature yellow twilight planet space night evening sleep
+🌖	出行	waning gibbous moon nature twilight planet space night evening sleep waxing gibbous moon
+🌗	出行	last quarter moon nature twilight planet space night evening sleep
+🌘	出行	waning crescent moon nature twilight planet space night evening sleep
+🌙	出行	crescent moon night sleep sky evening magic
+🌚	出行	new moon face nature twilight planet space night evening sleep
+🌛	出行	first quarter moon face nature twilight planet space night evening sleep
+🌜	出行	last quarter moon face nature twilight planet space night evening sleep
+🌡️	出行	thermometer weather temperature hot cold
+☀️	出行	sun weather nature brightness summer beach spring
+🌝	出行	full moon face nature twilight planet space night evening sleep
+🌞	出行	sun with face nature morning sky
+🪐	出行	ringed planet outerspace
+⭐	出行	star night yellow
+🌟	出行	glowing star night sparkle awesome good magic
+🌠	出行	shooting star night photo
+🌌	出行	milky way photo space stars
+☁️	出行	cloud weather sky
+⛅	出行	sun behind cloud weather nature cloudy morning fall spring
+⛈️	出行	cloud with lightning and rain weather lightning
+🌤️	出行	sun behind small cloud weather
+🌥️	出行	sun behind large cloud weather
+🌦️	出行	sun behind rain cloud weather
+🌧️	出行	cloud with rain weather
+🌨️	出行	cloud with snow weather
+🌩️	出行	cloud with lightning weather thunder
+🌪️	出行	tornado weather cyclone twister
+🌫️	出行	fog weather
+🌬️	出行	wind face gust air
+🌀	出行	cyclone weather swirl blue cloud vortex spiral whirlpool spin tornado hurricane typhoon
+🌈	出行	rainbow nature happy unicorn face photo sky spring
+🌂	出行	closed umbrella weather rain drizzle
+☂️	出行	umbrella weather spring
+☔	出行	umbrella with rain drops rainy weather spring
+⛱️	出行	umbrella on ground weather summer
+⚡	出行	high voltage thunder weather lightning bolt fast
+❄️	出行	snowflake winter season cold weather christmas xmas
+☃️	出行	snowman winter season cold weather christmas xmas frozen
+⛄	出行	snowman without snow winter season cold weather christmas xmas frozen without snow
+☄️	出行	comet space
+🔥	出行	fire hot cook flame
+💧	出行	droplet water drip faucet spring
+🌊	出行	water wave sea water wave nature tsunami disaster
+🎃	活动	jack o lantern halloween light pumpkin creepy fall
+🎄	活动	christmas tree festival vacation december xmas celebration
+🎆	活动	fireworks photo festival carnival congratulations
+🎇	活动	sparkler stars night shine
+🧨	活动	firecracker dynamite boom explode explosion explosive
+✨	活动	sparkles stars shine shiny cool awesome good magic
+🎈	活动	balloon party celebration birthday circus
+🎉	活动	party popper party congratulations birthday magic circus celebration tada
+🎊	活动	confetti ball festival party birthday circus
+🎋	活动	tanabata tree plant nature branch summer
+🎍	活动	pine decoration plant nature vegetable panda pine decoration
+🎎	活动	japanese dolls japanese toy kimono
+🎏	活动	carp streamer fish japanese koinobori carp banner
+🎐	活动	wind chime nature ding spring bell
+🎑	活动	moon viewing ceremony photo japan asia tsukimi
+🧧	活动	red envelope gift
+🎀	活动	ribbon decoration pink girl bowtie
+🎁	活动	wrapped gift present birthday christmas xmas
+🎗️	活动	reminder ribbon sports cause support awareness
+🎟️	活动	admission tickets sports concert entrance
+🎫	活动	ticket event concert pass
+🎖️	活动	military medal award winning army
+🏆	活动	trophy win award contest place ftw ceremony
+🏅	活动	sports medal award winning
+🥇	活动	1st place medal award winning first
+🥈	活动	2nd place medal award second
+🥉	活动	3rd place medal award third
+⚽	活动	soccer ball sports football
+⚾	活动	baseball sports balls
+🥎	活动	softball sports balls
+🏀	活动	basketball sports balls NBA
+🏐	活动	volleyball sports balls
+🏈	活动	american football sports balls NFL
+🏉	活动	rugby football sports team
+🎾	活动	tennis sports balls green
+🥏	活动	flying disc sports frisbee ultimate
+🎳	活动	bowling sports fun play
+🏏	活动	cricket game sports
+🏑	活动	field hockey sports
+🏒	活动	ice hockey sports
+🥍	活动	lacrosse sports ball stick
+🏓	活动	ping pong sports pingpong
+🏸	活动	badminton sports
+🥊	活动	boxing glove sports fighting
+🥋	活动	martial arts uniform judo karate taekwondo
+🥅	活动	goal net sports
+⛳	活动	flag in hole sports business flag hole summer
+⛸️	活动	ice skate sports
+🎣	活动	fishing pole food hobby summer
+🤿	活动	diving mask sport ocean
+🎽	活动	running shirt play pageant
+🎿	活动	skis sports winter cold snow
+🛷	活动	sled sleigh luge toboggan
+🥌	活动	curling stone sports
+🎯	活动	direct hit game play bar target bullseye
+🪀	活动	yo yo toy
+🪁	活动	kite wind fly
+🎱	活动	pool 8 ball pool hobby game luck magic
+🔮	活动	crystal ball disco party magic circus fortune teller
+🧿	物品	nazar amulet bead charm
+🎮	活动	video game play console PS4 Wii GameCube controller
+🕹️	活动	joystick game play
+🎰	活动	slot machine bet gamble vegas fruit machine luck casino
+🎲	活动	game die dice random tabletop play luck
+🧩	活动	puzzle piece interlocking puzzle piece
+🧸	活动	teddy bear plush stuffed
+♠️	活动	spade suit poker cards suits magic
+♥️	活动	heart suit poker cards magic suits
+♦️	活动	diamond suit poker cards magic suits
+♣️	活动	club suit poker cards magic suits
+♟️	活动	chess pawn expendable
+🃏	活动	joker poker cards game play magic
+🀄	活动	mahjong red dragon game play chinese kanji
+🎴	活动	flower playing cards game sunset red
+🎭	活动	performing arts acting theater drama
+🖼️	活动	framed picture photography
+🎨	活动	artist palette design paint draw colors
+🧵	活动	thread needle sewing spool string
+🧶	活动	yarn ball crochet knit
+👓	物品	glasses fashion accessories eyesight nerdy dork geek
+🕶️	物品	sunglasses face cool accessories
+🥽	物品	goggles eyes protection safety
+🥼	物品	lab coat doctor experiment scientist chemist
+🦺	物品	safety vest protection
+👔	物品	necktie shirt suitup formal fashion cloth business
+👕	物品	t shirt fashion cloth casual shirt tee
+👖	物品	jeans fashion shopping
+🧣	物品	scarf neck winter clothes
+🧤	物品	gloves hands winter clothes
+🧥	物品	coat jacket
+🧦	物品	socks stockings clothes
+👗	物品	dress clothes fashion shopping
+👘	物品	kimono dress fashion women female japanese
+🥻	物品	sari dress
+🩱	物品	one piece swimsuit fashion
+🩲	物品	briefs clothing
+🩳	物品	shorts clothing
+👙	物品	bikini swimming female woman girl fashion beach summer
+👚	物品	woman s clothes fashion shopping bags female
+👛	物品	purse fashion accessories money sales shopping
+👜	物品	handbag fashion accessory accessories shopping
+👝	物品	clutch bag bag accessories shopping
+🛍️	物品	shopping bags mall buy purchase
+🎒	物品	backpack student education bag backpack
+👞	物品	man s shoe fashion male
+👟	物品	running shoe shoes sports sneakers
+🥾	物品	hiking boot backpacking camping hiking
+🥿	物品	flat shoe ballet slip-on slipper
+👠	物品	high heeled shoe fashion shoes female pumps stiletto
+👡	物品	woman s sandal shoes fashion flip flops
+🩰	物品	ballet shoes dance
+👢	物品	woman s boot shoes fashion
+👑	物品	crown king kod leader royalty lord
+👒	物品	woman s hat fashion accessories female lady spring
+🎩	物品	top hat magic gentleman classy circus
+🎓	物品	graduation cap school college degree university graduation cap hat legal learn education
+🧢	物品	billed cap cap baseball
+⛑️	物品	rescue worker s helmet construction build
+📿	物品	prayer beads dhikr religious
+💄	物品	lipstick female girl fashion woman
+💍	物品	ring wedding propose marriage valentines diamond fashion jewelry gem engagement
+💎	物品	gem stone blue ruby diamond jewelry
+🔇	物品	muted speaker sound volume silence quiet
+🔈	物品	speaker low volume sound volume silence broadcast
+🔉	物品	speaker medium volume volume speaker broadcast
+🔊	物品	speaker high volume volume noise noisy speaker broadcast
+📢	物品	loudspeaker volume sound
+📣	物品	megaphone sound speaker volume
+📯	物品	postal horn instrument music
+🔔	物品	bell sound notification christmas xmas chime
+🔕	物品	bell with slash sound volume mute quiet silent
+🎼	物品	musical score treble clef compose
+🎵	物品	musical note score tone sound
+🎶	物品	musical notes music score
+🎙️	物品	studio microphone sing recording artist talkshow
+🎚️	物品	level slider scale
+🎛️	物品	control knobs dial
+🎤	物品	microphone sound music PA sing talkshow
+🎧	物品	headphone music score gadgets
+📻	物品	radio communication music podcast program
+🎷	物品	saxophone music instrument jazz blues
+🎸	物品	guitar music instrument
+🎹	物品	musical keyboard piano instrument compose
+🎺	物品	trumpet music brass
+🎻	物品	violin music instrument orchestra symphony
+🪕	物品	banjo music instructment
+🥁	物品	drum music instrument drumsticks snare
+📱	物品	mobile phone technology apple gadgets dial
+📲	物品	mobile phone with arrow iphone incoming
+☎️	物品	telephone technology communication dial telephone
+📞	物品	telephone receiver technology communication dial
+📟	物品	pager bbcall oldschool 90s
+📠	物品	fax machine communication technology
+🔋	物品	battery power energy sustain
+🔌	物品	electric plug charger power
+💻	物品	laptop technology laptop screen display monitor
+🖥️	物品	desktop computer technology computing screen
+🖨️	物品	printer paper ink
+⌨️	物品	keyboard technology computer type input text
+🖱️	物品	computer mouse click
+🖲️	物品	trackball technology trackpad
+💽	物品	computer disk technology record data disk 90s
+💾	物品	floppy disk oldschool technology save 90s 80s
+💿	物品	optical disk technology dvd disk disc 90s
+📀	物品	dvd cd disk disc
+🧮	物品	abacus calculation
+🎥	物品	movie camera film record
+🎞️	物品	film frames movie
+📽️	物品	film projector video tape record movie
+🎬	物品	clapper board movie film record
+📺	物品	television technology program oldschool show television
+📷	物品	camera gadgets photography
+📸	物品	camera with flash photography gadgets
+📹	物品	video camera film record
+📼	物品	videocassette record video oldschool 90s 80s
+🔍	物品	magnifying glass tilted left search zoom find detective
+🔎	物品	magnifying glass tilted right search zoom find detective
+🕯️	物品	candle fire wax
+💡	物品	light bulb light electricity idea
+🔦	物品	flashlight dark camping sight night
+🏮	物品	red paper lantern light paper halloween spooky
+🪔	物品	diya lamp lighting
+📔	物品	notebook with decorative cover classroom notes record paper study
+📕	物品	closed book read library knowledge textbook learn
+📖	物品	open book book read library knowledge literature learn study
+📗	物品	green book read library knowledge study
+📘	物品	blue book read library knowledge learn study
+📙	物品	orange book read library knowledge textbook study
+📚	物品	books literature library study
+📓	物品	notebook stationery record notes paper study
+📒	物品	ledger notes paper
+📃	物品	page with curl documents office paper
+📜	物品	scroll documents ancient history paper
+📄	物品	page facing up documents office paper information
+📰	物品	newspaper press headline
+🗞️	物品	rolled up newspaper press headline
+📑	物品	bookmark tabs favorite save order tidy
+🔖	物品	bookmark favorite label save
+🏷️	物品	label sale tag
+💰	物品	money bag dollar payment coins sale
+💴	物品	yen banknote money sales japanese dollar currency
+💵	物品	dollar banknote money sales bill currency
+💶	物品	euro banknote money sales dollar currency
+💷	物品	pound banknote british sterling money sales bills uk england currency
+💸	物品	money with wings dollar bills payment sale
+💳	物品	credit card money sales dollar bill payment shopping
+🧾	物品	receipt accounting expenses
+💹	物品	chart increasing with yen green-square graph presentation stats
+💱	符号	currency exchange money sales dollar travel
+💲	符号	heavy dollar sign money sales payment currency buck
+✉️	物品	envelope letter postal inbox communication
+📧	物品	e mail communication inbox
+📨	物品	incoming envelope email inbox
+📩	物品	envelope with arrow email communication
+📤	物品	outbox tray inbox email
+📥	物品	inbox tray email documents
+📦	物品	package mail gift cardboard box moving
+📫	物品	closed mailbox with raised flag email inbox communication
+📪	物品	closed mailbox with lowered flag email communication inbox
+📬	物品	open mailbox with raised flag email inbox communication
+📭	物品	open mailbox with lowered flag email inbox
+📮	物品	postbox email letter envelope
+🗳️	物品	ballot box with ballot election vote
+✏️	物品	pencil stationery write paper writing school study
+✒️	物品	black nib pen stationery writing write
+🖋️	物品	fountain pen stationery writing write
+🖊️	物品	pen stationery writing write
+🖌️	物品	paintbrush drawing creativity art
+🖍️	物品	crayon drawing creativity
+📝	物品	memo write documents stationery pencil paper writing legal exam quiz test study compose
+💼	物品	briefcase business documents work law legal job career
+📁	物品	file folder documents business office
+📂	物品	open file folder documents load
+🗂️	物品	card index dividers organizing business stationery
+📅	物品	calendar calendar schedule
+📆	物品	tear off calendar schedule date planning
+🗒️	物品	spiral notepad memo stationery
+🗓️	物品	spiral calendar date schedule planning
+📇	物品	card index business stationery
+📈	物品	chart increasing graph presentation stats recovery business economics money sales good success
+📉	物品	chart decreasing graph presentation stats recession business economics money sales bad failure
+📊	物品	bar chart graph presentation stats
+📋	物品	clipboard stationery documents
+📌	物品	pushpin stationery mark here
+📍	物品	round pushpin stationery location map here
+📎	物品	paperclip documents stationery
+🖇️	物品	linked paperclips documents stationery
+📏	物品	straight ruler stationery calculate length math school drawing architect sketch
+📐	物品	triangular ruler stationery math architect sketch
+✂️	物品	scissors stationery cut
+🗃️	物品	card file box business stationery
+🗄️	物品	file cabinet filing organizing
+🗑️	物品	wastebasket bin trash rubbish garbage toss
+🔒	物品	locked security password padlock
+🔓	物品	unlocked privacy security
+🔏	物品	locked with pen security secret
+🔐	物品	locked with key security privacy
+🔑	物品	key lock door password
+🗝️	物品	old key lock door password
+🔨	物品	hammer tools build create
+🪓	物品	axe tool chop cut
+⛏️	物品	pick tools dig
+⚒️	物品	hammer and pick tools build create
+🛠️	物品	hammer and wrench tools build create
+🗡️	物品	dagger weapon
+⚔️	物品	crossed swords weapon
+🔫	活动	pistol violence weapon pistol revolver
+🏹	物品	bow and arrow sports
+🛡️	物品	shield protection security
+🔧	物品	wrench tools diy ikea fix maintainer
+🔩	物品	nut and bolt handy tools fix
+⚙️	物品	gear cog
+🗜️	物品	clamp tool
+⚖️	物品	balance scale law fairness weight
+🦯	物品	probing cane accessibility
+🔗	物品	link rings url
+⛓️	物品	chains lock arrest
+🧰	物品	toolbox tools diy fix maintainer mechanic
+🧲	物品	magnet attraction magnetic
+⚗️	物品	alembic distilling science experiment chemistry
+🧪	物品	test tube chemistry experiment lab science
+🧫	物品	petri dish bacteria biology culture lab
+🧬	物品	dna biologist genetics life
+🔬	物品	microscope laboratory experiment zoomin science study
+🔭	物品	telescope stars space zoom science astronomy
+📡	物品	satellite antenna communication future radio space
+💉	物品	syringe health hospital drugs blood medicine needle doctor nurse
+🩸	物品	drop of blood period hurt harm wound
+💊	物品	pill health medicine doctor pharmacy drug
+🩹	物品	adhesive bandage heal
+🩺	物品	stethoscope health
+🚪	物品	door house entry exit
+🛏️	物品	bed sleep rest
+🛋️	物品	couch and lamp read chill
+🪑	物品	chair sit furniture
+🚽	物品	toilet restroom wc washroom bathroom potty
+🚿	物品	shower clean water bathroom
+🛁	物品	bathtub clean shower bathroom
+🪒	物品	razor cut
+🧴	物品	lotion bottle moisturizer sunscreen
+🧷	物品	safety pin diaper
+🧹	物品	broom cleaning sweeping witch
+🧺	物品	basket laundry
+🧻	物品	roll of paper roll
+🧼	物品	soap bar bathing cleaning lather
+🧽	物品	sponge absorbing cleaning porous
+🧯	物品	fire extinguisher quench
+🛒	物品	shopping cart trolley
+🚬	物品	cigarette kills tobacco cigarette joint smoke
+⚰️	物品	coffin vampire dead die death rip graveyard cemetery casket funeral box
+⚱️	物品	funeral urn dead die death rip ashes
+🗿	物品	moai rock easter island moai
+🏧	符号	atm sign money sales cash blue-square payment bank
+🚮	符号	litter in bin sign blue-square sign human info
+🚰	符号	potable water blue-square liquid restroom cleaning faucet
+♿	符号	wheelchair symbol blue-square disabled accessibility
+🚹	符号	men s room toilet restroom wc blue-square gender male
+🚺	符号	women s room purple-square woman female toilet loo restroom gender
+🚻	符号	restroom blue-square toilet refresh wc gender
+🚼	符号	baby symbol orange-square child
+🚾	符号	water closet toilet restroom blue-square
+🛂	符号	passport control custom blue-square
+🛃	符号	customs passport border blue-square
+🛄	符号	baggage claim blue-square airport transport
+🛅	符号	left luggage blue-square travel
+⚠️	符号	warning exclamation wip alert error problem issue
+🚸	符号	children crossing school warning danger sign driving yellow-diamond
+⛔	符号	no entry limit security privacy bad denied stop circle
+🚫	符号	prohibited forbid stop limit denied disallow circle
+🚳	符号	no bicycles cyclist prohibited circle
+🚭	符号	no smoking cigarette blue-square smell smoke
+🚯	符号	no littering trash bin garbage circle
+🚱	符号	non potable water drink faucet tap circle
+🚷	符号	no pedestrians rules crossing walking circle
+📵	符号	no mobile phones iphone mute circle
+🔞	符号	no one under eighteen 18 drink pub night minor circle
+☢️	符号	radioactive nuclear danger
+☣️	符号	biohazard danger
+⬆️	符号	up arrow blue-square continue top direction
+↗️	符号	up right arrow blue-square point direction diagonal northeast
+➡️	符号	right arrow blue-square next
+↘️	符号	down right arrow blue-square direction diagonal southeast
+⬇️	符号	down arrow blue-square direction bottom
+↙️	符号	down left arrow blue-square direction diagonal southwest
+⬅️	符号	left arrow blue-square previous back
+↖️	符号	up left arrow blue-square point direction diagonal northwest
+↕️	符号	up down arrow blue-square direction way vertical
+↔️	符号	left right arrow shape direction horizontal sideways
+↩️	符号	right arrow curving left back return blue-square undo enter
+↪️	符号	left arrow curving right blue-square return rotate direction
+⤴️	符号	right arrow curving up blue-square direction top
+⤵️	符号	right arrow curving down blue-square direction bottom
+🔃	符号	clockwise vertical arrows sync cycle round repeat
+🔄	符号	counterclockwise arrows button blue-square sync cycle
+🔙	符号	back arrow arrow words return
+🔚	符号	end arrow words arrow
+🔛	符号	on arrow arrow words
+🔜	符号	soon arrow arrow words
+🔝	符号	top arrow words blue-square
+🛐	符号	place of worship religion church temple prayer
+⚛️	符号	atom symbol science physics chemistry
+🕉️	符号	om hinduism buddhism sikhism jainism
+✡️	符号	star of david judaism
+☸️	符号	wheel of dharma hinduism buddhism sikhism jainism
+☯️	符号	yin yang balance
+✝️	符号	latin cross christianity
+☦️	符号	orthodox cross suppedaneum religion
+☪️	符号	star and crescent islam
+☮️	符号	peace symbol hippie
+🕎	符号	menorah hanukkah candles jewish
+🔯	符号	dotted six pointed star purple-square religion jewish hexagram
+♈	符号	aries sign purple-square zodiac astrology
+♉	符号	taurus purple-square sign zodiac astrology
+♊	符号	gemini sign zodiac purple-square astrology
+♋	符号	cancer sign zodiac purple-square astrology
+♌	符号	leo sign purple-square zodiac astrology
+♍	符号	virgo sign zodiac purple-square astrology
+♎	符号	libra sign purple-square zodiac astrology
+♏	符号	scorpio sign zodiac purple-square astrology scorpio
+♐	符号	sagittarius sign zodiac purple-square astrology
+♑	符号	capricorn sign zodiac purple-square astrology
+♒	符号	aquarius sign purple-square zodiac astrology
+♓	符号	pisces purple-square sign zodiac astrology
+⛎	符号	ophiuchus sign purple-square constellation astrology
+🔀	符号	shuffle tracks button blue-square shuffle music random
+🔁	符号	repeat button loop record
+🔂	符号	repeat single button blue-square loop
+▶️	符号	play button blue-square right direction play
+⏩	符号	fast forward button blue-square play speed continue
+⏭️	符号	next track button forward next blue-square
+⏯️	符号	play or pause button blue-square play pause
+◀️	符号	reverse button blue-square left direction
+⏪	符号	fast reverse button play blue-square
+⏮️	符号	last track button backward
+🔼	符号	upwards button blue-square triangle direction point forward top
+⏫	符号	fast up button blue-square direction top
+🔽	符号	downwards button blue-square direction bottom
+⏬	符号	fast down button blue-square direction bottom
+⏸️	符号	pause button pause blue-square
+⏹️	符号	stop button blue-square
+⏺️	符号	record button blue-square
+⏏️	符号	eject button blue-square
+🎦	符号	cinema blue-square record film movie curtain stage theater
+🔅	符号	dim button sun afternoon warm summer
+🔆	符号	bright button sun light
+📶	符号	antenna bars blue-square reception phone internet connection wifi bluetooth bars
+📳	符号	vibration mode orange-square phone
+📴	符号	mobile phone off mute orange-square silence quiet
+♀️	符号	female sign woman women lady girl
+♂️	符号	male sign man boy men
+⚕️	符号	medical symbol health hospital
+♾️	符号	infinity forever
+♻️	符号	recycling symbol arrow environment garbage trash
+⚜️	符号	fleur de lis decorative scout
+🔱	符号	trident emblem weapon spear
+📛	符号	name badge fire forbid
+🔰	符号	japanese symbol for beginner badge shield
+⭕	符号	hollow red circle circle round
+✅	符号	check mark button green-square ok agree vote election answer tick
+☑️	符号	check box with check ok agree confirm black-square vote election yes tick
+✔️	符号	check mark ok nike answer yes tick
+✖️	符号	multiplication sign math calculation
+❌	符号	cross mark no delete remove cancel red
+❎	符号	cross mark button x green-square no deny
+➕	符号	plus sign math calculation addition more increase
+➖	符号	minus sign math calculation subtract less
+➗	符号	division sign divide math calculation
+➰	符号	curly loop scribble draw shape squiggle
+➿	符号	double curly loop tape cassette
+〽️	符号	part alternation mark graph presentation stats business economics bad
+✳️	符号	eight spoked asterisk star sparkle green-square
+✴️	符号	eight pointed star orange-square shape polygon
+❇️	符号	sparkle stars green-square awesome good fireworks
+‼️	符号	double exclamation mark exclamation surprise
+⁉️	符号	exclamation question mark wat punctuation surprise
+❓	符号	question mark doubt confused
+❔	符号	white question mark doubts gray huh confused
+❕	符号	white exclamation mark surprise punctuation gray wow warning
+❗	符号	exclamation mark heavy exclamation mark danger surprise punctuation wow warning
+〰️	符号	wavy dash draw line moustache mustache squiggle scribble
+©️	符号	copyright ip license circle law legal
+®️	符号	registered alphabet circle
+™️	符号	trade mark trademark brand law legal
+#️⃣ keycap  symbol blue-square twitter
+*️⃣	符号	keycap  star keycap
+0️⃣	符号	keycap 0 0 numbers blue-square null
+1️⃣	符号	keycap 1 blue-square numbers 1
+2️⃣	符号	keycap 2 numbers 2 prime blue-square
+3️⃣	符号	keycap 3 3 numbers prime blue-square
+4️⃣	符号	keycap 4 4 numbers blue-square
+5️⃣	符号	keycap 5 5 numbers blue-square prime
+6️⃣	符号	keycap 6 6 numbers blue-square
+7️⃣	符号	keycap 7 7 numbers blue-square prime
+8️⃣	符号	keycap 8 8 blue-square numbers
+9️⃣	符号	keycap 9 blue-square numbers 9
+🔟	符号	keycap 10 numbers 10 blue-square
+🔠	符号	input latin uppercase alphabet words blue-square
+🔡	符号	input latin lowercase blue-square alphabet
+🔢	符号	input numbers numbers blue-square
+🔣	符号	input symbols blue-square music note ampersand percent glyphs characters
+🔤	符号	input latin letters blue-square alphabet
+🅰️	符号	a button red-square alphabet letter
+🆎	符号	ab button red-square alphabet
+🅱️	符号	b button red-square alphabet letter
+🆑	符号	cl button alphabet words red-square
+🆒	符号	cool button words blue-square
+🆓	符号	free button blue-square words
+ℹ️	符号	information blue-square alphabet letter
+🆔	符号	id button purple-square words
+Ⓜ️	符号	circled m alphabet blue-circle letter
+🆕	符号	new button blue-square words start
+🆖	符号	ng button blue-square words shape icon
+🅾️	符号	o button alphabet red-square letter
+🆗	符号	ok button good agree yes blue-square
+🅿️	符号	p button cars blue-square alphabet letter
+🆘	符号	sos button help red-square words emergency 911
+🆙	符号	up button blue-square above high
+🆚	符号	vs button words orange-square
+🈁	符号	japanese here button blue-square here katakana japanese destination
+🈂️	符号	japanese service charge button japanese blue-square katakana
+🈷️	符号	japanese monthly amount button chinese month moon japanese orange-square kanji
+🈶	符号	japanese not free of charge button orange-square chinese have kanji
+🈯	符号	japanese reserved button chinese point green-square kanji
+🉐	符号	japanese bargain button chinese kanji obtain get circle
+🈹	符号	japanese discount button cut divide chinese kanji pink-square
+🈚	符号	japanese free of charge button nothing chinese kanji japanese orange-square
+🈲	符号	japanese prohibited button kanji japanese chinese forbidden limit restricted red-square
+🉑	符号	japanese acceptable button ok good chinese kanji agree yes orange-circle
+🈸	符号	japanese application button chinese japanese kanji orange-square
+🈴	符号	japanese passing grade button japanese chinese join kanji red-square
+🈳	符号	japanese vacancy button kanji japanese chinese empty sky blue-square
+㊗️	符号	japanese congratulations button chinese kanji japanese red-circle
+㊙️	符号	japanese secret button privacy chinese sshh kanji red-circle
+🈺	符号	japanese open for business button japanese opening hours orange-square
+🈵	符号	japanese no vacancy button full chinese japanese red-square kanji
+🔴	符号	red circle shape error danger
+🟠	符号	orange circle round
+🟡	符号	yellow circle round
+🟢	符号	green circle round
+🔵	符号	blue circle shape icon button
+🟣	符号	purple circle round
+🟤	符号	brown circle round
+⚫	符号	black circle shape button round
+⚪	符号	white circle shape round
+🟥	符号	red square
+🟧	符号	orange square
+🟨	符号	yellow square
+🟩	符号	green square
+🟦	符号	blue square
+🟪	符号	purple square
+🟫	符号	brown square
+⬛	符号	black large square shape icon button
+⬜	符号	white large square shape icon stone button
+◼️	符号	black medium square shape button icon
+◻️	符号	white medium square shape stone icon
+◾	符号	black medium small square icon shape button
+◽	符号	white medium small square shape stone icon button
+▪️	符号	black small square shape icon
+▫️	符号	white small square shape icon
+🔶	符号	large orange diamond shape jewel gem
+🔷	符号	large blue diamond shape jewel gem
+🔸	符号	small orange diamond shape jewel gem
+🔹	符号	small blue diamond shape jewel gem
+🔺	符号	red triangle pointed up shape direction up top
+🔻	符号	red triangle pointed down shape direction bottom
+💠	符号	diamond with a dot jewel blue gem crystal fancy
+🔘	符号	radio button input old music circle
+🔳	符号	white square button shape input
+🔲	符号	black square button shape input frame
+🏁	旗帜	chequered flag contest finishline race gokart
+🚩	旗帜	triangular flag mark milestone place
+🎌	旗帜	crossed flags japanese nation country border
+🏴	旗帜	black flag pirate
+🏳️	旗帜	white flag losing loser lost surrender give up fail
+🏳️‍🌈	旗帜	rainbow flag flag rainbow pride gay lgbt glbt queer homosexual lesbian bisexual transgender
+🏴‍☠️	旗帜	pirate flag skull crossbones flag banner
+🇦🇨	旗帜	flag ascension island
+🇦🇩	旗帜	flag andorra ad flag nation country banner andorra
+🇦🇪	旗帜	flag united arab emirates united arab emirates flag nation country banner united arab emirates
+🇦🇫	旗帜	flag afghanistan af flag nation country banner afghanistan
+🇦🇬	旗帜	flag antigua barbuda antigua barbuda flag nation country banner antigua barbuda
+🇦🇮	旗帜	flag anguilla ai flag nation country banner anguilla
+🇦🇱	旗帜	flag albania al flag nation country banner albania
+🇦🇲	旗帜	flag armenia am flag nation country banner armenia
+🇦🇴	旗帜	flag angola ao flag nation country banner angola
+🇦🇶	旗帜	flag antarctica aq flag nation country banner antarctica
+🇦🇷	旗帜	flag argentina ar flag nation country banner argentina
+🇦🇸	旗帜	flag american samoa american ws flag nation country banner american samoa
+🇦🇹	旗帜	flag austria at flag nation country banner austria
+🇦🇺	旗帜	flag australia au flag nation country banner australia
+🇦🇼	旗帜	flag aruba aw flag nation country banner aruba
+🇦🇽	旗帜	flag aland islands Åland islands flag nation country banner aland islands
+🇦🇿	旗帜	flag azerbaijan az flag nation country banner azerbaijan
+🇧🇦	旗帜	flag bosnia herzegovina bosnia herzegovina flag nation country banner bosnia herzegovina
+🇧🇧	旗帜	flag barbados bb flag nation country banner barbados
+🇧🇩	旗帜	flag bangladesh bd flag nation country banner bangladesh
+🇧🇪	旗帜	flag belgium be flag nation country banner belgium
+🇧🇫	旗帜	flag burkina faso burkina faso flag nation country banner burkina faso
+🇧🇬	旗帜	flag bulgaria bg flag nation country banner bulgaria
+🇧🇭	旗帜	flag bahrain bh flag nation country banner bahrain
+🇧🇮	旗帜	flag burundi bi flag nation country banner burundi
+🇧🇯	旗帜	flag benin bj flag nation country banner benin
+🇧🇱	旗帜	flag st barthelemy saint barthélemy flag nation country banner st barthelemy
+🇧🇲	旗帜	flag bermuda bm flag nation country banner bermuda
+🇧🇳	旗帜	flag brunei bn darussalam flag nation country banner brunei
+🇧🇴	旗帜	flag bolivia bo flag nation country banner bolivia
+🇧🇶	旗帜	flag caribbean netherlands bonaire flag nation country banner caribbean netherlands
+🇧🇷	旗帜	flag brazil br flag nation country banner brazil
+🇧🇸	旗帜	flag bahamas bs flag nation country banner bahamas
+🇧🇹	旗帜	flag bhutan bt flag nation country banner bhutan
+🇧🇻	旗帜	flag bouvet island norway
+🇧🇼	旗帜	flag botswana bw flag nation country banner botswana
+🇧🇾	旗帜	flag belarus by flag nation country banner belarus
+🇧🇿	旗帜	flag belize bz flag nation country banner belize
+🇨🇦	旗帜	flag canada ca flag nation country banner canada
+🇨🇨	旗帜	flag cocos islands cocos keeling islands flag nation country banner cocos islands
+🇨🇩	旗帜	flag congo kinshasa congo democratic republic flag nation country banner congo kinshasa
+🇨🇫	旗帜	flag central african republic central african republic flag nation country banner central african republic
+🇨🇬	旗帜	flag congo brazzaville congo flag nation country banner congo brazzaville
+🇨🇭	旗帜	flag switzerland ch flag nation country banner switzerland
+🇨🇮	旗帜	flag cote d ivoire ivory coast flag nation country banner cote d ivoire
+🇨🇰	旗帜	flag cook islands cook islands flag nation country banner cook islands
+🇨🇱	旗帜	flag chile flag nation country banner chile
+🇨🇲	旗帜	flag cameroon cm flag nation country banner cameroon
+🇨🇳	旗帜	flag china china chinese prc flag country nation banner china
+🇨🇴	旗帜	flag colombia co flag nation country banner colombia
+🇨🇵	旗帜	flag clipperton island
+🇨🇷	旗帜	flag costa rica costa rica flag nation country banner costa rica
+🇨🇺	旗帜	flag cuba cu flag nation country banner cuba
+🇨🇻	旗帜	flag cape verde cabo verde flag nation country banner cape verde
+🇨🇼	旗帜	flag curacao curaçao flag nation country banner curacao
+🇨🇽	旗帜	flag christmas island christmas island flag nation country banner christmas island
+🇨🇾	旗帜	flag cyprus cy flag nation country banner cyprus
+🇨🇿	旗帜	flag czechia cz flag nation country banner czechia
+🇩🇪	旗帜	flag germany german nation flag country banner germany
+🇩🇬	旗帜	flag diego garcia
+🇩🇯	旗帜	flag djibouti dj flag nation country banner djibouti
+🇩🇰	旗帜	flag denmark dk flag nation country banner denmark
+🇩🇲	旗帜	flag dominica dm flag nation country banner dominica
+🇩🇴	旗帜	flag dominican republic dominican republic flag nation country banner dominican republic
+🇩🇿	旗帜	flag algeria dz flag nation country banner algeria
+🇪🇦	旗帜	flag ceuta melilla
+🇪🇨	旗帜	flag ecuador ec flag nation country banner ecuador
+🇪🇪	旗帜	flag estonia ee flag nation country banner estonia
+🇪🇬	旗帜	flag egypt eg flag nation country banner egypt
+🇪🇭	旗帜	flag western sahara western sahara flag nation country banner western sahara
+🇪🇷	旗帜	flag eritrea er flag nation country banner eritrea
+🇪🇸	旗帜	flag spain spain flag nation country banner spain
+🇪🇹	旗帜	flag ethiopia et flag nation country banner ethiopia
+🇪🇺	旗帜	flag european union european union flag banner
+🇫🇮	旗帜	flag finland fi flag nation country banner finland
+🇫🇯	旗帜	flag fiji fj flag nation country banner fiji
+🇫🇰	旗帜	flag falkland islands falkland islands malvinas flag nation country banner falkland islands
+🇫🇲	旗帜	flag micronesia micronesia federated states flag nation country banner micronesia
+🇫🇴	旗帜	flag faroe islands faroe islands flag nation country banner faroe islands
+🇫🇷	旗帜	flag france banner flag nation france french country france
+🇬🇦	旗帜	flag gabon ga flag nation country banner gabon
+🇬🇧	旗帜	flag united kingdom united kingdom great britain northern ireland flag nation country banner british UK english england union jack united kingdom
+🇬🇩	旗帜	flag grenada gd flag nation country banner grenada
+🇬🇪	旗帜	flag georgia ge flag nation country banner georgia
+🇬🇫	旗帜	flag french guiana french guiana flag nation country banner french guiana
+🇬🇬	旗帜	flag guernsey gg flag nation country banner guernsey
+🇬🇭	旗帜	flag ghana gh flag nation country banner ghana
+🇬🇮	旗帜	flag gibraltar gi flag nation country banner gibraltar
+🇬🇱	旗帜	flag greenland gl flag nation country banner greenland
+🇬🇲	旗帜	flag gambia gm flag nation country banner gambia
+🇬🇳	旗帜	flag guinea gn flag nation country banner guinea
+🇬🇵	旗帜	flag guadeloupe gp flag nation country banner guadeloupe
+🇬🇶	旗帜	flag equatorial guinea equatorial gn flag nation country banner equatorial guinea
+🇬🇷	旗帜	flag greece gr flag nation country banner greece
+🇬🇸	旗帜	flag south georgia south sandwich islands south georgia sandwich islands flag nation country banner south georgia south sandwich islands
+🇬🇹	旗帜	flag guatemala gt flag nation country banner guatemala
+🇬🇺	旗帜	flag guam gu flag nation country banner guam
+🇬🇼	旗帜	flag guinea bissau gw bissau flag nation country banner guinea bissau
+🇬🇾	旗帜	flag guyana gy flag nation country banner guyana
+🇭🇰	旗帜	flag hong kong sar china hong kong flag nation country banner hong kong sar china
+🇭🇲	旗帜	flag heard mcdonald islands
+🇭🇳	旗帜	flag honduras hn flag nation country banner honduras
+🇭🇷	旗帜	flag croatia hr flag nation country banner croatia
+🇭🇹	旗帜	flag haiti ht flag nation country banner haiti
+🇭🇺	旗帜	flag hungary hu flag nation country banner hungary
+🇮🇨	旗帜	flag canary islands canary islands flag nation country banner canary islands
+🇮🇩	旗帜	flag indonesia flag nation country banner indonesia
+🇮🇪	旗帜	flag ireland ie flag nation country banner ireland
+🇮🇱	旗帜	flag israel il flag nation country banner israel
+🇮🇲	旗帜	flag isle of man isle man flag nation country banner isle of man
+🇮🇳	旗帜	flag india in flag nation country banner india
+🇮🇴	旗帜	flag british indian ocean territory british indian ocean territory flag nation country banner british indian ocean territory
+🇮🇶	旗帜	flag iraq iq flag nation country banner iraq
+🇮🇷	旗帜	flag iran iran islamic republic flag nation country banner iran
+🇮🇸	旗帜	flag iceland is flag nation country banner iceland
+🇮🇹	旗帜	flag italy italy flag nation country banner italy
+🇯🇪	旗帜	flag jersey je flag nation country banner jersey
+🇯🇲	旗帜	flag jamaica jm flag nation country banner jamaica
+🇯🇴	旗帜	flag jordan jo flag nation country banner jordan
+🇯🇵	旗帜	flag japan japanese nation flag country banner japan
+🇰🇪	旗帜	flag kenya ke flag nation country banner kenya
+🇰🇬	旗帜	flag kyrgyzstan kg flag nation country banner kyrgyzstan
+🇰🇭	旗帜	flag cambodia kh flag nation country banner cambodia
+🇰🇮	旗帜	flag kiribati ki flag nation country banner kiribati
+🇰🇲	旗帜	flag comoros km flag nation country banner comoros
+🇰🇳	旗帜	flag st kitts nevis saint kitts nevis flag nation country banner st kitts nevis
+🇰🇵	旗帜	flag north korea north korea nation flag country banner north korea
+🇰🇷	旗帜	flag south korea south korea nation flag country banner south korea
+🇰🇼	旗帜	flag kuwait kw flag nation country banner kuwait
+🇰🇾	旗帜	flag cayman islands cayman islands flag nation country banner cayman islands
+🇰🇿	旗帜	flag kazakhstan kz flag nation country banner kazakhstan
+🇱🇦	旗帜	flag laos lao democratic republic flag nation country banner laos
+🇱🇧	旗帜	flag lebanon lb flag nation country banner lebanon
+🇱🇨	旗帜	flag st lucia saint lucia flag nation country banner st lucia
+🇱🇮	旗帜	flag liechtenstein li flag nation country banner liechtenstein
+🇱🇰	旗帜	flag sri lanka sri lanka flag nation country banner sri lanka
+🇱🇷	旗帜	flag liberia lr flag nation country banner liberia
+🇱🇸	旗帜	flag lesotho ls flag nation country banner lesotho
+🇱🇹	旗帜	flag lithuania lt flag nation country banner lithuania
+🇱🇺	旗帜	flag luxembourg lu flag nation country banner luxembourg
+🇱🇻	旗帜	flag latvia lv flag nation country banner latvia
+🇱🇾	旗帜	flag libya ly flag nation country banner libya
+🇲🇦	旗帜	flag morocco ma flag nation country banner morocco
+🇲🇨	旗帜	flag monaco mc flag nation country banner monaco
+🇲🇩	旗帜	flag moldova moldova republic flag nation country banner moldova
+🇲🇪	旗帜	flag montenegro me flag nation country banner montenegro
+🇲🇫	旗帜	flag st martin
+🇲🇬	旗帜	flag madagascar mg flag nation country banner madagascar
+🇲🇭	旗帜	flag marshall islands marshall islands flag nation country banner marshall islands
+🇲🇰	旗帜	flag north macedonia macedonia flag nation country banner north macedonia
+🇲🇱	旗帜	flag mali ml flag nation country banner mali
+🇲🇲	旗帜	flag myanmar mm flag nation country banner myanmar
+🇲🇳	旗帜	flag mongolia mn flag nation country banner mongolia
+🇲🇴	旗帜	flag macao sar china macao flag nation country banner macao sar china
+🇲🇵	旗帜	flag northern mariana islands northern mariana islands flag nation country banner northern mariana islands
+🇲🇶	旗帜	flag martinique mq flag nation country banner martinique
+🇲🇷	旗帜	flag mauritania mr flag nation country banner mauritania
+🇲🇸	旗帜	flag montserrat ms flag nation country banner montserrat
+🇲🇹	旗帜	flag malta mt flag nation country banner malta
+🇲🇺	旗帜	flag mauritius mu flag nation country banner mauritius
+🇲🇻	旗帜	flag maldives mv flag nation country banner maldives
+🇲🇼	旗帜	flag malawi mw flag nation country banner malawi
+🇲🇽	旗帜	flag mexico mx flag nation country banner mexico
+🇲🇾	旗帜	flag malaysia my flag nation country banner malaysia
+🇲🇿	旗帜	flag mozambique mz flag nation country banner mozambique
+🇳🇦	旗帜	flag namibia na flag nation country banner namibia
+🇳🇨	旗帜	flag new caledonia new caledonia flag nation country banner new caledonia
+🇳🇪	旗帜	flag niger ne flag nation country banner niger
+🇳🇫	旗帜	flag norfolk island norfolk island flag nation country banner norfolk island
+🇳🇬	旗帜	flag nigeria flag nation country banner nigeria
+🇳🇮	旗帜	flag nicaragua ni flag nation country banner nicaragua
+🇳🇱	旗帜	flag netherlands nl flag nation country banner netherlands
+🇳🇴	旗帜	flag norway no flag nation country banner norway
+🇳🇵	旗帜	flag nepal np flag nation country banner nepal
+🇳🇷	旗帜	flag nauru nr flag nation country banner nauru
+🇳🇺	旗帜	flag niue nu flag nation country banner niue
+🇳🇿	旗帜	flag new zealand new zealand flag nation country banner new zealand
+🇴🇲	旗帜	flag oman om symbol flag nation country banner oman
+🇵🇦	旗帜	flag panama pa flag nation country banner panama
+🇵🇪	旗帜	flag peru pe flag nation country banner peru
+🇵🇫	旗帜	flag french polynesia french polynesia flag nation country banner french polynesia
+🇵🇬	旗帜	flag papua new guinea papua new guinea flag nation country banner papua new guinea
+🇵🇭	旗帜	flag philippines ph flag nation country banner philippines
+🇵🇰	旗帜	flag pakistan pk flag nation country banner pakistan
+🇵🇱	旗帜	flag poland pl flag nation country banner poland
+🇵🇲	旗帜	flag st pierre miquelon saint pierre miquelon flag nation country banner st pierre miquelon
+🇵🇳	旗帜	flag pitcairn islands pitcairn flag nation country banner pitcairn islands
+🇵🇷	旗帜	flag puerto rico puerto rico flag nation country banner puerto rico
+🇵🇸	旗帜	flag palestinian territories palestine palestinian territories flag nation country banner palestinian territories
+🇵🇹	旗帜	flag portugal pt flag nation country banner portugal
+🇵🇼	旗帜	flag palau pw flag nation country banner palau
+🇵🇾	旗帜	flag paraguay py flag nation country banner paraguay
+🇶🇦	旗帜	flag qatar qa flag nation country banner qatar
+🇷🇪	旗帜	flag reunion réunion flag nation country banner reunion
+🇷🇴	旗帜	flag romania ro flag nation country banner romania
+🇷🇸	旗帜	flag serbia rs flag nation country banner serbia
+🇷🇺	旗帜	flag russia russian federation flag nation country banner russia
+🇷🇼	旗帜	flag rwanda rw flag nation country banner rwanda
+🇸🇦	旗帜	flag saudi arabia flag nation country banner saudi arabia
+🇸🇧	旗帜	flag solomon islands solomon islands flag nation country banner solomon islands
+🇸🇨	旗帜	flag seychelles sc flag nation country banner seychelles
+🇸🇩	旗帜	flag sudan sd flag nation country banner sudan
+🇸🇪	旗帜	flag sweden se flag nation country banner sweden
+🇸🇬	旗帜	flag singapore sg flag nation country banner singapore
+🇸🇭	旗帜	flag st helena saint helena ascension tristan cunha flag nation country banner st helena
+🇸🇮	旗帜	flag slovenia si flag nation country banner slovenia
+🇸🇯	旗帜	flag svalbard jan mayen
+🇸🇰	旗帜	flag slovakia sk flag nation country banner slovakia
+🇸🇱	旗帜	flag sierra leone sierra leone flag nation country banner sierra leone
+🇸🇲	旗帜	flag san marino san marino flag nation country banner san marino
+🇸🇳	旗帜	flag senegal sn flag nation country banner senegal
+🇸🇴	旗帜	flag somalia so flag nation country banner somalia
+🇸🇷	旗帜	flag suriname sr flag nation country banner suriname
+🇸🇸	旗帜	flag south sudan south sd flag nation country banner south sudan
+🇸🇹	旗帜	flag sao tome principe sao tome principe flag nation country banner sao tome principe
+🇸🇻	旗帜	flag el salvador el salvador flag nation country banner el salvador
+🇸🇽	旗帜	flag sint maarten sint maarten dutch flag nation country banner sint maarten
+🇸🇾	旗帜	flag syria syrian arab republic flag nation country banner syria
+🇸🇿	旗帜	flag eswatini sz flag nation country banner eswatini
+🇹🇦	旗帜	flag tristan da cunha
+🇹🇨	旗帜	flag turks caicos islands turks caicos islands flag nation country banner turks caicos islands
+🇹🇩	旗帜	flag chad td flag nation country banner chad
+🇹🇫	旗帜	flag french southern territories french southern territories flag nation country banner french southern territories
+🇹🇬	旗帜	flag togo tg flag nation country banner togo
+🇹🇭	旗帜	flag thailand th flag nation country banner thailand
+🇹🇯	旗帜	flag tajikistan tj flag nation country banner tajikistan
+🇹🇰	旗帜	flag tokelau tk flag nation country banner tokelau
+🇹🇱	旗帜	flag timor leste timor leste flag nation country banner timor leste
+🇹🇲	旗帜	flag turkmenistan flag nation country banner turkmenistan
+🇹🇳	旗帜	flag tunisia tn flag nation country banner tunisia
+🇹🇴	旗帜	flag tonga to flag nation country banner tonga
+🇹🇷	旗帜	flag turkey turkey flag nation country banner turkey
+🇹🇹	旗帜	flag trinidad tobago trinidad tobago flag nation country banner trinidad tobago
+🇹🇻	旗帜	flag tuvalu flag nation country banner tuvalu
+🇹🇼	旗帜	flag taiwan tw flag nation country banner taiwan
+🇹🇿	旗帜	flag tanzania tanzania united republic flag nation country banner tanzania
+🇺🇦	旗帜	flag ukraine ua flag nation country banner ukraine
+🇺🇬	旗帜	flag uganda ug flag nation country banner uganda
+🇺🇲	旗帜	flag u s outlying islands
+🇺🇳	旗帜	flag united nations un flag banner
+🇺🇸	旗帜	flag united states united states america flag nation country banner united states
+🇺🇾	旗帜	flag uruguay uy flag nation country banner uruguay
+🇺🇿	旗帜	flag uzbekistan uz flag nation country banner uzbekistan
+🇻🇦	旗帜	flag vatican city vatican city flag nation country banner vatican city
+🇻🇨	旗帜	flag st vincent grenadines saint vincent grenadines flag nation country banner st vincent grenadines
+🇻🇪	旗帜	flag venezuela ve bolivarian republic flag nation country banner venezuela
+🇻🇬	旗帜	flag british virgin islands british virgin islands bvi flag nation country banner british virgin islands
+🇻🇮	旗帜	flag u s virgin islands virgin islands us flag nation country banner u s virgin islands
+🇻🇳	旗帜	flag vietnam viet nam flag nation country banner vietnam
+🇻🇺	旗帜	flag vanuatu vu flag nation country banner vanuatu
+🇼🇫	旗帜	flag wallis futuna wallis futuna flag nation country banner wallis futuna
+🇼🇸	旗帜	flag samoa ws flag nation country banner samoa
+🇽🇰	旗帜	flag kosovo xk flag nation country banner kosovo
+🇾🇪	旗帜	flag yemen ye flag nation country banner yemen
+🇾🇹	旗帜	flag mayotte yt flag nation country banner mayotte
+🇿🇦	旗帜	flag south africa south africa flag nation country banner south africa
+🇿🇲	旗帜	flag zambia zm flag nation country banner zambia
+🇿🇼	旗帜	flag zimbabwe zw flag nation country banner zimbabwe
+🏴󠁧󠁢󠁥󠁮󠁧󠁿	旗帜	flag england flag english
+🏴󠁧󠁢󠁳󠁣󠁴󠁿	旗帜	flag scotland flag scottish
+🏴󠁧󠁢󠁷󠁬󠁳󠁿	旗帜	flag wales flag welsh
+🥲	表情	smiling face with tear sad cry pretend
+🥸	表情	disguised face pretent brows glasses moustache
+🤌	人物	pinched fingers size tiny small
+🫀	人物	anatomical heart health heartbeat
+🫁	人物	lungs breathe
+🥷	人物	ninja ninjutsu skills japanese
+🤵‍♂️	人物	man in tuxedo formal fashion
+🤵‍♀️	人物	woman in tuxedo formal fashion
+👰‍♂️	人物	man with veil wedding marriage
+👰‍♀️	人物	woman with veil wedding marriage
+👩‍🍼	人物	woman feeding baby birth food
+👨‍🍼	人物	man feeding baby birth food
+🧑‍🍼	人物	person feeding baby birth food
+🧑‍🎄	人物	mx claus christmas
+🫂	人物	people hugging care
+🐈‍⬛	动物	black cat superstition luck
+🦬	动物	bison ox
+🦣	动物	mammoth elephant tusks
+🦫	动物	beaver animal rodent
+🐻‍❄️	动物	polar bear animal arctic
+🦤	动物	dodo animal bird
+🪶	动物	feather bird fly
+🦭	动物	seal animal creature sea
+🪲	动物	beetle insect
+🪳	动物	cockroach insect pests
+🪰	动物	fly insect
+🪱	动物	worm animal
+🪴	动物	potted plant greenery house
+🫐	食物	blueberries fruit
+🫒	食物	olive fruit
+🫑	食物	bell pepper fruit plant
+🫓	食物	flatbread flour food
+🫔	食物	tamale food masa
+🫕	食物	fondue cheese pot food
+🫖	食物	teapot drink hot
+🧋	食物	bubble tea taiwan boba milk tea straw
+🪨	出行	rock stone
+🪵	出行	wood nature timber trunk
+🛖	出行	hut house structure
+🛻	出行	pickup truck car transportation
+🛼	出行	roller skate footwear sports
+🪄	活动	magic wand supernature power
+🪅	活动	pinata mexico candy celebration
+🪆	活动	nesting dolls matryoshka toy
+🪡	活动	sewing needle stitches
+🪢	活动	knot rope scout
+🩴	物品	thong sandal footwear summer
+🪖	物品	military helmet army protection
+🪗	物品	accordion music
+🪘	物品	long drum music
+🪙	物品	coin money currency
+🪃	物品	boomerang weapon
+🪚	物品	carpentry saw cut chop
+🪛	物品	screwdriver tools
+🪝	物品	hook tools
+🪜	物品	ladder tools
+🛗	物品	elevator lift
+🪞	物品	mirror reflection
+🪟	物品	window scenery
+🪠	物品	plunger toilet
+🪤	物品	mouse trap cheese
+🪣	物品	bucket water container
+🪥	物品	toothbrush hygiene dental
+🪦	物品	headstone death rip grave
+🪧	物品	placard announcement
+⚧️	符号	transgender symbol lgbtq
+🏳️‍⚧️	旗帜	transgender flag lgbtq
+😶‍🌫️	表情	face in clouds shower steam dream
+😮‍💨	表情	face exhaling relieve relief tired sigh
+😵‍💫	表情	face with spiral eyes sick ill confused nauseous nausea
+❤️‍🔥	表情	heart on fire passionate enthusiastic
+❤️‍🩹	表情	mending heart broken heart bandage wounded
+🧔‍♂️	人物	man beard facial hair
+🧔‍♀️	人物	woman beard facial hair
+🫠	表情	melting face hot heat
+🫢	表情	face with open eyes and hand over mouth silence secret shock surprise
+🫣	表情	face with peeking eye scared frightening embarrassing
+🫡	表情	saluting face respect salute
+🫥	表情	dotted line face invisible lonely isolation depression
+🫤	表情	face with diagonal mouth skeptic confuse frustrated indifferent
+🥹	表情	face holding back tears touched gratitude
+🫱	人物	rightwards hand palm offer
+🫲	人物	leftwards hand palm offer
+🫳	人物	palm down hand palm drop
+🫴	人物	palm up hand lift offer demand
+🫰	人物	hand with index finger and thumb crossed heart love money expensive
+🫵	人物	index pointing at the viewer you recruit
+🫶	人物	heart hands love appreciation support
+🫦	人物	biting lip flirt sexy pain worry
+🫅	人物	person with crown royalty power
+🫃	人物	pregnant man baby belly
+🫄	人物	pregnant person baby belly
+🧌	人物	troll mystical monster
+🪸	动物	coral ocean sea reef
+🪷	动物	lotus flower calm meditation
+🪹	动物	empty nest bird
+🪺	动物	nest with eggs bird
+🫘	食物	beans food
+🫗	食物	pouring liquid cup water
+🫙	食物	jar container sauce
+🛝	出行	playground slide fun park
+🛞	出行	wheel car transport
+🛟	出行	ring buoy life saver life preserver
+🪬	物品	hamsa religion protection
+🪩	活动	mirror ball disco dance party
+🪫	物品	low battery drained dead
+🩼	物品	crutch accessibility assist
+🩻	物品	x-ray skeleton medicine
+🫧	物品	bubbles soap fun carbonation sparkling
+🪪	物品	identification card document
+🟰	符号	heavy equals sign math
+¿?	其他	question upside down reversed spanish
+←	其他	left arrow
+↑	其他	up arrow
+→	其他	right arrow
+↓	其他	down arrow
+←↑→↓	其他	all directions up down left right arrows
+AH↗️HA↘️HA↗️HA↘️	其他	pekora arrows hahaha rabbit
+•	其他	dot circle separator
+「」	其他	japanese quote square bracket
+¯\_(ツ)_/¯	其他	shrug idk i dont know
+↵	其他	enter key return
+𝕏	其他	 twitter x logo
+👉👈	其他	etou ughhhhhhh shy
+👉👌	其他	put it in imagination perv
+🫨	表情	shaking face tremble shake shocked
+🩷	表情	pink heart love
+🩵	表情	light blue heart love cyan
+🩶	表情	grey heart gray love
+🫷	人物	leftwards pushing hand stop halt left
+🫸	人物	rightwards pushing hand stop halt right
+🫎	动物	moose animal antlers
+🫏	动物	donkey animal mule ass
+🪽	动物	wing bird feather fly
+🐦‍⬛	动物	black bird crow raven rook
+🪿	动物	goose bird honk
+🪼	动物	jellyfish sea ocean sting
+🪻	动物	hyacinth flower spring
+🫚	食物	ginger root spice food
+🫛	食物	pea pod peas vegetable food
+🪭	物品	folding hand fan fan cool
+🪮	物品	hair pick afro comb
+🪇	物品	maracas instrument music shake
+🪈	物品	flute instrument music
+🪯	符号	khanda sikh religion symbol
+🛜	符号	wireless wifi wi-fi internet network
+🙂‍↔️	表情	head shaking horizontally no shake
+🙂‍↕️	表情	head shaking vertically yes nod
+🚶‍➡️	人物	person walking facing right walk
+🚶‍♀️‍➡️	人物	woman walking facing right walk
+🚶‍♂️‍➡️	人物	man walking facing right walk
+🧎‍➡️	人物	person kneeling facing right kneel
+🧎‍♀️‍➡️	人物	woman kneeling facing right kneel
+🧎‍♂️‍➡️	人物	man kneeling facing right kneel
+🧑‍🦯‍➡️	人物	person with white cane facing right accessibility blind
+👨‍🦯‍➡️	人物	man with white cane facing right accessibility blind
+👩‍🦯‍➡️	人物	woman with white cane facing right accessibility blind
+🧑‍🦼‍➡️	人物	person in motorized wheelchair facing right accessibility
+👨‍🦼‍➡️	人物	man in motorized wheelchair facing right accessibility
+👩‍🦼‍➡️	人物	woman in motorized wheelchair facing right accessibility
+🧑‍🦽‍➡️	人物	person in manual wheelchair facing right accessibility
+👨‍🦽‍➡️	人物	man in manual wheelchair facing right accessibility
+👩‍🦽‍➡️	人物	woman in manual wheelchair facing right accessibility
+🏃‍➡️	人物	person running facing right run
+🏃‍♀️‍➡️	人物	woman running facing right run
+🏃‍♂️‍➡️	人物	man running facing right run
+🧑‍🧑‍🧒	人物	family adult adult child parents
+🧑‍🧑‍🧒‍🧒	人物	family adult adult child child parents
+🧑‍🧒	人物	family adult child parent
+🧑‍🧒‍🧒	人物	family adult child child parent
+🐦‍🔥	动物	phoenix fire bird rebirth
+🍋‍🟩	食物	lime fruit citrus green
+🍄‍🟫	食物	brown mushroom fungi
+⛓️‍💥	物品	broken chain snap shatter
+🫩	表情	face with bags under eyes tired sleepy exhausted
+🫆	人物	fingerprint id biometric
+🪾	动物	leafless tree barren dead winter
+🫜	食物	root vegetable food turnip radish
+🪉	物品	harp instrument music
+🪏	物品	shovel dig tool
+🫟	符号	splatter splash stain mess
+🇨🇶	旗帜	flag sark
+🫪	表情	distorted face anxiety shocked panic
+🫯	表情	fight cloud comic brawl dust
+🫈	人物	hairy creature sasquatch bigfoot
+🧑‍🩰	人物	ballet dancer dance ballerina
+🫍	动物	orca killer whale
+🛘	出行	landslide rockfall disaster
+🪊	物品	trombone instrument music
+🪎	物品	treasure chest gold loot pirate

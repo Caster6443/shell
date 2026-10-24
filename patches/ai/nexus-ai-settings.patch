@@ -1,0 +1,41 @@
+--- a/modules/nexus/PageRegistry.qml
++++ b/modules/nexus/PageRegistry.qml
+@@ -95,6 +95,13 @@
+             category: "shell"
+         },
+ 
++        {
++            label: "AI 服务",
++            icon: "neurology",
++            description: "连接与功能开关",
++            category: "shell"
++        },
++
+         // About
+         {
+             label: Tr.tr("About"),
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -6,6 +6,7 @@
+ import Caelestia.I18n
+ import qs.components
+ import qs.services
++import qs.aibackend
+ import qs.modules.nexus.common
+ import qs.modules.nexus.pages
+ import qs.modules.nexus.pages.apps
+@@ -194,6 +195,14 @@
+             }
+         },
+ 
++        Component {
++            StackPage {
++                Component { AiSettings {} }
++                Component { AiServiceEditorPage {} }
++                Component { AiUsagePage {} }
++            }
++        },
++
+         // About
+         Component {
+             StackPage {

@@ -124,7 +124,7 @@ Scope {
         target: "drawers"
     }
 
-    // spotlight 的 IPC 由独立 FloatingWindow 自身注册，避免重复 target。
+    // console 的 IPC 由独立 FloatingWindow 自身注册，避免重复 target。
 
     IpcHandler {
         function open(): void {

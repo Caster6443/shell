@@ -83,7 +83,7 @@
      }
 --- /dev/null
 +++ b/modules/dashboard/media/AudioImport.qml
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,415 @@
 +pragma ComponentBehavior: Bound
 +
 +import QtQuick
@@ -124,7 +124,6 @@
 +	property string mpdRelativePath: ""
 +	property string sourceUrl: ""
 +	property bool cancelRequested: false
-+	readonly property bool recognitionRunning: recognitionSinkProc.running || recognitionProc.running
 +	readonly property string musicRoot: "/home/caster/Music"
 +	readonly property string statePath: `${Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") || "") + "/.local/state"}/caelestia/audio-import.json`
 +	readonly property bool mpdActive: {
@@ -143,6 +142,8 @@
 +	}
 +
 +	function startDownload(): void {
++		if (root.phase !== "name")
++			return;
 +		const title = root.cleanName(root.songTitle);
 +		const url = String(Players.active?.metadata?.["xesam:url"] ?? "").trim();
 +		if (!title) {
@@ -169,42 +170,6 @@
 +		prepareProc.running = true;
 +	}
 +
-+	function startRecognition(device: string): void {
-+		const command = ["timeout", "18s", "songrec", "recognize", "--json", "--request-interval", "5"];
-+		if (device)
-+			command.push("--audio-device", device);
-+		recognitionProc.command = command;
-+		recognitionProc.running = true;
-+	}
-+
-+	function findRecognizedTitle(value: var): string {
-+		if (!value || typeof value !== "object")
-+			return "";
-+		if (!Array.isArray(value)) {
-+			for (const key of ["track", "song", "title", "trackTitle", "track_title", "name"]) {
-+				const child = value[key];
-+				if ((key === "track" || key === "song") && child && typeof child === "object") {
-+					const nested = root.findRecognizedTitle(child);
-+					if (nested)
-+						return nested;
-+				}
-+				if (["title", "trackTitle", "track_title", "name"].includes(key) && typeof child === "string" && child.trim())
-+					return child.trim();
-+			}
-+			for (const child of Object.values(value)) {
-+				const nested = root.findRecognizedTitle(child);
-+				if (nested)
-+					return nested;
-+			}
-+		} else {
-+			for (const child of value) {
-+				const nested = root.findRecognizedTitle(child);
-+				if (nested)
-+					return nested;
-+			}
-+		}
-+		return "";
-+	}
 +
 +	function finishWithArtist(): void {
 +		const value = root.cleanName(root.artist);
@@ -222,6 +187,7 @@
 +		];
 +		tagProc.running = true;
 +	}
++
 +
 +	FileView {
 +		id: settingsFile
@@ -298,6 +264,7 @@
 +			color: Colours.palette.m3onSecondaryContainer
 +		}
 +
++
 +		RowLayout {
 +			anchors.fill: parent
 +			anchors.leftMargin: Tokens.padding.small
@@ -364,24 +331,6 @@
 +				elide: Text.ElideRight
 +			}
 +
-+			CircularIndicator {
-+				implicitSize: 20
-+				visible: root.phase === "name" && root.recognitionRunning
-+				running: visible
-+			}
-+
-+			IconButton {
-+				id: recognizeButton
-+				icon: "hearing"
-+				isRound: true
-+				visible: root.phase === "name" && !root.recognitionRunning
-+				ToolTip.visible: hovered
-+				ToolTip.text: root.statusText || "听歌识曲（读取当前扬声器输出）"
-+				onClicked: {
-+					root.statusText = "正在识别当前扬声器播放的声音…";
-+					recognitionSinkProc.running = true;
-+				}
-+			}
 +
 +			IconButton {
 +				icon: "check"
@@ -413,6 +362,7 @@
 +					root.cancelRequested = true;
 +					prepareProc.running = false;
 +					downloadProc.running = false;
++					duplicateProc.running = false;
 +					root.phase = "name";
 +					root.statusText = "已取消";
 +				}
@@ -450,56 +400,11 @@
 +			}
 +			root.statusText = "正在下载音频…";
 +			downloadProc.command = [
-+				"yt-dlp", "--extract-audio", "--audio-format", "mp3", "--no-playlist",
++				"yt-dlp", "--ignore-config", "--extract-audio", "--audio-format", "mp3", "--no-playlist",
 +				"--embed-thumbnail", "--cookies-from-browser", "firefox", "--socket-timeout", "15",
-+				"--no-progress", "--output", root.tempPath.slice(0, -4) + ".%(ext)s", root.sourceUrl
++				"--no-progress", "--output", root.tempPath.slice(0, -4) + ".%(ext)s", "--", root.sourceUrl
 +			];
 +			downloadProc.running = true;
-+		}
-+	}
-+
-+	Process {
-+		id: recognitionSinkProc
-+		command: ["pactl", "get-default-sink"]
-+		running: false
-+		stdout: StdioCollector {
-+			id: recognitionSinkName
-+		}
-+		onExited: (code, status) => {
-+			const sink = code === 0 ? String(recognitionSinkName.text).trim() : "";
-+			if (!sink) {
-+				root.statusText = "无法读取当前默认扬声器";
-+				return;
-+			}
-+			root.startRecognition(`${sink}.monitor`);
-+		}
-+	}
-+
-+	Process {
-+		id: recognitionProc
-+		command: []
-+		running: false
-+		stdout: StdioCollector {
-+			onStreamFinished: {
-+				try {
-+					const title = root.findRecognizedTitle(JSON.parse(String(this.text)));
-+					if (title) {
-+						root.songTitle = title;
-+						titleField.text = title;
-+						root.statusText = "已识别歌曲名，可修改后确认";
-+					} else {
-+						root.statusText = "没有识别到歌曲";
-+					}
-+				} catch (e) {
-+					root.statusText = "识曲结果解析失败";
-+				}
-+			}
-+		}
-+		onExited: (code, status) => {
-+			if (code === 124)
-+				root.statusText = "识曲超时，请再试一次";
-+			else if (code !== 0 && !root.statusText.startsWith("已识别"))
-+				root.statusText = "识曲失败，请检查扬声器输出和网络";
 +		}
 +	}
 +
@@ -513,13 +418,35 @@
 +				root.phase = "name";
 +				root.statusText = "已取消";
 +			} else if (code === 0) {
-+				root.phase = "artist";
-+				root.artist = "";
-+				root.statusText = "下载完成，请输入歌手名";
++				root.statusText = "正在检查重复音频…";
++				duplicateProc.command = ["python", decodeURIComponent(Qt.resolvedUrl("AudioImportCheck.py").toString()).replace(/^file:\/\//, ""), root.tempPath, root.directory];
++				duplicateProc.running = true;
 +			} else {
 +				Quickshell.execDetached(["rm", "-f", root.tempPath]);
 +				root.phase = "name";
 +				root.statusText = `下载失败（退出码 ${code}），请检查链接、网络或 Firefox cookies`;
++			}
++		}
++	}
++
++	Process {
++		id: duplicateProc
++		running: false
++		stdout: StdioCollector { id: duplicateOutput }
++		onExited: (code, status) => {
++			if (root.cancelRequested) {
++				root.cancelRequested = false;
++				Quickshell.execDetached(["rm", "-f", root.tempPath]);
++				return;
++			}
++			if (code === 0) {
++				root.phase = "artist";
++				root.artist = "";
++				root.statusText = "下载完成，请输入歌手名";
++			} else {
++				root.phase = "name";
++				root.statusText = String(duplicateOutput.text).trim() || "重复音频检查失败，未保存歌曲";
++				Quickshell.execDetached(["rm", "-f", root.tempPath]);
 +			}
 +		}
 +	}
@@ -572,3 +499,45 @@
 +		}
 +	}
 +}
+--- /dev/null
++++ b/modules/dashboard/media/AudioImportCheck.py
+@@ -0,0 +1,39 @@
++"""Reject exact duplicate MP3 audio packets, ignoring filenames, tags and artwork."""
++import subprocess
++import sys
++from pathlib import Path
++
++
++def audio_hash(path):
++    result = subprocess.run(
++        ["ffmpeg", "-nostdin", "-v", "error", "-i", str(path), "-map", "0:a:0",
++         "-c", "copy", "-f", "hash", "-hash", "sha256", "-"],
++        capture_output=True, text=True, timeout=30, check=True,
++    )
++    digest = result.stdout.strip()
++    if not digest.startswith("SHA256="):
++        raise ValueError("没有取得音频校验值")
++    return digest
++
++
++def check(source, directory):
++    fingerprint = audio_hash(source)
++    directory = Path(directory)
++    if not directory.is_dir():
++        raise ValueError("保存目录不存在")
++    for candidate in sorted(directory.rglob("*")):
++        if candidate.is_file() and candidate.suffix.lower() == ".mp3" and candidate.resolve() != source.resolve():
++            if audio_hash(candidate) == fingerprint:
++                print(f"音频与已有《{candidate.stem}》完全相同，已阻止另存；请核对网页分P链接")
++                return 2
++    return 0
++
++
++if __name__ == "__main__":
++    try:
++        code = check(Path(sys.argv[1]), sys.argv[2])
++    except (OSError, ValueError, subprocess.SubprocessError) as error:
++        print("无法完成音频重复检查，未保存歌曲；请检查音频文件和保存目录")
++        print(str(error), file=sys.stderr)
++        code = 1
++    sys.exit(code)

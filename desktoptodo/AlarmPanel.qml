@@ -16,6 +16,16 @@ Item {
     signal backRequested
 
     readonly property var alarmDays: ["日", "一", "二", "三", "四", "五", "六"]
+    readonly property var weekDayList: [
+        { name: "一", day: 1 },
+        { name: "二", day: 2 },
+        { name: "三", day: 3 },
+        { name: "四", day: 4 },
+        { name: "五", day: 5 },
+        { name: "六", day: 6 },
+        { name: "日", day: 0 }
+    ]
+
     property bool editing: false
     property string editingId: ""
     property string alarmLabel: "闹钟"
@@ -25,6 +35,17 @@ Item {
     property var selectedDays: []
     property string statusText: ""
     property bool pointerEntered: false
+
+    function resetDraft(): void {
+        editing = false;
+        editingId = "";
+        alarmLabel = "闹钟";
+        mode = "once";
+        selectedHour = 7;
+        selectedMinute = 0;
+        selectedDays = [];
+        statusText = "";
+    }
 
     function newAlarm(): void {
         const nextMinute = new Date(Date.now() + 60_000);
@@ -79,11 +100,19 @@ Item {
             return;
         }
         editingId = savedId;
-        editing = false;
+        resetDraft();
     }
 
     function scheduleText(alarm: var): string {
-        return alarm.mode === "weekly" ? alarm.days.map(day => alarmDays[day]).join("、") : "仅一次";
+        if (alarm.mode !== "weekly")
+            return "仅一次";
+        if (alarm.days.length === 5 && [1, 2, 3, 4, 5].every(d => alarm.days.includes(d)))
+            return "工作日";
+        if (alarm.days.length === 2 && [0, 6].every(d => alarm.days.includes(d)))
+            return "周末";
+        if (alarm.days.length === 7)
+            return "每天";
+        return alarm.days.map(day => alarmDays[day]).join("、");
     }
 
     function timeText(alarm: var): string {
@@ -102,8 +131,12 @@ Item {
     Timer {
         id: focusTimer
         interval: 160
-        onTriggered: if (root.visible && root.editing)
-            alarmName.forceActiveFocus()
+        onTriggered: {
+            if (root.visible && root.editing) {
+                if (nameInput)
+                    nameInput.forceActiveFocus();
+            }
+        }
     }
 
     Shortcut {
@@ -111,470 +144,543 @@ Item {
         enabled: root.visible
         onActivated: {
             if (root.editing)
-                root.editing = false;
+                root.resetDraft();
             else
                 root.backRequested();
         }
     }
 
-    onVisibleChanged: if (visible)
-        pointerEntered = false
+    onVisibleChanged: {
+        if (visible)
+            pointerEntered = false;
+        else
+            resetDraft();
+    }
 
+    // 底板：与 Caelestia 风格对齐的表面容器与微光边框
     StyledRect {
         anchors.fill: parent
-        anchors.margins: 2 * root.scaleFactor
         radius: Tokens.rounding.extraLarge * root.scaleFactor
-        color: "transparent"
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.38)
+        color: Colours.tPalette.m3surfaceContainer
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
         border.width: 1 * root.scaleFactor
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12 * root.scaleFactor
-        anchors.topMargin: 14 * root.scaleFactor
-        spacing: 8 * root.scaleFactor
+        anchors.margins: Tokens.padding.medium * root.scaleFactor
+        spacing: Tokens.spacing.small * root.scaleFactor
 
+        // 顶栏 Header
         RowLayout {
-            id: headerRow
             Layout.fillWidth: true
-            Layout.preferredHeight: 44 * root.scaleFactor
-            spacing: 4 * root.scaleFactor
-            ButtonBase {
-                visible: true
-                type: ButtonBase.Tonal
-                inactiveColour: Colours.palette.m3secondaryContainer
-                inactiveOnColour: Colours.palette.m3onSecondaryContainer
-                activeColour: Colours.palette.m3secondaryContainer
-                activeOnColour: Colours.palette.m3onSecondaryContainer
-                Layout.preferredWidth: 96 * root.scaleFactor
-                Layout.preferredHeight: 32 * root.scaleFactor
-                implicitWidth: 96 * root.scaleFactor
-                implicitHeight: 32 * root.scaleFactor
+            spacing: Tokens.spacing.small * root.scaleFactor
+
+            IconButton {
+                icon: "arrow_back"
+                type: IconButton.Tonal
+                Layout.preferredWidth: 36 * root.scaleFactor
+                Layout.preferredHeight: 36 * root.scaleFactor
                 onClicked: {
                     if (root.editing)
-                        root.editing = false;
+                        root.resetDraft();
                     else
                         root.backRequested();
                 }
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 3 * root.scaleFactor
-                    MaterialIcon {
-                        text: "arrow_back"
-                        color: parent.parent.onColour
-                        fontStyle: Tokens.font.icon.builders.small.scale(0.8 * root.scaleFactor).build()
-                    }
-                    StyledText {
-                        text: root.editing ? "返回列表" : "返回主界面"
-                        color: parent.parent.onColour
-                        font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.82 * root.scaleFactor).weight(Font.DemiBold).build()
-                    }
-                }
             }
-            StyledRect {
-                id: titleBox
-                Layout.leftMargin: 6 * root.scaleFactor
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: titleRow.implicitWidth + 22 * root.scaleFactor
-                implicitHeight: titleRow.implicitHeight + 12 * root.scaleFactor
-                radius: Tokens.rounding.medium * root.scaleFactor
-                color: Colours.palette.m3primaryContainer
-                Behavior on color { CAnim {} }
 
-                RowLayout {
-                    id: titleRow
-                    anchors.centerIn: parent
-                    spacing: 6 * root.scaleFactor
-                    MaterialIcon {
-                        text: root.editing ? "edit_alarm" : "alarm"
-                        color: Colours.palette.m3onPrimaryContainer
-                        fontStyle: Tokens.font.icon.builders.small.scale(0.88 * root.scaleFactor).build()
-                    }
-                    StyledText {
-                        text: root.editing ? (root.editingId ? "编辑闹钟" : "新建闹钟") : "闹钟"
-                        color: Colours.palette.m3onPrimaryContainer
-                        font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * root.scaleFactor).weight(Font.Bold).build()
-                    }
-                }
-            }
-            Item {
+            ColumnLayout {
                 Layout.fillWidth: true
-            }
-            ButtonBase {
-                visible: !root.editing
-                type: ButtonBase.Filled
-                inactiveColour: Colours.palette.m3primary
-                inactiveOnColour: Colours.palette.m3onPrimary
-                activeColour: Colours.palette.m3primary
-                activeOnColour: Colours.palette.m3onPrimary
-                Layout.preferredWidth: 82 * root.scaleFactor
-                Layout.preferredHeight: 30 * root.scaleFactor
-                implicitWidth: 82 * root.scaleFactor
-                    implicitHeight: 30 * root.scaleFactor
-                onClicked: root.newAlarm()
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 3 * root.scaleFactor
-                    MaterialIcon {
-                        text: "add"
-                        color: parent.parent.onColour
-                        fontStyle: Tokens.font.icon.builders.small.scale(root.scaleFactor).build()
-                    }
-                    StyledText {
-                        text: "新建"
-                        color: parent.parent.onColour
-                        font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.86 * root.scaleFactor).weight(Font.DemiBold).build()
-                    }
+                spacing: 1 * root.scaleFactor
+
+                StyledText {
+                    text: root.editing ? (root.editingId ? "编辑闹钟" : "新建闹钟") : "闹钟提醒"
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.scaleFactor).weight(Font.Bold).build()
                 }
+
+                StyledText {
+                    text: root.editing ? "设置响铃时间与周期" : `${TodoData.alarms.length} 个闹钟`
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.85 * root.scaleFactor).build()
+                }
+            }
+
+            IconButton {
+                visible: !root.editing
+                icon: "add"
+                type: IconButton.Filled
+                Layout.preferredWidth: 36 * root.scaleFactor
+                Layout.preferredHeight: 36 * root.scaleFactor
+                onClicked: root.newAlarm()
             }
         }
 
+        // ==================== 列表视图 ====================
         StyledRect {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: !root.editing
             radius: Tokens.rounding.large * root.scaleFactor
-            color: "transparent"
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.32)
+            color: Colours.tPalette.m3surfaceContainerLow
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.20)
             border.width: 1 * root.scaleFactor
 
-        ListView {
-            id: alarmList
-            anchors.fill: parent
-            anchors.margins: 7 * root.scaleFactor
-            clip: true
-            spacing: 6 * root.scaleFactor
-            model: TodoData.alarms.slice().sort((a, b) => (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute))
-            boundsBehavior: Flickable.StopAtBounds
-            delegate: StyledRect {
-                required property var modelData
-                width: alarmList.width
-                height: 58 * root.scaleFactor
-                radius: Tokens.rounding.medium * root.scaleFactor
-                color: modelData.enabled
-                    ? Qt.alpha(Colours.palette.m3primaryContainer, 0.58)
-                    : Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.34)
-                border.color: modelData.enabled
-                    ? Qt.alpha(Colours.palette.m3primary, 0.52)
-                    : Qt.alpha(Colours.palette.m3outlineVariant, 0.20)
-                border.width: 1 * root.scaleFactor
-                Behavior on color { CAnim {} }
-                Behavior on border.color { CAnim {} }
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 7 * root.scaleFactor
-                    anchors.rightMargin: 5 * root.scaleFactor
-                    spacing: 5 * root.scaleFactor
-                    StyledRect {
-                        Layout.preferredWidth: 38 * root.scaleFactor
-                        Layout.preferredHeight: 38 * root.scaleFactor
-                        radius: Tokens.rounding.medium * root.scaleFactor
-                        color: modelData.enabled ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
-                        Behavior on color { CAnim {} }
+            ListView {
+                id: alarmList
+                anchors.fill: parent
+                anchors.margins: 6 * root.scaleFactor
+                clip: true
+                spacing: 6 * root.scaleFactor
+                model: TodoData.alarms.slice().sort((a, b) => (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute))
+                boundsBehavior: Flickable.StopAtBounds
+
+                delegate: StyledRect {
+                    id: alarmDelegate
+                    required property var modelData
+                    width: alarmList.width
+                    height: 64 * root.scaleFactor
+                    radius: Tokens.rounding.medium * root.scaleFactor
+                    color: itemHover.hovered
+                        ? (modelData.enabled ? Colours.tPalette.m3surfaceContainerHigh : Colours.tPalette.m3surfaceContainerHighest)
+                        : (modelData.enabled ? Colours.tPalette.m3surfaceContainer : Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.45))
+                    border.color: modelData.enabled
+                        ? Qt.alpha(Colours.palette.m3primary, 0.40)
+                        : Qt.alpha(Colours.palette.m3outlineVariant, 0.20)
+                    border.width: 1 * root.scaleFactor
+
+                    Behavior on color { CAnim {} }
+                    Behavior on border.color { CAnim {} }
+
+                    HoverHandler {
+                        id: itemHover
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12 * root.scaleFactor
+                        anchors.rightMargin: 10 * root.scaleFactor
+                        spacing: 10 * root.scaleFactor
+
+                        // 状态图标
                         MaterialIcon {
-                            anchors.centerIn: parent
-                            text: modelData.mode === "weekly" ? "event_repeat" : "alarm"
-                            color: modelData.enabled ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            text: modelData.mode === "weekly" ? "update" : "alarm"
+                            color: modelData.enabled ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                             fontStyle: Tokens.font.icon.builders.medium.scale(root.scaleFactor).build()
                         }
-                    }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 1 * root.scaleFactor
-                        StyledText {
-                            text: root.timeText(modelData)
-                            color: modelData.enabled ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-                            font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * root.scaleFactor).weight(Font.Bold).build()
+
+                        // 时间与标签信息
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1 * root.scaleFactor
+
+                            StyledText {
+                                text: root.timeText(modelData)
+                                color: modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+                                font: Tokens.font.clock.size(Tokens.font.headline.small.pointSize * 0.95 * root.scaleFactor).weight(Font.Bold).build()
+                            }
+
+                            StyledText {
+                                text: `${modelData.label} · ${root.scheduleText(modelData)}`
+                                color: Colours.palette.m3onSurfaceVariant
+                                font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.82 * root.scaleFactor).build()
+                                elide: Text.ElideRight
+                            }
                         }
-                        StyledText {
-                            text: modelData.label + " · " + root.scheduleText(modelData)
-                            color: modelData.enabled ? Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.80) : Colours.palette.m3onSurfaceVariant
-                            font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.78 * root.scaleFactor).build()
-                            elide: Text.ElideRight
+
+                        // 启停开关切换
+                        IconButton {
+                            icon: modelData.enabled ? "alarm_on" : "alarm_off"
+                            type: modelData.enabled ? IconButton.Filled : IconButton.Tonal
+                            Layout.preferredWidth: 34 * root.scaleFactor
+                            Layout.preferredHeight: 34 * root.scaleFactor
+                            onClicked: TodoData.setAlarmEnabled(modelData.id, !modelData.enabled)
                         }
-                    }
-                    ButtonBase {
-                        type: ButtonBase.Tonal
-                        inactiveColour: modelData.enabled ? Colours.palette.m3secondaryContainer : Colours.palette.m3surfaceContainerHighest
-                        inactiveOnColour: modelData.enabled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                        activeColour: Colours.palette.m3primaryContainer
-                        activeOnColour: Colours.palette.m3onPrimaryContainer
-                        Layout.preferredWidth: 32 * root.scaleFactor
-                        Layout.preferredHeight: 32 * root.scaleFactor
-                        implicitWidth: 32 * root.scaleFactor
-                        implicitHeight: 32 * root.scaleFactor
-                        onClicked: TodoData.setAlarmEnabled(modelData.id, !modelData.enabled)
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: modelData.enabled ? "pause" : "play_arrow"
-                            color: parent.onColour
+
+                        // 编辑按钮
+                        IconButton {
+                            icon: "edit"
+                            type: IconButton.Text
+                            opacity: itemHover.hovered ? 0.85 : 0.35
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            Layout.preferredWidth: 32 * root.scaleFactor
+                            Layout.preferredHeight: 32 * root.scaleFactor
+                            onClicked: root.editAlarm(modelData)
                         }
-                    }
-                    ButtonBase {
-                        type: ButtonBase.Text
-                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
-                        activeOnColour: Colours.palette.m3onSurface
-                        Layout.preferredWidth: 30 * root.scaleFactor
-                        Layout.preferredHeight: 30 * root.scaleFactor
-                        implicitWidth: 30 * root.scaleFactor
-                        implicitHeight: 30 * root.scaleFactor
-                        onClicked: root.editAlarm(modelData)
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "edit"
-                            color: parent.onColour
-                        }
-                    }
-                    ButtonBase {
-                        type: ButtonBase.Text
-                        inactiveOnColour: Colours.palette.m3error
-                        activeOnColour: Colours.palette.m3error
-                        Layout.preferredWidth: 30 * root.scaleFactor
-                        Layout.preferredHeight: 30 * root.scaleFactor
-                        implicitWidth: 30 * root.scaleFactor
-                        implicitHeight: 30 * root.scaleFactor
-                        onClicked: TodoData.removeAlarm(modelData.id)
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "delete"
-                            color: parent.onColour
+
+                        // 删除按钮
+                        IconButton {
+                            icon: "delete_outline"
+                            type: IconButton.Text
+                            opacity: itemHover.hovered ? 0.85 : 0.25
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            Layout.preferredWidth: 32 * root.scaleFactor
+                            Layout.preferredHeight: 32 * root.scaleFactor
+                            onClicked: TodoData.removeAlarm(modelData.id)
                         }
                     }
                 }
             }
+
+            // 空列表占位
             ColumnLayout {
                 anchors.centerIn: parent
                 visible: alarmList.count === 0
-                spacing: 6 * root.scaleFactor
+                spacing: 8 * root.scaleFactor
+
                 MaterialIcon {
                     Layout.alignment: Qt.AlignHCenter
                     text: "alarm_add"
                     color: Colours.palette.m3primary
-                    fontStyle: Tokens.font.icon.builders.extraLarge.scale(1.2 * root.scaleFactor).build()
+                    fontStyle: Tokens.font.icon.builders.extraLarge.scale(1.3 * root.scaleFactor).build()
                 }
+
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "还没有闹钟"
+                    text: "还没有设置闹钟"
                     color: Colours.palette.m3onSurface
-                    font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * 0.9 * root.scaleFactor).weight(Font.DemiBold).build()
+                    font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * root.scaleFactor).weight(Font.Bold).build()
                 }
+
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "点击右上角的新建按钮开始设置"
+                    text: "点击右上角的 ＋ 号新建闹钟"
                     color: Colours.palette.m3onSurfaceVariant
-                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.82 * root.scaleFactor).build()
+                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.9 * root.scaleFactor).build()
                 }
             }
         }
-            }
 
-        StyledTextField {
-            id: alarmName
-            visible: root.editing
+        // ==================== 编辑视图 ====================
+        ColumnLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 40 * root.scaleFactor
-            verticalPadding: 7 * root.scaleFactor
-            text: root.alarmLabel
-            placeholderText: "给这个闹钟起个名字"
-            leadingIcon: "label"
-            onTextEdited: root.alarmLabel = text
-        }
-
-        StyledRect {
+            Layout.fillHeight: true
             visible: root.editing
-            Layout.fillWidth: true
-            Layout.preferredHeight: 38 * root.scaleFactor
-            radius: Tokens.rounding.extraLarge * root.scaleFactor
-            color: Colours.palette.m3surfaceContainerHigh
+            spacing: 8 * root.scaleFactor
 
+            // 中间主要配置区：左右双栏并排，无需滚动
             RowLayout {
-                anchors.fill: parent
-                anchors.margins: 4 * root.scaleFactor
-                spacing: 4 * root.scaleFactor
-            ButtonBase {
-                isRound: true
-                type: root.mode === "once" ? ButtonBase.Tonal : ButtonBase.Text
-                inactiveColour: root.mode === "once" ? Colours.palette.m3secondaryContainer : "transparent"
-                inactiveOnColour: root.mode === "once" ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                activeColour: Colours.palette.m3primaryContainer
-                activeOnColour: Colours.palette.m3onPrimaryContainer
                 Layout.fillWidth: true
-                implicitWidth: 80 * root.scaleFactor
-                Layout.preferredHeight: 30 * root.scaleFactor
-                implicitHeight: 30 * root.scaleFactor
-                onClicked: root.mode = "once"
-                StyledText {
-                    anchors.centerIn: parent
-                    text: "仅一次"
-                    color: parent.onColour
-                }
-            }
-            ButtonBase {
-                isRound: true
-                type: root.mode === "weekly" ? ButtonBase.Tonal : ButtonBase.Text
-                inactiveColour: root.mode === "weekly" ? Colours.palette.m3secondaryContainer : "transparent"
-                inactiveOnColour: root.mode === "weekly" ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                activeColour: Colours.palette.m3primaryContainer
-                activeOnColour: Colours.palette.m3onPrimaryContainer
-                Layout.fillWidth: true
-                implicitWidth: 80 * root.scaleFactor
-                Layout.preferredHeight: 30 * root.scaleFactor
-                implicitHeight: 30 * root.scaleFactor
-                onClicked: {
-                    root.mode = "weekly";
-                    if (root.selectedDays.length === 0)
-                        root.selectedDays = [new Date().getDay()];
-                }
-                StyledText {
-                    anchors.centerIn: parent
-                    text: "每周"
-                    color: parent.onColour
-                }
-            }
-            }
-        }
+                Layout.fillHeight: true
+                spacing: 10 * root.scaleFactor
 
-        StyledRect {
-            visible: root.editing
-            Layout.fillWidth: true
-            Layout.preferredHeight: 64 * root.scaleFactor
-            radius: Tokens.rounding.large * root.scaleFactor
-            color: Colours.palette.m3surfaceContainerHigh
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: 6 * root.scaleFactor
-                MaterialIcon {
-                    text: "schedule"
-                    color: Colours.palette.m3primary
-                    fontStyle: Tokens.font.icon.builders.medium.scale(root.scaleFactor).build()
-                }
-            Tumbler {
-                id: hourTumbler
-                Layout.preferredWidth: 62 * root.scaleFactor
-                Layout.preferredHeight: 58 * root.scaleFactor
-                model: 24
-                currentIndex: root.selectedHour
-                visibleItemCount: 3
-                wrap: true
-                onCurrentIndexChanged: root.selectedHour = currentIndex
-                delegate: StyledText {
-                    required property int index
-                    required property var modelData
-                    text: String(modelData).padStart(2, "0")
-                    color: hourTumbler.currentIndex === index ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.45)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * root.scaleFactor).weight(Font.DemiBold).build()
-                }
-            }
-            StyledText {
-                text: ":"
-                color: Colours.palette.m3onSurface
-            }
-            Tumbler {
-                id: minuteTumbler
-                Layout.preferredWidth: 62 * root.scaleFactor
-                Layout.preferredHeight: 58 * root.scaleFactor
-                model: 60
-                currentIndex: root.selectedMinute
-                visibleItemCount: 3
-                wrap: true
-                onCurrentIndexChanged: root.selectedMinute = currentIndex
-                delegate: StyledText {
-                    required property int index
-                    required property var modelData
-                    text: String(modelData).padStart(2, "0")
-                    color: minuteTumbler.currentIndex === index ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.45)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: Tokens.font.clock.size(Tokens.font.title.small.pointSize * root.scaleFactor).weight(Font.DemiBold).build()
-                }
-            }
-            }
-        }
+                // 左栏：大号时间微调盘
+                StyledRect {
+                    Layout.preferredWidth: 175 * root.scaleFactor
+                    Layout.fillHeight: true
+                    radius: Tokens.rounding.large * root.scaleFactor
+                    color: Colours.tPalette.m3surfaceContainerLow
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.20)
+                    border.width: 1 * root.scaleFactor
 
-        StyledText {
-            visible: root.editing && root.mode === "weekly"
-            Layout.fillWidth: true
-            text: "响铃日（可多选）"
-            color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.78 * root.scaleFactor).build()
-        }
-
-        RowLayout {
-            visible: root.editing && root.mode === "weekly"
-            Layout.fillWidth: true
-            spacing: 3 * root.scaleFactor
-            Repeater {
-                model: root.alarmDays.length
-                delegate: ButtonBase {
-                    required property int index
-                    readonly property bool selected: root.selectedDays.includes(index)
-                    isRound: true
-                    type: selected ? ButtonBase.Tonal : ButtonBase.Text
-                    inactiveColour: selected ? Colours.palette.m3secondaryContainer : "transparent"
-                    inactiveOnColour: selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                    activeColour: Colours.palette.m3primaryContainer
-                    activeOnColour: Colours.palette.m3onPrimaryContainer
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 26 * root.scaleFactor
-                    implicitWidth: 32 * root.scaleFactor
-                    implicitHeight: 26 * root.scaleFactor
-                    onClicked: root.toggleDay(index)
-                    StyledText {
+                    RowLayout {
                         anchors.centerIn: parent
-                        text: root.alarmDays[index]
-                        color: parent.onColour
+                        spacing: 6 * root.scaleFactor
+
+                        Tumbler {
+                            id: hourTumbler
+                            Layout.preferredWidth: 64 * root.scaleFactor
+                            Layout.preferredHeight: 108 * root.scaleFactor
+                            model: 24
+                            currentIndex: root.selectedHour
+                            visibleItemCount: 3
+                            wrap: true
+                            onCurrentIndexChanged: root.selectedHour = currentIndex
+
+                            WheelHandler {
+                                target: null
+                                blocking: true
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                onWheel: event => {
+                                    const nextHour = (root.selectedHour + (event.angleDelta.y < 0 ? 1 : 23)) % 24;
+                                    root.selectedHour = nextHour;
+                                    hourTumbler.positionViewAtIndex(nextHour, Tumbler.SnapPosition);
+                                    event.accepted = true;
+                                }
+                            }
+
+                            delegate: StyledText {
+                                required property int index
+                                required property var modelData
+                                text: String(modelData).padStart(2, "0")
+                                color: hourTumbler.currentIndex === index ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.35)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font: Tokens.font.clock.size((hourTumbler.currentIndex === index ? Tokens.font.headline.large.pointSize : Tokens.font.title.small.pointSize) * root.scaleFactor).weight(Font.Bold).build()
+                            }
+                        }
+
+                        StyledText {
+                            text: ":"
+                            color: Colours.palette.m3primary
+                            font: Tokens.font.clock.size(Tokens.font.headline.large.pointSize * root.scaleFactor).weight(Font.Bold).build()
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Tumbler {
+                            id: minuteTumbler
+                            Layout.preferredWidth: 64 * root.scaleFactor
+                            Layout.preferredHeight: 108 * root.scaleFactor
+                            model: 60
+                            currentIndex: root.selectedMinute
+                            visibleItemCount: 3
+                            wrap: true
+                            onCurrentIndexChanged: root.selectedMinute = currentIndex
+
+                            WheelHandler {
+                                target: null
+                                blocking: true
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                onWheel: event => {
+                                    const nextMinute = (root.selectedMinute + (event.angleDelta.y < 0 ? 1 : 59)) % 60;
+                                    root.selectedMinute = nextMinute;
+                                    minuteTumbler.positionViewAtIndex(nextMinute, Tumbler.SnapPosition);
+                                    event.accepted = true;
+                                }
+                            }
+
+                            delegate: StyledText {
+                                required property int index
+                                required property var modelData
+                                text: String(modelData).padStart(2, "0")
+                                color: minuteTumbler.currentIndex === index ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.35)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font: Tokens.font.clock.size((minuteTumbler.currentIndex === index ? Tokens.font.headline.large.pointSize : Tokens.font.title.small.pointSize) * root.scaleFactor).weight(Font.Bold).build()
+                            }
+                        }
+                    }
+                }
+
+                // 右栏：名称、模式切换与星期设置
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 8 * root.scaleFactor
+
+                    // 闹钟名称
+                    StyledRect {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 38 * root.scaleFactor
+                        radius: Tokens.rounding.medium * root.scaleFactor
+                        color: Colours.tPalette.m3surfaceContainerLow
+                        border.color: nameInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.20)
+                        border.width: 1 * root.scaleFactor
+                        Behavior on border.color { CAnim {} }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10 * root.scaleFactor
+                            anchors.rightMargin: 10 * root.scaleFactor
+                            spacing: 8 * root.scaleFactor
+
+                            MaterialIcon {
+                                text: "label"
+                                color: nameInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                fontStyle: Tokens.font.icon.builders.small.scale(0.9 * root.scaleFactor).build()
+                                Behavior on color { CAnim {} }
+                            }
+
+                            TextFieldBase {
+                                id: nameInput
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                text: root.alarmLabel
+                                placeholderText: "闹钟名称（如：早起、打卡）"
+                                selectByMouse: true
+                                font: Tokens.font.clock.size(Tokens.font.body.medium.pointSize * root.scaleFactor).build()
+                                onTextEdited: root.alarmLabel = text
+                            }
+                        }
+                    }
+
+                    // 模式切换胶囊
+                    StyledRect {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34 * root.scaleFactor
+                        radius: Tokens.rounding.full
+                        color: Colours.tPalette.m3surfaceContainerHigh
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 3 * root.scaleFactor
+                            spacing: 4 * root.scaleFactor
+
+                            ButtonBase {
+                                isRound: true
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                implicitWidth: 80 * root.scaleFactor
+                                implicitHeight: 28 * root.scaleFactor
+                                type: root.mode === "once" ? ButtonBase.Filled : ButtonBase.Text
+                                inactiveColour: root.mode === "once" ? Colours.palette.m3primary : "transparent"
+                                inactiveOnColour: root.mode === "once" ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                activeColour: Colours.palette.m3primary
+                                activeOnColour: Colours.palette.m3onPrimary
+                                onClicked: root.mode = "once"
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: "仅响一次"
+                                    color: parent.onColour
+                                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.88 * root.scaleFactor).weight(root.mode === "once" ? Font.Bold : Font.Normal).build()
+                                }
+                            }
+
+                            ButtonBase {
+                                isRound: true
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                implicitWidth: 80 * root.scaleFactor
+                                implicitHeight: 28 * root.scaleFactor
+                                type: root.mode === "weekly" ? ButtonBase.Filled : ButtonBase.Text
+                                inactiveColour: root.mode === "weekly" ? Colours.palette.m3primary : "transparent"
+                                inactiveOnColour: root.mode === "weekly" ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                activeColour: Colours.palette.m3primary
+                                activeOnColour: Colours.palette.m3onPrimary
+                                onClicked: {
+                                    root.mode = "weekly";
+                                    if (root.selectedDays.length === 0)
+                                        root.selectedDays = [new Date().getDay()];
+                                }
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: "按周重复"
+                                    color: parent.onColour
+                                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.88 * root.scaleFactor).weight(root.mode === "weekly" ? Font.Bold : Font.Normal).build()
+                                }
+                            }
+                        }
+                    }
+
+                    // 响铃日 / 周期说明
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34 * root.scaleFactor
+
+                        // 按周重复时的星期选择
+                        RowLayout {
+                            anchors.fill: parent
+                            visible: root.mode === "weekly"
+                            spacing: 4 * root.scaleFactor
+
+                            Repeater {
+                                model: root.weekDayList
+                                delegate: ButtonBase {
+                                    required property var modelData
+                                    readonly property bool selected: root.selectedDays.includes(modelData.day)
+                                    isRound: true
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    implicitWidth: 28 * root.scaleFactor
+                                    implicitHeight: 30 * root.scaleFactor
+                                    type: selected ? ButtonBase.Filled : ButtonBase.Tonal
+                                    inactiveColour: selected ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
+                                    inactiveOnColour: selected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                    activeColour: Colours.palette.m3primary
+                                    activeOnColour: Colours.palette.m3onPrimary
+                                    onClicked: root.toggleDay(modelData.day)
+
+                                    StyledText {
+                                        anchors.centerIn: parent
+                                        text: modelData.name
+                                        color: parent.onColour
+                                        font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.85 * root.scaleFactor).weight(selected ? Font.Bold : Font.Normal).build()
+                                    }
+                                }
+                            }
+                        }
+
+                        // 仅响一次时的说明占位
+                        StyledRect {
+                            anchors.fill: parent
+                            visible: root.mode !== "weekly"
+                            radius: Tokens.rounding.medium * root.scaleFactor
+                            color: Colours.tPalette.m3surfaceContainerLow
+                            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+                            border.width: 1 * root.scaleFactor
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 6 * root.scaleFactor
+
+                                MaterialIcon {
+                                    text: "event"
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    fontStyle: Tokens.font.icon.builders.small.scale(0.85 * root.scaleFactor).build()
+                                }
+
+                                StyledText {
+                                    text: "仅在设定时间响铃一次后自动关闭"
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.82 * root.scaleFactor).build()
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        StyledText {
-            visible: root.editing && root.statusText !== ""
-            Layout.fillWidth: true
-            text: root.statusText
-            color: Colours.palette.m3error
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        RowLayout {
-            visible: root.editing
-            Layout.fillWidth: true
-            Item {
+            // 底部操作栏
+            RowLayout {
                 Layout.fillWidth: true
-            }
-            ButtonBase {
-                type: ButtonBase.Text
-                inactiveOnColour: Colours.palette.m3onSurfaceVariant
-                activeOnColour: Colours.palette.m3onSurface
-                Layout.preferredWidth: 72 * root.scaleFactor
-                Layout.preferredHeight: 30 * root.scaleFactor
-                implicitWidth: 72 * root.scaleFactor
-                implicitHeight: 30 * root.scaleFactor
-                onClicked: root.editing = false
+                spacing: 8 * root.scaleFactor
+
                 StyledText {
-                    anchors.centerIn: parent
-                    text: "取消"
-                    color: parent.onColour
+                    visible: root.statusText !== ""
+                    Layout.fillWidth: true
+                    text: root.statusText
+                    color: Colours.palette.m3error
+                    font: Tokens.font.clock.size(Tokens.font.body.small.pointSize * 0.85 * root.scaleFactor).build()
+                    elide: Text.ElideRight
                 }
-            }
-            ButtonBase {
-                type: ButtonBase.Filled
-                inactiveColour: Colours.palette.m3primary
-                inactiveOnColour: Colours.palette.m3onPrimary
-                activeColour: Colours.palette.m3primary
-                activeOnColour: Colours.palette.m3onPrimary
-                Layout.preferredWidth: 72 * root.scaleFactor
-                Layout.preferredHeight: 30 * root.scaleFactor
-                implicitWidth: 72 * root.scaleFactor
-                implicitHeight: 30 * root.scaleFactor
-                onClicked: root.saveAlarm()
-                StyledText {
-                    anchors.centerIn: parent
-                    text: "保存"
-                    color: parent.onColour
+
+                Item {
+                    visible: root.statusText === ""
+                    Layout.fillWidth: true
+                }
+
+                ButtonBase {
+                    Layout.preferredWidth: 84 * root.scaleFactor
+                    Layout.preferredHeight: 34 * root.scaleFactor
+                    implicitWidth: 84 * root.scaleFactor
+                    implicitHeight: 34 * root.scaleFactor
+                    isRound: true
+                    type: ButtonBase.Tonal
+                    inactiveColour: Colours.tPalette.m3surfaceContainerHighest
+                    inactiveOnColour: Colours.palette.m3onSurface
+                    activeColour: Colours.tPalette.m3surfaceContainerHigh
+                    activeOnColour: Colours.palette.m3onSurface
+                    onClicked: root.resetDraft()
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: "取消"
+                        color: parent.onColour
+                        font: Tokens.font.clock.size(Tokens.font.body.medium.pointSize * 0.9 * root.scaleFactor).weight(Font.DemiBold).build()
+                    }
+                }
+
+                ButtonBase {
+                    Layout.preferredWidth: 104 * root.scaleFactor
+                    Layout.preferredHeight: 34 * root.scaleFactor
+                    implicitWidth: 104 * root.scaleFactor
+                    implicitHeight: 34 * root.scaleFactor
+                    isRound: true
+                    type: ButtonBase.Filled
+                    inactiveColour: Colours.palette.m3primary
+                    inactiveOnColour: Colours.palette.m3onPrimary
+                    activeColour: Colours.palette.m3primary
+                    activeOnColour: Colours.palette.m3onPrimary
+                    onClicked: root.saveAlarm()
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: "保存闹钟"
+                        color: parent.onColour
+                        font: Tokens.font.clock.size(Tokens.font.body.medium.pointSize * 0.9 * root.scaleFactor).weight(Font.Bold).build()
+                    }
                 }
             }
         }

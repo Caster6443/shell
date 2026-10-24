@@ -89,6 +89,13 @@ QtObject {
             category: "shell"
         },
 
+        {
+            label: "AI 服务",
+            icon: "neurology",
+            description: "连接与功能开关",
+            category: "shell"
+        },
+
         // About
         {
             label: Tr.tr("About"),

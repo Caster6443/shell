@@ -6,7 +6,7 @@
  
 +    Component.onCompleted: {
 +        screenState.dashboardTextInput = false;
-+        screenState.spotlightTextInput = false;
++        screenState.consoleTextInput = false;
 +    }
 +
      readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
@@ -35,7 +35,7 @@
              root.screenState.sidebar = false;
              root.screenState.dashboard = false;
 +            root.screenState.dashboardTextInput = false;
-+            root.screenState.spotlightTextInput = false;
++            root.screenState.consoleTextInput = false;
              panels.popouts.hasCurrent = false;
              bar.closeTray();
          }
@@ -56,8 +56,8 @@
      property bool launcher
      property bool dashboard
 +    property bool dashboardTextInput
-+    property bool spotlightTextInput
-+    readonly property bool textInputActive: dashboardTextInput || spotlightTextInput
++    property bool consoleTextInput
++    readonly property bool textInputActive: dashboardTextInput || consoleTextInput
      property bool utilities
      property bool sidebar
  

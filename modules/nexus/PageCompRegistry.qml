@@ -6,6 +6,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.services
+import qs.aibackend
 import qs.modules.nexus.common
 import qs.modules.nexus.pages
 import qs.modules.nexus.pages.apps
@@ -182,6 +183,14 @@ QtObject {
                 Component {
                     HyprlandLayout {}
                 }
+            }
+        },
+
+        Component {
+            StackPage {
+                Component { AiSettings {} }
+                Component { AiServiceEditorPage {} }
+                Component { AiUsagePage {} }
             }
         },
 

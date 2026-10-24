@@ -8,7 +8,7 @@
 # 仓库里的 modules/services 等本体源码一概不动（那是用户将来 git merge 官方代码的线）。
 #
 # 同步内容：
-#   1. 自包含外挂模块目录：overview / cheatsheet / spotlight / clipboard / desktopviz / desktopperf / lockcosmos
+#   1. 自包含外挂模块目录：overview / cheatsheet / console / clipboard / desktopviz / desktopperf / lockcosmos
 #   2. 数据型 QML 模块（由其他组件导入，不需 shell.qml 顶层实例）：desktoptodo
 #   3. shell.qml 顶层实例钩子：cheatsheet / clipboard / desktopviz / desktopperf
 # 底座（系统包 modules 等）不在本脚本职责内，如需刷新底座请手动执行
@@ -21,8 +21,8 @@ RESTART=0
 [[ "${1:-}" == "-r" ]] && RESTART=1
 
 # 同步自包含外挂模块（整目录同步）。仅这些目录会被覆盖，仓库 modules/ 其余不动。
-MODULES=("overview" "cheatsheet" "spotlight" "clipboard" "desktopviz" "desktopperf" "lockcosmos")
-DATA_MODULES=("desktoptodo")
+MODULES=("wallpaperbackend" "overview" "cheatsheet" "console" "clipboard" "desktopviz" "desktopperf" "lockcosmos")
+DATA_MODULES=("desktoptodo" "aibackend" "removable")
 
 # shell.qml 需要顶层实例化的窗口/模块（名字 → 实例化行）。
 INSTANCE_HOOKS=("cheatsheet" "clipboard" "desktopviz" "desktopperf")
@@ -72,9 +72,10 @@ instances = {
 }
 
 with open(path, encoding="utf-8") as f:
-    lines = f.read().splitlines(keepends=True)
+    # Upgrade the former module hook in existing installations.
+    lines = f.read().replace('"spotlight"', '"console"').replace("Spotlight {}", "Console {}").splitlines(keepends=True)
 
-changed = False
+changed = True  # Persist the module-name migration as well.
 
 for mod in retired:
     import_pattern = re.compile(rf'^\s*import "{re.escape(mod)}"\s*$')

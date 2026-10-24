@@ -1,0 +1,27 @@
+import QtQuick
+import QtTest
+Item {
+ id: root; width:100; height:100
+ property string wheelTarget: ""
+ property real wheelAccum: 0
+ property bool wheelUsesPixels: false
+ Timer {id: wheelResetTimer; interval:400; onTriggered: {root.wheelTarget=""; root.wheelAccum=0;}}
+ @@isSmoothWheel@@
+ @@wheelStep@@
+ TestCase {
+  name:"ConsoleWheel"; when:windowShown
+  function event(angle,pixel,phase,inverted) {return {angleDelta:Qt.point(0,angle),pixelDelta:Qt.point(0,pixel),phase:phase,inverted:!!inverted};}
+  function init() {wheelResetTimer.stop(); root.wheelAccum=0; root.wheelTarget="";}
+  function test_recorded_mouse_tick_with_pixels() {const e=event(-120,-15,Qt.NoScrollPhase); verify(!root.isSmoothWheel(e)); compare(root.wheelStep("appList",e,false),-1); compare(root.wheelStep("mode",e,false),-1); compare(root.wheelAccum,0);}
+  function test_recorded_mouse_up() {compare(root.wheelStep("category",event(120,15,Qt.NoScrollPhase),false),1);}
+  function test_multiple_mouse_notches() {compare(root.wheelStep("mode",event(-240,-30,Qt.NoScrollPhase),false),-1);}
+  function test_mouse_without_pixels() {compare(root.wheelStep("mode",event(-120,0,Qt.NoScrollPhase),false),-1);}
+  function test_horizontal_mouse_tick() {const e={angleDelta:Qt.point(-120,0),pixelDelta:Qt.point(-15,0),phase:Qt.NoScrollPhase,inverted:false}; compare(root.wheelStep("strip",e,true),-1);}
+  function test_touchpad_phase_even_at_120() {const e=event(-120,-15,Qt.ScrollUpdate); verify(root.isSmoothWheel(e)); compare(root.wheelStep("mode",e,false),0); compare(root.wheelAccum,-15);}
+  function test_touchpad_accumulation_preserved() {const e=event(-170,-14,Qt.ScrollUpdate); for(let i=0;i<11;i++) compare(root.wheelStep("mode",e,false),0); compare(root.wheelStep("mode",e,false),-1); compare(root.wheelAccum,-8);}
+  function test_pixel_only_no_phase() {const e=event(0,-15,Qt.NoScrollPhase); verify(root.isSmoothWheel(e)); compare(root.wheelStep("strip",e,true),0);}
+  function test_non_tick_angle_pixel_no_phase() {verify(root.isSmoothWheel(event(-170,-14,Qt.NoScrollPhase)));}
+  function test_empty_begin_does_not_move() {compare(root.wheelStep("mode",event(0,0,Qt.ScrollBegin),false),0);}
+  function test_mouse_no_phase_property() {const e={angleDelta:Qt.point(0,-120),pixelDelta:Qt.point(0,-15),inverted:false}; compare(root.wheelStep("mode",e,false),-1);}
+ }
+}

@@ -1,0 +1,42 @@
+import QtQuick
+import QtTest
+Item {
+ id: root; width:400; height:300
+ property bool tiledPresentation:false
+ property bool appMenuVisible:false
+ property bool windowMenuVisible:false
+ property string wheelTarget:""
+ property real wheelAccum:0
+ property bool wheelUsesPixels:false
+ Timer {id:wheelResetTimer; interval:400}
+ @@isSmoothWheel@@
+ @@wheelStep@@
+ @@moveAppSelection@@
+ GridView {id:appList; anchors.fill:parent; cellWidth:400; cellHeight:60; model:4
+  property int columns:root.tiledPresentation?2:1
+  property bool navigationOwnsSelection:false
+  @@SCROLL@@
+  @@WHEEL@@
+  delegate:Item {width:400; height:60}
+  @@HOVER@@
+ }
+ TestCase {
+  name:"ConsolePointerGuard"; when:windowShown
+  function init() {appList.model=4;appList.contentY=0;root.tiledPresentation=false;root.appMenuVisible=false;root.windowMenuVisible=false;appList.navigationOwnsSelection=false;mouseMove(root,20,20);appList.currentIndex=0;}
+  function test_stationary_pointer_tracks_scroll() {appList.model=100;wait(30);mouseMove(appList,30,145);const old=appList.currentIndex;mouseWheel(appList,30,145,0,-120);tryVerify(()=>appList.contentY>0);tryVerify(()=>appList.currentIndex===appList.indexAt(30+appList.contentX,145+appList.contentY));verify(appList.currentIndex!==old);}
+  function test_keyboard_keeps_selection_until_pointer_moves() {appList.model=100;wait(30);mouseMove(appList,30,145);root.moveAppSelection(0,1);const selected=appList.currentIndex;appListHover.updatePointerSelection(true);compare(appList.currentIndex,selected);mouseMove(appList,32,145);compare(appList.currentIndex,appList.indexAt(32,145+appList.contentY));}
+  function test_wheel_hands_selection_back_immediately() {appList.model=100;wait(30);mouseMove(appList,30,145);root.moveAppSelection(0,1);verify(appList.navigationOwnsSelection);mouseWheel(appList,30,145,0,-120);tryVerify(()=>!appList.navigationOwnsSelection);mouseMove(appList,32,145);compare(appList.currentIndex,appList.indexAt(32,145+appList.contentY));}
+  function test_menu_wheel_and_keyboard_cannot_select() {root.appMenuVisible=true;appList.currentIndex=1;mouseWheel(root,20,20,0,-120);compare(appList.currentIndex,1);root.moveAppSelection(0,1);compare(appList.currentIndex,1);}
+  function test_close_menu_restores_wheel() {appList.model=100;wait(30);root.appMenuVisible=true;appList.currentIndex=1;mouseWheel(appList,20,20,0,-120);compare(appList.currentIndex,1);compare(appList.contentY,0);root.appMenuVisible=false;mouseWheel(appList,20,20,0,-120);tryVerify(()=>appList.contentY>0);tryVerify(()=>appList.currentIndex===appList.indexAt(20,20+appList.contentY));}
+  function test_list_scroll_tracks_pointer() {appList.model=100;wait(30);appList.currentIndex=0;mouseWheel(appList,20,20,0,-120);tryVerify(()=>appList.contentY>0);tryVerify(()=>appList.currentIndex===appList.indexAt(20,20+appList.contentY));}
+  function test_list_scroll_up_and_boundary() {appList.model=100;wait(30);appList.contentY=300;appList.currentIndex=8;mouseWheel(appList,20,20,0,120);tryVerify(()=>appList.contentY<300);tryVerify(()=>appList.currentIndex===appList.indexAt(20,20+appList.contentY));appList.contentY=0;mouseWheel(appList,20,20,0,120);wait(50);compare(appList.currentIndex,0);}
+  function test_window_menu_blocks_native_scroll() {appList.model=100;wait(30);root.windowMenuVisible=true;mouseWheel(appList,20,20,0,-120);wait(30);compare(appList.contentY,0);compare(appList.currentIndex,0);}
+
+  function test_grid_navigation() {root.tiledPresentation=true;appList.currentIndex=0;root.moveAppSelection(1,0);compare(appList.currentIndex,1);root.moveAppSelection(0,1);compare(appList.currentIndex,3);root.moveAppSelection(-1,0);compare(appList.currentIndex,2);root.appMenuVisible=true;root.moveAppSelection(1,0);compare(appList.currentIndex,2);}
+  function test_list_horizontal_ignored() {appList.currentIndex=1;root.moveAppSelection(1,0);compare(appList.currentIndex,1);}
+  function test_grid_scroll_tracks_pointer() {root.tiledPresentation=true;appList.model=100;wait(50);appList.currentIndex=0;mouseWheel(appList,20,20,0,-120);tryVerify(()=>appList.contentY>0);tryVerify(()=>appList.currentIndex===appList.indexAt(20,20+appList.contentY));}
+  function test_grid_hover_selects() {root.tiledPresentation=true;mouseMove(root,30,145);compare(appList.currentIndex,2);}
+  function test_menu_still_blocks_hover() {root.appMenuVisible=true;mouseMove(root,30,145);compare(appList.currentIndex,0);}
+  function test_window_menu_blocks_hover() {root.windowMenuVisible=true;mouseMove(root,30,145);compare(appList.currentIndex,0);}
+ }
+}

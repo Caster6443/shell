@@ -131,6 +131,28 @@ else
 fi
 cp -a "$REPO_DIR/modules/nexus/pages/hyprland" "$TARGET/modules/nexus/pages/"
 
+# Shared AI settings live in the addon; only the registries are base patches.
+NEXUS_AI_PATCH="$REPO_DIR/patches/ai/nexus-ai-settings.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$NEXUS_AI_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$NEXUS_AI_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$NEXUS_AI_PATCH" >/dev/null 2>&1; then
+  echo "==> Nexus AI 服务设置补丁已包含，跳过"
+else
+  echo "!! Nexus AI 服务设置补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+
+# 移动存储入口：外挂由 sync-addons 同步，底座仅保留两个小型连接点。
+REMOVABLE_PATCH="$REPO_DIR/patches/bar/removable-devices.patch"
+if patch --dry-run --forward --batch -p1 -d "$TARGET" < "$REMOVABLE_PATCH" >/dev/null 2>&1; then
+  patch --forward --batch -p1 -d "$TARGET" < "$REMOVABLE_PATCH"
+elif patch --dry-run --reverse --batch -p1 -d "$TARGET" < "$REMOVABLE_PATCH" >/dev/null 2>&1; then
+  echo "==> 移动存储 bar 补丁已包含，跳过"
+else
+  echo "!! 移动存储 bar 补丁与新底座不匹配，请检查后再重启" >&2
+  exit 1
+fi
+
 bash "$REPO_DIR/scripts/sync-addons.sh" "$RESTART"
 
 echo "==> 部署完成。校验建议：qs -c caelestia log | rg -i 'error|unable|failed'"

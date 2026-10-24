@@ -1,0 +1,29 @@
+--- a/caelestia/utils/wallpaper.py
++++ b/caelestia/utils/wallpaper.py
+@@ -73,9 +73,15 @@
+ 
+ def get_smart_opts(wall: Path, cache: Path) -> dict:
+     opts_cache = cache / "smart.json"
++    # HCT tone is 0..100. A middle-tone wall should not require a mostly-white image.
++    threshold = get_config().get("wallpaper", {}).get("smartLightThreshold", 50)
++    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not 0 <= threshold <= 100:
++        threshold = 50
+ 
+     try:
+-        return json.loads(opts_cache.read_text())
++        cached = json.loads(opts_cache.read_text())
++        if cached.get("_lightThreshold") == threshold:
++            return cached
+     except (IOError, json.JSONDecodeError):
+         pass
+ 
+@@ -89,7 +95,8 @@
+         pixel = cast(tuple[int, int, int], img.getpixel((0, 0)))
+         hct = Hct.from_int(argb_from_rgb(*pixel))
+ 
+-        opts["mode"] = "light" if hct.tone > 60 else "dark"
++        opts["mode"] = "light" if hct.tone > threshold else "dark"
++        opts["_lightThreshold"] = threshold
+ 
+     opts_cache.parent.mkdir(parents=True, exist_ok=True)
+     with opts_cache.open("w") as f:

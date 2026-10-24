@@ -1,0 +1,67 @@
+--- a/services/Wallpapers.qml
++++ b/services/Wallpapers.qml
+@@ -5,6 +5,7 @@
+ import Quickshell.Io
+ import Caelestia.Config
+ import Caelestia.Models
++import qs.wallpaperbackend
+ import qs.services
+ import qs.utils
+ 
+@@ -19,6 +20,7 @@
+     readonly property string current: showPreview ? previewPath : actualCurrent
+     property string previewPath
+     property string actualCurrent
++    onActualCurrentChanged: Backend.setSource(actualCurrent)
+     property bool previewColourLock
+     property bool pendingPreviewClear
+ 
+--- a/modules/background/Background.qml
++++ b/modules/background/Background.qml
+@@ -6,6 +6,7 @@
+ import Caelestia.Config
+ import qs.components
+ import qs.components.containers
++import qs.wallpaperbackend
+ import qs.services
+ 
+ Variants {
+@@ -23,8 +24,8 @@
+         // （2026-09-30 修：闹钟设置页出现时无法聚焦别的窗口）；OnDemand 只在该 surface 被点击/请求时取键盘，不长期霸占
+         WlrLayershell.keyboardFocus: clockLoader.item?.showingTodos || clockLoader.item?.showingAlarmSettings ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+         WlrLayershell.exclusionMode: ExclusionMode.Ignore
+-        WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
+-        color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
++        WlrLayershell.layer: (contentItem.Config.background.wallpaperEnabled && !Backend.external) ? WlrLayer.Background : WlrLayer.Bottom
++        color: (contentItem.Config.background.wallpaperEnabled && !Backend.external) ? "black" : "transparent"
+         surfaceFormat.opaque: false
+ 
+         anchors.top: true
+@@ -49,7 +50,7 @@
+                 asynchronous: true
+ 
+                 anchors.fill: parent
+-                active: Config.background.wallpaperEnabled
++                active: Config.background.wallpaperEnabled && !Backend.external
+ 
+                 sourceComponent: Wallpaper {}
+             }
+--- a/modules/nexus/pages/WallpaperAndStyle.qml
++++ b/modules/nexus/pages/WallpaperAndStyle.qml
+@@ -8,6 +8,7 @@
+ import qs.components
+ import qs.components.controls
+ import qs.components.images
++import qs.wallpaperbackend
+ import qs.services
+ import qs.modules.nexus.common
+ 
+@@ -173,7 +174,7 @@
+ 
+         ToggleRow {
+             first: true
+-            text: Tr.tr("Display wallpaper")
++            text: "显示壁纸 · awww"
+             checked: Config.background.wallpaperEnabled
+             onToggled: GlobalConfig.background.wallpaperEnabled = checked
+         }

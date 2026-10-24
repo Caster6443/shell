@@ -11,8 +11,10 @@ import qs.services
 Item {
 	id: root
 
-	// surface 抽象：侧栏 overview 用 OverviewState；嵌入其他窗口（如 spotlight）时可注入独立状态。
+	// surface 抽象：侧栏 overview 用 OverviewState；嵌入其他窗口（如 console）时可注入独立状态。
 	property var surfaceState: OverviewState
+	property bool horizontalCards: false
+	property bool spatialWindows: false
 	property int visibleCards: 5
 	property real cardWidth: 400
 	property real cardHeight: 260
@@ -20,6 +22,31 @@ Item {
 	property var launchOnWorkspace: null
 	property bool settleTopAlign: false
 	property bool showPanel: true
+	property bool interactionBlocked: false
+	signal windowMenuRequested(string address, point position)
+	property int windowRevision: 0
+
+	function windowForAddress(address: string): var {
+		const revision = root.windowRevision;
+		for (const model of [windowModel, specialWindowModel]) {
+			for (let i = 0; i < model.count; ++i) {
+				const row = model.get(i);
+				if (row.m_address === address)
+					return { address: row.m_address, title: row.m_title, floating: row.m_floating,
+						workspace: row.m_wsId > 0 ? String(row.m_wsId) : row.m_wsName };
+			}
+		}
+		return null;
+	}
+
+	function windowMenuWorkspaces(): var {
+		const result = [];
+		for (let i = 1; i <= 10; ++i)
+			result.push({ workspace: String(i), label: `工作区 ${i}` });
+		for (const name of root.specialSectionNames())
+			result.push({ workspace: name, label: name === root.defaultSpecialName ? "特殊工作区 S" : `特殊工作区 ${name.replace(/^special:/, "")}` });
+		return result;
+	}
 	onFilterTextChanged: Qt.callLater(() => root.syncWindows(localHyprData.windowList))
 
 	function closeOverview() {
@@ -107,6 +134,8 @@ Item {
 	}
 
 	// 滚轮只负责按卡片步长滚动列表（曾经有过"向上滚呼出特殊工作区"的手势，用户要求下已整体移除）。
+	function scrollPosition(): real { return root.horizontalCards ? flickable.contentX : flickable.contentY; }
+	onHorizontalCardsChanged: Qt.callLater(() => root.settleToActive())
 	function wheelScrolled(deltaY: real): void {
 		if (deltaY === 0)
 			return;
@@ -116,22 +145,22 @@ Item {
 
 	// 连续滚动可跟手累计，但把待完成距离限制在不足一张卡片；反向滚动立即从当前画面反向。
 	function scrollBy(delta: real, capWheelBurst: bool): void {
-		const maxY = Math.max(0, flickable.contentHeight - flickable.height);
-		const pending = scrollAnim.running ? scrollAnim.to - flickable.contentY : 0;
+		const maxY = Math.max(0, root.horizontalCards ? flickable.contentWidth - flickable.width : flickable.contentHeight - flickable.height);
+		const pending = scrollAnim.running ? scrollAnim.to - root.scrollPosition() : 0;
 		const reverses = capWheelBurst && pending !== 0 && delta * pending < 0;
-		const base = scrollAnim.running && !reverses ? scrollAnim.to : flickable.contentY;
+		const base = scrollAnim.running && !reverses ? scrollAnim.to : root.scrollPosition();
 		let target = base + delta;
 		if (capWheelBurst) {
 			const maxPending = (flickable.cardHeight + flickable.cardSpacing) * 0.85;
-			target = Math.max(flickable.contentY - maxPending, Math.min(target, flickable.contentY + maxPending));
+			target = Math.max(root.scrollPosition() - maxPending, Math.min(target, root.scrollPosition() + maxPending));
 		}
 		target = Math.max(0, Math.min(target, maxY));
-		const distance = Math.abs(target - flickable.contentY);
+		const distance = Math.abs(target - root.scrollPosition());
 		if (distance < 1)
 			return;
 
 		scrollAnim.stop();
-		scrollAnim.from = flickable.contentY;
+		scrollAnim.from = root.scrollPosition();
 		scrollAnim.to = target;
 		// 依距离轻微延长动画；单次滚轮位移变短，因此导航保持轻快。
 		scrollAnim.duration = Math.round(Math.max(125, Math.min(250,
@@ -152,7 +181,7 @@ Item {
 			root.scrollBy(delta, false);
 			event.accepted = true;
 		} else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-			const idx = Math.round(flickable.contentY / (flickable.cardHeight + flickable.cardSpacing));
+			const idx = Math.round(root.scrollPosition() / (flickable.cardHeight + flickable.cardSpacing));
 			HyprDispatch.call(`workspace ${idx + 1}`, `hl.dsp.focus({ workspace = "${idx + 1}" })`);
 			root.surfaceState.active = false;
 			event.accepted = true;
@@ -271,6 +300,7 @@ Item {
 		}
 
 		root.recomputeAllLinearX();
+		root.windowRevision++;
 	}
 
 	function registerWorkspace(wsId, layerItem) {
@@ -281,7 +311,7 @@ Item {
 
 	// 命中测试：给定 overview 内容区内的坐标（相对本组件根），返回所在工作区的登记键
 	// （普通工作区 "1".."10"，特殊工作区 "special:xxx"）；未命中返回空串。
-	// 供外部 surface（spotlight）做“拖应用图标落到工作区”的判定。
+	// 供外部 surface（console）做“拖应用图标落到工作区”的判定。
 	function workspaceAt(pos: var): string {
 		if (!root.wsLayers)
 			return "";
@@ -432,7 +462,7 @@ Item {
 		syncTimer.restart();
 	}
 
-	// 供外部 surface（spotlight）在窗口显示时主动刷新数据与定位到当前工作区。
+	// 供外部 surface（console）在窗口显示时主动刷新数据与定位到当前工作区。
 	function refresh(): void {
 		localHyprData.updateAll();
 	}
@@ -627,12 +657,13 @@ Item {
 
 			const activeId = Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1;
 			const step = flickable.cardHeight + flickable.cardSpacing;
-			const normalTop = flickable.specialSectionHeight;
+			const normalTop = root.horizontalCards ? normalColumn.x : flickable.specialSectionHeight;
 
 		const targetY = normalTop + (activeId - 1) * step - (root.settleTopAlign ? 0 : (flickable.visibleHeight - flickable.cardHeight) / 2);
 
-			const maxScroll = Math.max(0, flickable.contentHeight - flickable.height);
-			flickable.contentY = Math.max(normalTop, Math.min(targetY, maxScroll));
+			const maxScroll = Math.max(0, root.horizontalCards ? flickable.contentWidth - flickable.width : flickable.contentHeight - flickable.height);
+			if (root.horizontalCards) flickable.contentX = Math.max(0, Math.min(targetY, maxScroll));
+			else flickable.contentY = Math.max(normalTop, Math.min(targetY, maxScroll));
 
 		}
 	}
@@ -665,8 +696,8 @@ Item {
 		id: mainContainer
 		color: root.showPanel ? "#CC11111b" : "transparent"
 		radius: 24
-		implicitWidth: flickable.contentWidth + (root.showPanel ? 60 : 0)
-		implicitHeight: flickable.visibleHeight + (root.showPanel ? 60 : 0)
+		implicitWidth: (root.horizontalCards ? root.width : flickable.contentWidth) + (root.showPanel ? 60 : 0)
+		implicitHeight: (root.horizontalCards ? root.height : flickable.visibleHeight) + (root.showPanel ? 60 : 0)
 		border.color: root.showPanel ? "#313244" : "transparent"
 		border.width: root.showPanel ? 2 : 0
 		anchors {
@@ -686,24 +717,24 @@ Item {
 		Flickable {
 			id: flickable
 
-			readonly property real cardHeight: root.cardHeight
+			readonly property real cardHeight: root.horizontalCards ? root.cardWidth : root.cardHeight
 			readonly property real cardSpacing: 25
 			readonly property real visibleCards: root.visibleCards
 			readonly property real visibleHeight: visibleCards * cardHeight + (visibleCards - 1) * cardSpacing
 			readonly property real separatorHeight: 40
-			readonly property real specialSectionHeight: specialColumn.implicitHeight > 0 ? specialColumn.implicitHeight + cardSpacing * 2 + separatorHeight : 0
+			readonly property real specialSectionHeight: root.horizontalCards ? specialBg.width + separatorHeight : (specialColumn.implicitHeight > 0 ? specialColumn.implicitHeight + cardSpacing * 2 + separatorHeight : 0)
 
 			anchors.centerIn: parent
-			width: contentWidth
-			height: visibleHeight
+			width: root.horizontalCards ? root.width : contentWidth
+			height: root.horizontalCards ? root.height : visibleHeight
 			contentWidth: mainColumn.implicitWidth
 			contentHeight: mainColumn.implicitHeight
 			clip: true
-			flickableDirection: Flickable.VerticalFlick
+			flickableDirection: root.horizontalCards ? Flickable.HorizontalFlick : Flickable.VerticalFlick
 
 			NumberAnimation {
 				id: scrollAnim
-				property: "contentY"
+				property: root.horizontalCards ? "contentX" : "contentY"
 				target: flickable
 				easing.type: Easing.OutCubic
 			}
@@ -720,14 +751,15 @@ Item {
 				}
 			}
 
-			Column {
+			Grid {
 				id: mainColumn
+				columns: root.horizontalCards ? 1000 : 1
 				spacing: 0
 
 				Item {
 					id: specialBg
-					width: specialColumn.implicitWidth || 400
-					height: specialColumn.implicitHeight + flickable.cardSpacing * 2
+					width: root.horizontalCards ? specialColumn.implicitWidth + 24 : specialColumn.implicitWidth || 400
+					height: root.horizontalCards ? root.cardHeight : specialColumn.implicitHeight + flickable.cardSpacing * 2
 					visible: specialColumn.implicitHeight > 0
 					z: root.dragFromSpecialSection ? 30 : 10
 
@@ -740,8 +772,9 @@ Item {
 						border.color: Qt.alpha(M3Palette.m3onSurface, 0.15)
 					}
 
-					Column {
+					Grid {
 						id: specialColumn
+						columns: root.horizontalCards ? 1000 : 1
 						spacing: flickable.cardSpacing
 						anchors.centerIn: parent
 						z: 10
@@ -832,13 +865,15 @@ Item {
 				}
 
 				Item {
-					width: 1
-					height: specialColumn.implicitHeight > 0 ? flickable.separatorHeight : 0
+					width: root.horizontalCards ? flickable.separatorHeight : 1
+					height: root.horizontalCards ? 1 : (specialColumn.implicitHeight > 0 ? flickable.separatorHeight : 0)
 					visible: specialColumn.implicitHeight > 0
 				}
 
-				Column {
+				Grid {
 					id: normalColumn
+					columns: root.horizontalCards ? 1000 : 1
+					onXChanged: { if (root.horizontalCards && root.visible) root.settleToActive(); }
 					spacing: flickable.cardSpacing
 					// 普通列默认在特殊区之下（原行为）；从普通列拖拽时整体抬到特殊区之上。
 					z: root.dragFromSpecialSection ? 0 : 20

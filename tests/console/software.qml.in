@@ -1,0 +1,191 @@
+import QtQuick
+import QtQuick.Controls
+import QtTest
+Item {
+ id: root; width:1080; height:700
+ property string initialFilter: ""
+ Component.onCompleted: initialFilter = page.filter
+Item { id: wheelLogic; property string wheelTarget:""; property real wheelAccum:0; property bool wheelUsesPixels:false; Timer {id:wheelResetTimer;interval:400}
+function isSmoothWheel(wheel: var): bool {
+		const phase = wheel.phase ?? Qt.NoScrollPhase;
+		const angle = wheel.angleDelta.y || wheel.angleDelta.x;
+		const hasPixels = wheel.pixelDelta.x !== 0 || wheel.pixelDelta.y !== 0;
+		// 本机离散鼠标每格也带 pixelDelta=15，不能仅凭像素增量判成触摸板。
+		// 无阶段且角度为标准 120 单位的整数刻度时，优先按离散滚轮处理。
+		const discreteTicks = phase === Qt.NoScrollPhase && angle !== 0 && angle % 120 === 0;
+		return phase !== Qt.NoScrollPhase || (hasPixels && !discreteTicks);
+	}
+function wheelStep(target: string, wheel: var, horizontalFirst: bool): int {
+		const pixels = horizontalFirst
+			? (wheel.pixelDelta.x || wheel.pixelDelta.y)
+			: (wheel.pixelDelta.y || wheel.pixelDelta.x);
+		const angle = horizontalFirst
+			? (wheel.angleDelta.x || wheel.angleDelta.y)
+			: (wheel.angleDelta.y || wheel.angleDelta.x);
+		const isSmoothScroll = wheelLogic.isSmoothWheel(wheel);
+		const usePixels = isSmoothScroll && pixels !== 0;
+		const rawDelta = usePixels ? pixels : angle;
+		// 归一化触摸板增量后再反向：适配 Console 胶囊实际的自然滚动方向。
+		// inverted=true 表示 Qt 已依系统设置反转过增量，先尊重该状态，再统一翻转一次。
+		const naturalDelta = isSmoothScroll && !wheel.inverted ? -rawDelta : rawDelta;
+		const delta = isSmoothScroll ? -naturalDelta : naturalDelta;
+		if (delta === 0)
+			return 0;
+		// 没有滚动 phase 且没有像素增量时，按传统鼠标滚轮每格切一步。
+		// 触摸板即使只提供 angleDelta，也会带 ScrollBegin/Update/End，仍进入累计门槛。
+		if (!isSmoothScroll)
+			return delta < 0 ? -1 : 1;
+		if (wheelLogic.wheelTarget !== target || wheelLogic.wheelUsesPixels !== usePixels || wheelLogic.wheelAccum * delta < 0)
+			wheelLogic.wheelAccum = 0;
+		wheelLogic.wheelTarget = target;
+		wheelLogic.wheelUsesPixels = usePixels;
+		wheelLogic.wheelAccum += delta;
+		wheelResetTimer.restart();
+		const threshold = usePixels ? 160 : 240;
+		if (Math.abs(wheelLogic.wheelAccum) < threshold)
+			return 0;
+		const step = wheelLogic.wheelAccum < 0 ? -1 : 1;
+		wheelLogic.wheelAccum -= step * threshold;
+		return step;
+	}
+}
+ CommandPage {id:commands; anchors.fill:parent; visible:false; property int activations:0; onPackagesRequested:activations++}
+ SoftwarePage {id:page; anchors.fill:parent; wheelStep: (target,wheel,horizontalFirst)=>wheelLogic.wheelStep(target,wheel,horizontalFirst); onRevealPackage:name=>query=""}
+ TestCase {
+  name:"SoftwarePage"; when:windowShown
+  function init() {
+   mouseMove(root,1075,695);
+   const guard=findChild(page,"softwareNavigationGuard"); if(guard)guard.stop();
+   commands.query="";commands.activations=0;page.visible=true;commands.visible=false;
+   Ai.state=({enabled:false,translation:false});Ai.activeProfile=({model:"fixture-model"});
+   Ai.translationEnabled=false;Ai.requests=[];Ai.cancelled=[];page.translationAttempts=({});page.translationCache=({});
+   page.detailTab="overview";page.query="";page.filter="all";page.selectedName="";page.history=[];page.recordedCalls=[];
+   page.packages=[{name:"zeta",version:"1",available:"2",description:"Last tool",source:"AUR",size:1024,watched:false,ignored:false,explicit:true,update:true,orphan:false},
+    {name:"alpha",version:"1",available:"1",description:"First tool",source:"repo",size:1024,watched:false,ignored:true,explicit:true,update:false,orphan:false},
+    {name:"beta",version:"2",available:"3",description:"Watched tool",source:"repo",size:1024,watched:true,ignored:false,explicit:false,update:true,orphan:true}];
+   wait(20);
+  }
+  function button(label) { const all=page.children; return seek(page,label); }
+  function seek(item,label) { if(item.text === label && item.clicked !== undefined) return item; for(const c of item.children || []) {const found=seek(c,label);if(found)return found;}return null; }
+  function test_filter_wheel() {
+   const b=button("显式");verify(b);page.filter="explicit";mouseWheel(b,b.width/2,b.height/2,0,-120);compare(page.filter,"deps");
+   mouseWheel(b,5,5,0,120);compare(page.filter,"explicit");
+   mouseWheel(b,5,5,0,120);compare(page.filter,"orphans");
+  }
+  function test_detail_wheel() {
+   const b=button("概览");verify(b);mouseWheel(b,5,5,0,-120);compare(page.detailTab,"dependencies");
+   mouseWheel(b,5,5,0,-120);compare(page.detailTab,"actions");
+   mouseWheel(b,5,5,0,-120);compare(page.detailTab,"overview");
+  }
+  function test_update_indicator() {
+   const list=findChild(page,"softwarePackages");list.forceLayout();
+   verify(findChild(page,"softwareUpdate-beta").visible);
+   verify(!findChild(page,"softwareUpdate-alpha").visible);
+   page.filter="updates";wait(30);list.forceLayout();
+   verify(!findChild(page,"softwareUpdate-beta").visible);
+  }
+  function test_translation_missing_model_explains_block() {
+   Ai.state=({enabled:true,translation:true});Ai.activeProfile=({model:""});
+   verify(page.translationBlockReason.includes("模型"));
+   wait(650);compare(Ai.requests.length,0);
+  }
+  function test_translation_off_by_default() {
+   wait(650);compare(Ai.requests.length,0);compare(page.translatedDescription,"");
+  }
+  function test_translation_result_cache_and_stale_reply() {
+   page.selectedName="zeta";Ai.translationEnabled=true;wait(650);
+   compare(Ai.requests.length,1);compare(Ai.requests[0].options.name,"zeta");
+   const first=Ai.requests[0].id;
+   Ai.completed(first,{ok:true,text:"测试译文"});compare(page.translatedDescription,"测试译文");
+   page.selectedName="alpha";wait(650);compare(Ai.requests.length,2);
+   Ai.completed(first,{ok:true,text:"过期回复"});compare(page.translatedDescription,"");
+   page.selectedName="zeta";compare(page.translatedDescription,"测试译文");compare(Ai.requests.length,2);
+   page.visible=false;page.visible=true;compare(page.translatedDescription,"测试译文");
+   wait(650);compare(Ai.requests.length,2);
+   verify(Ai.cancelled.length>0);
+   Ai.translationEnabled=false;compare(page.translatedDescription,"");
+  }
+  function test_translation_disk_cache_preloaded_before_first_selection() {
+   page.packages=[];page.translationCache=({});Ai.translationEnabled=true;Ai.requests=[];
+   const data={packages:[{name:"cached",description:"Original",version:"1",source:"repo"}],checkedAt:0,warnings:[]};
+   page.preparePackageResult(data);
+   compare(page.packages.length,0);verify(page.busy);compare(Ai.requests.length,1);
+   compare(Ai.requests[0].action,"cachedTranslations");
+   Ai.completed(Ai.requests[0].id,{ok:true,translations:{"cached\nOriginal":"已缓存译文"}});
+   compare(page.selectedName,"cached");compare(page.translatedDescription,"已缓存译文");
+   verify(!page.busy);wait(650);compare(Ai.requests.length,1);
+  }
+  function test_translation_cache_preserved_for_unrelated_config_change() {
+   Ai.translationEnabled=true;page.selectedName="zeta";
+   page.translationCache=({[page.descriptionIdentity]:"缓存中文"});page.resetTranslation();
+   Ai.configurationChanged();compare(page.translatedDescription,"缓存中文");
+  }
+  function test_translation_failure_does_not_loop() {
+   page.selectedName="zeta";Ai.translationEnabled=true;wait(650);compare(Ai.requests.length,1);
+   Ai.completed(Ai.requests[0].id,{ok:false,error:"failed"});verify(page.translationFailed);
+   wait(750);compare(Ai.requests.length,1);
+   page.translateDescription(true);compare(Ai.requests.length,2);
+  }
+  function test_pretranslation_fills_cache_before_selection() {
+   Ai.translationEnabled=true;Ai.requests=[];
+   page.packages=[];page.translationCache=({});
+   page.packages=[{name:"zeta",version:"1",description:"Last tool",source:"repo"},
+    {name:"alpha",version:"1",description:"First tool",source:"repo"}];
+   page.selectedName="zeta";page.resetTranslation();
+   const scope=page.translationScope;
+   Translator.translated({"zeta\nLast tool":"预热译文"}, scope);
+   compare(page.translatedDescription,"预热译文");
+   compare(page.translationCache["zeta\nLast tool"],"预热译文");
+   wait(650);compare(Ai.requests.length,0);
+   page.selectedName="alpha";
+   Translator.translated({"alpha\nFirst tool":"另一个包"}, scope);
+   compare(page.translatedDescription,"另一个包");
+   Translator.translated({"alpha\nFirst tool":"旧模型译文"}, JSON.stringify(["old","openai","https://old/v1","old-model"]));
+   compare(page.translatedDescription,"另一个包");
+   Ai.translationEnabled=false;
+  }
+  function test_translation_hidden_does_not_request() {
+   Ai.translationEnabled=true;page.visible=false;wait(650);compare(Ai.requests.length,0);
+  }
+  function test_command_matching() {commands.visible=true;page.visible=false;compare(commands.results.length,1);for (let q of ["PKG","PACKAGES","软件","更新","up"," apps "]) {commands.query=q;compare(commands.results.length,1,q)} commands.query="xyz";compare(commands.results.length,0);commands.activate();compare(commands.activations,0);commands.query="pkg";commands.activate();compare(commands.activations,1)}
+  function test_watched_first_and_initial_selection() {compare(page.rows[0].name,"beta");compare(page.rows[1].name,"alpha");compare(page.selectedName,"beta")}
+  function test_default_scope_is_explicit() {compare(root.initialFilter,"explicit")}
+  function test_explicit_scope_hides_dependencies() {
+   page.filter="explicit";compare(page.explicitCount,2);compare(page.rows.length,2);
+   compare(page.rows[0].name,"alpha");compare(page.rows[1].name,"zeta");
+   page.filter="deps";compare(page.rows.length,1);compare(page.rows[0].name,"beta");
+  }
+  function test_search_falls_back_to_dependencies() {
+   page.filter="explicit";page.query="beta";
+   verify(page.searchFallback);compare(page.rows.length,1);compare(page.rows[0].name,"beta");
+   page.query="alpha";verify(!page.searchFallback);compare(page.rows.length,1);
+   page.query="";
+  }
+  function test_filter_and_casefold() {page.query="ZE";compare(page.rows.length,1);compare(page.selectedName,"zeta");page.query="";page.filter="updates";compare(page.rows.length,2);page.filter="ignored";compare(page.rows.length,1);compare(page.rows[0].name,"alpha");page.filter="orphans";compare(page.rows[0].name,"beta");page.filter="watched";compare(page.rows.length,1)}
+  function test_navigation_and_dependency_history() {page.selectedName="beta";page.moveSelection(1);compare(page.selectedName,"alpha");page.moveSelection(-1);compare(page.selectedName,"beta");page.navigatePackage("zeta");compare(page.selectedName,"zeta");compare(page.detailTab,"dependencies");compare(page.history.length,1);page.goBack();compare(page.selectedName,"beta");compare(page.history.length,0)}
+  function test_empty_filter() {page.query="nothing";compare(page.rows.length,0);compare(page.selectedName,"");page.moveSelection(1);page.showSelected();verify(!page.selected)}
+  function test_watch_uses_exact_package() {page.invoke("watch","beta","1");compare(page.recordedCalls[0].name,"beta");compare(page.recordedCalls[0].action,"watch")}
+  function test_confirmation_and_cancel() {page.selectedName="alpha";page.requestAction("ignore");verify(page.interactionBusy);verify(page.confirmationText.includes("恢复"));keyClick(Qt.Key_Escape);tryVerify(()=>!page.interactionBusy);compare(page.recordedCalls.length,0)}
+  function test_preview_only_before_remove() {page.selectedName="beta";page.requestAction("remove");compare(page.recordedCalls.length,1);compare(page.recordedCalls[0].action,"preview");compare(page.pendingName,"beta");verify(!page.interactionBusy)}
+  function test_hover_selects_without_click() {
+   const list=findChild(page,"softwarePackages");verify(list);
+   page.detailTab="dependencies";
+   mouseMove(list,30,90);tryCompare(page,"selectedName","alpha");
+   compare(page.detailTab,"dependencies");
+   mouseMove(list,30,155);tryCompare(page,"selectedName","zeta");
+  }
+  function test_keyboard_guard_then_mouse_resume() {
+   const list=findChild(page,"softwarePackages");
+   page.selectedName="beta";page.moveSelection(1);compare(page.selectedName,"alpha");
+   mouseMove(list,30,155);compare(page.selectedName,"alpha");
+   wait(470);mouseMove(list,31,155);tryCompare(page,"selectedName","zeta");
+  }
+  function test_confirmation_blocks_hover_selection() {
+   const list=findChild(page,"softwarePackages");page.selectedName="alpha";
+   page.requestAction("ignore");verify(page.interactionBusy);
+   page.hoverSelect("zeta");compare(page.selectedName,"alpha");
+   keyClick(Qt.Key_Escape);tryVerify(()=>!page.interactionBusy);
+  }
+  function test_layout_bounds() {for(let tab of ["overview","dependencies","actions"]) {page.detailTab=tab;wait(30);compare(page.height,700);verify(page.width===1080)} }
+ }
+}

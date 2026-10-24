@@ -1,0 +1,74 @@
+--- a/modules/bar/Bar.qml
++++ b/modules/bar/Bar.qml
+@@ -7,6 +7,7 @@
+ import QtQuick.Layouts
+ import Quickshell
+ import Caelestia.Config
++import qs.removable as Removable
+ import qs.components
+ import qs.services
+ 
+@@ -44,7 +45,11 @@
+         const id = ch.entryId;
+         const top = ch.y;
+ 
+-        if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
++        if (id === "removable") {
++            popouts.currentName = "removable";
++            popouts.currentCenter = ch.y + ch.height / 2;
++            popouts.hasCurrent = true;
++        } else if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
+             const items = (ch.item as StatusIcons).items;
+             const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
+             if (icon) {
+@@ -107,7 +112,14 @@
+         id: repeater
+ 
+         model: ScriptModel {
+-            values: root.Config.bar.entries.values.filter(e => e.enabled)
++            values: {
++                const entries = root.Config.bar.entries.values.filter(e => e.enabled);
++                if (Removable.Devices.devices.length === 0 && !Removable.Devices.busy) return entries;
++                const result = entries.slice();
++                const tray = result.findIndex(e => e.id === "tray");
++                result.splice(tray >= 0 ? tray : Math.max(0, result.length - 1), 0, {id: "removable", enabled: true});
++                return result;
++            }
+         }
+ 
+         DelegateChooser {
+@@ -145,6 +157,12 @@
+                         bar: root
+                         monitor: Brightness.getMonitorForScreen(root.screen)
+                     }
++                }
++            }
++            DelegateChoice {
++                roleValue: "removable"
++                delegate: EntryWrapper {
++                    Removable.BarIndicator { objectName: "taskbarRemovable" }
+                 }
+             }
+             DelegateChoice {
+--- a/modules/bar/popouts/Content.qml
++++ b/modules/bar/popouts/Content.qml
+@@ -5,6 +5,7 @@
+ import Quickshell
+ import Quickshell.Services.SystemTray
+ import Caelestia.Config
++import qs.removable as Removable
+ import qs.components
+ import qs.services
+ 
+@@ -103,6 +104,11 @@
+         }
+ 
+         Popout {
++            name: "removable"
++            sourceComponent: Removable.DeviceMenu { popouts: root.popouts }
++        }
++
++        Popout {
+             name: "battery"
+             sourceComponent: Battery {}
+         }

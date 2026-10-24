@@ -179,7 +179,7 @@ Item {
             Component {
                 id: weatherComponent
 
-                WeatherTab {}
+                WeatherTab { screenState: root.screenState }
             }
 
             Behavior on contentX {

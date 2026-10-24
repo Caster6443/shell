@@ -51,6 +51,7 @@ Rectangle {
 	}
 
 	readonly property real hoverScale: wsWindowCount <= 1 ? 1.06 : 1.18
+	readonly property real boundaryScale: wsWindowCount <= 1 ? 1.08 : 1.20
 
 	readonly property real pushOffset: {
 		const hAddr = overviewRoot.hoveredWindowAddress;
@@ -137,12 +138,20 @@ Rectangle {
 		return container && container.scaleRatio !== undefined ? container.scaleRatio : 1.0;
 	}
 
-	property real targetX: m_linearX * scaleRatio + pushOffset
+	readonly property var spatialContainer: parent ? parent.parent : null
+	readonly property var linearSlot: !overviewRoot.spatialWindows && spatialContainer?.linearLayout
+        ? spatialContainer.linearLayout.slots[m_address] : null
+	property real targetX: overviewRoot.spatialWindows && spatialContainer?.spatialBounds
+		? spatialContainer.spatialOffsetX + (m_atX - spatialContainer.spatialBounds.x) * scaleRatio
+		: linearSlot ? linearSlot.x : wsWindowCount === 1 ? ((parent ? parent.width : 0) - width) / 2 : m_linearX * scaleRatio + pushOffset
 
 	property real targetY: {
+        if (linearSlot) return linearSlot.y;
+		if (overviewRoot.spatialWindows && spatialContainer?.spatialBounds)
+			return spatialContainer.spatialOffsetY + (m_atY - spatialContainer.spatialBounds.y) * scaleRatio;
 		const ph = parent ? parent.height : 260;
 		const h = (m_sizeH > 0 ? m_sizeH : (Hyprland.focusedMonitor?.height || 1080)) * scaleRatio;
-		return Math.max(0, (ph - h) / 2);
+		return wsWindowCount === 1 ? 28 + (Math.max(1, ph - 40) - h) / 2 : Math.max(0, (ph - h) / 2);
 	}
 
 	readonly property real clampedX: {
@@ -151,14 +160,19 @@ Rectangle {
 		const pw = parent ? parent.width : 0;
 		if (!pw || isNaN(width))
 			return targetX;
-		const half = width / 2;
-		return Math.max(half, Math.min(targetX + half, pw - half)) - half;
+		const margin = (boundaryScale - 1) * width / 2;
+		const low = 12 + margin;
+		const high = pw - 12 - width - margin;
+		return high >= low ? Math.max(low, Math.min(targetX, high)) : (pw - width) / 2;
 	}
 	readonly property real clampedY: {
 		const ph = parent ? parent.height : 0;
 		if (!ph || isNaN(targetY) || isNaN(height))
 			return targetY;
-		return Math.max(0, Math.min(targetY, ph - height));
+		const margin = (boundaryScale - 1) * height / 2;
+		const low = (spatialContainer?.contentTop ?? 28) + margin;
+		const high = ph - 12 - height - margin;
+		return high >= low ? Math.max(low, Math.min(targetY, high)) : 28 + (ph - 40 - height) / 2;
 	}
 
 	Binding on x {
@@ -322,14 +336,26 @@ Rectangle {
 		MouseArea {
 			id: mouseArea
 			anchors.fill: parent
-			drag.target: windowItem
+			drag.target: (pressedButtons & Qt.RightButton) ? null : windowItem
 			hoverEnabled: true
-			acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+			acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
 
-		onEntered: overviewRoot.hoveredWindowAddress = m_address
-		onExited: overviewRoot.hoveredWindowAddress = ""
+		onEntered: {
+			if (!overviewRoot.interactionBlocked)
+				overviewRoot.hoveredWindowAddress = m_address;
+		}
+		// 另一个预览可能已经先收到 entered；旧预览只能清除自己的悬停状态。
+		onExited: {
+			if (!overviewRoot.interactionBlocked && overviewRoot.hoveredWindowAddress === m_address)
+				overviewRoot.hoveredWindowAddress = "";
+		}
 
 		onPressed: mouse => {
+			if (mouse.button === Qt.RightButton) {
+				overviewRoot.hoveredWindowAddress = m_address;
+				overviewRoot.windowMenuRequested(windowAddress, mouseArea.mapToItem(overviewRoot, mouse.x, mouse.y));
+				return;
+			}
 			if (mouse.button === Qt.MiddleButton) {
 				mouse.accepted = true;
 				HyprDispatch.call(
@@ -350,7 +376,7 @@ Rectangle {
 
 		onReleased: mouse => {
 			overviewRoot.dragFromSpecialSection = false;
-			if (mouse.button === Qt.MiddleButton)
+			if (mouse.button !== Qt.LeftButton)
 				return;
 			// 还原 hover 用的 z 绑定（直接赋常数会把绑定永久改掉）
 			windowItem.z = Qt.binding(() => windowItem.isHovered ? 30 : 20);
@@ -366,8 +392,9 @@ Rectangle {
 			const activeWs = Hyprland.focusedMonitor?.activeWorkspace?.id ?? -999;
 			const monX = Hyprland.focusedMonitor?.x || 0;
 			const monY = Hyprland.focusedMonitor?.y || 0;
-			const realX = Math.round(windowItem.x / scaleRatio + monX);
-			const realY = Math.round(windowItem.y / scaleRatio + monY);
+			// Preview positions are group-centered; map displacement, not their display origin, back to desktop coordinates.
+			const realX = Math.round(m_atX + (windowItem.x - clampedX) / scaleRatio);
+			const realY = Math.round(m_atY + (windowItem.y - clampedY) / scaleRatio);
 
 			if (currentWsId === activeWs) {
 				if (m_floating) {

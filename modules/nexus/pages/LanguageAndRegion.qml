@@ -112,43 +112,31 @@ PageBase {
             text: Tr.tr("Weather")
         }
 
-        // Placeholder until the map-based location picker lands
-        ConnectedRect {
-            Layout.fillWidth: true
+        TextFieldRow {
             first: true
+            label: Tr.tr("Weather location")
+            subtext: Tr.tr("Leave empty for automatic location")
+            placeholderText: Tr.tr("City, district or coordinates")
+            value: GlobalConfig.services.weatherLocation
+            onEditingFinished: value => GlobalConfig.services.weatherLocation = value.trim()
+        }
+
+        InfoRow {
+            label: Tr.tr("Current location")
+            value: Weather.city || Tr.tr("Unknown")
+            subtext: GlobalConfig.services.weatherLocation ? Tr.tr("Manual location")
+                : Weather.locationState === "failed" ? Tr.tr("Unable to locate")
+                : Weather.locationState === "locating" || Weather.locationState === "retrying" ? Tr.tr("Locating...")
+                : Tr.tr("Approximate location based on your network")
+        }
+
+        NavRow {
             last: true
-            implicitHeight: comingSoon.implicitHeight + Tokens.padding.extraLarge * 2
-
-            ColumnLayout {
-                id: comingSoon
-
-                anchors.centerIn: parent
-                width: parent.width - Tokens.padding.largeIncreased * 2
-                spacing: Tokens.padding.extraSmall
-
-                MaterialIcon {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "map"
-                    color: Colours.palette.m3outlineVariant
-                    fontStyle: Tokens.font.icon.extraLarge
-                }
-
-                StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: Tr.tr("Location picker coming soon")
-                    color: Colours.palette.m3outlineVariant
-                    font: Tokens.font.title.small
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    text: Tr.tr("Choose your weather location on a map in a future update")
-                    color: Colours.palette.m3outlineVariant
-                    font: Tokens.font.body.small
-                }
-            }
+            icon: "my_location"
+            text: Tr.tr("Locate again")
+            subtext: Tr.tr("Update your current location")
+            enabled: !GlobalConfig.services.weatherLocation && !Weather.ipApiRequestPending
+            onClicked: Weather.refreshLocation()
         }
 
         // Units

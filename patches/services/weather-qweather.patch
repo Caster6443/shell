@@ -1,6 +1,15 @@
 --- a/services/Weather.qml
 +++ b/services/Weather.qml
-@@ -21,15 +21,22 @@
+@@ -17,19 +17,31 @@
+     property list<var> forecast
+     property list<var> hourlyForecast
+
++    // One successful IP lookup per shell instance; weather refreshes reuse it.
++    property bool automaticLocationResolved: false
++    property int automaticLocationAttempts: 0
++    property int locationRequestEpoch: 0
++    property string locationState: "idle"
+     property bool ipApiRequestPending: false
      property double ipApiBlockedUntil: 0
      property bool citiesLoaded: false
      property string pendingCoords
@@ -24,22 +33,25 @@
 -    readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
 +    readonly property string sunrise: sunriseTime ? Qt.formatDateTime(new Date(sunriseTime), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
 +    readonly property string sunset: sunsetTime ? Qt.formatDateTime(new Date(sunsetTime), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
- 
+
      readonly property var cachedCities: new Map()
- 
-@@ -40,15 +47,27 @@
+
+@@ -40,73 +52,132 @@
      }
- 
+
      function reload(): void {
 +        if (!apiKey || !apiHost)
 +            return;
 +
          const configLocation = GlobalConfig.services.weatherLocation;
- 
+
          if (configLocation) {
++            locationState = "manual";
              if (configLocation.indexOf(",") !== -1 && !isNaN(parseFloat(configLocation.split(",")[0]))) {
 -                loc = configLocation;
 +                const coords = normalizeCoordinates(configLocation);
++                if (!coords)
++                    return;
 +                if (loc === coords)
 +                    fetchWeatherData();
 +                else
@@ -52,63 +64,271 @@
 +                }
                  fetchCoordsFromCity(configLocation);
              }
+-        } else if ((!loc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
+-            ipApiRequestPending = true;
+-
+-            Requests.get("http://ip-api.com/json?fields=status,message,city,lat,lon", (text, metadata) => {
+-                ipApiRequestPending = false;
+-                recordIpApiRateLimit(metadata);
+-
+-                // Protect against stale responses overwriting the manually-set location,
+-                // in case the config was updated while this request was in-flight.
+-                if (GlobalConfig.services.weatherLocation)
+-                    return;
+-
+-                let response;
+-                try {
+-                    response = JSON.parse(text);
+-                } catch (error) {
+-                    console.warn(lc, `Unable to parse response from ip-api: ${error}`);
+-                    return;
+-                }
+-
+-                const lat = Number(response.lat);
+-                const lon = Number(response.lon);
+-
+-                if (response.status !== "success" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+-                    console.warn(lc, `ip-api lookup failed: ${response.message ?? "invalid response"}`);
+-                    return;
+-                }
+-
+-                city = fixCityName(response.city ?? "");
+-                timer.restart();
+-                loc = `${lat},${lon}`;
+-            }, (error, metadata) => {
+-                ipApiRequestPending = false;
+-
+-                if (!recordIpApiRateLimit(metadata))
+-                    console.warn(lc, `ip-api request failed: ${error}`);
+-            });
+-        }
 +            return;
-         } else if ((!loc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
-             ipApiRequestPending = true;
- 
-@@ -109,6 +128,11 @@
-         return true;
-     }
- 
-+    function requestLanguage(): string {
-+        const language = Qt.locale().name.split(/[_.@-]/)[0].toLowerCase();
-+        return /^[a-z]{2,3}$/.test(language) && language !== "c" ? language : "en";
++        }
++
++        if (automaticLocationResolved) {
++            fetchWeatherData();
++            return;
++        }
++        locateAtStartup();
 +    }
 +
-     function fixCityName(cityName: string): string {
-         if (!cityName)
-             return "";
-@@ -176,7 +200,7 @@
-         }
- 
-         const [lat, lon] = coords.split(",").map(s => s.trim());
--        const lang = Qt.locale().name.split("_")[0] || "en";
-+        const lang = root.requestLanguage();
- 
-         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson&accept-language=${lang}`;
-         const nominatimHeaders = {
-@@ -211,84 +235,146 @@
++    function locateAtStartup(): void {
++        if (GlobalConfig.services.weatherLocation || automaticLocationResolved || ipApiRequestPending
++                || automaticLocationAttempts >= 3 || ipApiRetryTimer.running)
++            return;
++        if (Date.now() < ipApiBlockedUntil) {
++            ipApiRetryTimer.interval = Math.ceil(ipApiBlockedUntil - Date.now());
++            ipApiRetryTimer.start();
++            return;
++        }
++
++        const epoch = ++locationRequestEpoch;
++        automaticLocationAttempts++;
++        ipApiRequestPending = true;
++        locationState = "locating";
++        locationTimeout.restart();
++        Requests.get("http://ip-api.com/json?fields=status,message,city,lat,lon&lang=zh-CN", (text, metadata) => {
++            if (epoch !== locationRequestEpoch || GlobalConfig.services.weatherLocation)
++                return;
++            recordIpApiRateLimit(metadata);
++            let response;
++            try {
++                response = JSON.parse(text);
++            } catch (error) {
++                failAutomaticLocation(epoch);
++                return;
++            }
++            const coords = normalizeCoordinates(`${response.lat ?? ""},${response.lon ?? ""}`);
++            if (response.status !== "success" || !coords) {
++                failAutomaticLocation(epoch);
++                return;
++            }
++
++            locationTimeout.stop();
++            ipApiRetryTimer.stop();
++            ipApiRequestPending = false;
++            automaticLocationResolved = true;
++            locationState = "ready";
++            city = fixCityName(response.city || "");
++            loc = coords;
++            fetchCityFromCoords(coords);
++            console.info(lc, "Startup IP location resolved; hourly weather refresh will reuse it");
++        }, (error, metadata) => {
++            if (epoch !== locationRequestEpoch || GlobalConfig.services.weatherLocation)
++                return;
++            recordIpApiRateLimit(metadata);
++            failAutomaticLocation(epoch);
++        });
++    }
++
++    function failAutomaticLocation(epoch: int): void {
++        if (epoch !== locationRequestEpoch)
++            return;
++        // Invalidate a late reply after timeout, even before the next attempt.
++        locationRequestEpoch++;
++        locationTimeout.stop();
++        ipApiRequestPending = false;
++        locationState = automaticLocationAttempts < 3 ? "retrying" : "failed";
++        if (automaticLocationAttempts < 3) {
++            ipApiRetryTimer.interval = Math.max(30000, Math.ceil(ipApiBlockedUntil - Date.now()));
++            ipApiRetryTimer.restart();
++        }
++        console.warn(lc, `Startup location attempt ${automaticLocationAttempts}/3 failed`);
++    }
++
++    function refreshLocation(): void {
++        if (GlobalConfig.services.weatherLocation)
++            return;
++        locationRequestEpoch++;
++        automaticLocationResolved = false;
++        automaticLocationAttempts = 0;
++        ipApiRequestPending = false;
++        locationTimeout.stop();
++        ipApiRetryTimer.stop();
++        loc = "";
++        city = "";
++        cc = null;
++        forecast = [];
++        hourlyForecast = [];
++        reload();
      }
- 
-     function fetchCoordsFromCity(cityName: string): void {
+
+     function recordIpApiRateLimit(metadata: var): bool {
+-        const remainingHeader = metadata?.headers?.["x-rl"];
+-        const exhausted = remainingHeader !== undefined && Number(remainingHeader) === 0;
+-
++        const exhausted = metadata?.headers?.["x-rl"] !== undefined && Number(metadata.headers["x-rl"]) === 0;
+         if (metadata?.statusCode !== 429 && !exhausted)
+             return false;
+-
+-        const ttlHeader = metadata?.headers?.["x-ttl"];
+-        const ttl = Number(ttlHeader);
+-
+-        const delaySeconds = Number.isFinite(ttl) ? Math.max(1, Math.ceil(ttl) + 1) : 61;
+-
+-        const delayMs = delaySeconds * 1000;
+-        ipApiBlockedUntil = Date.now() + delayMs;
+-        ipApiRetryTimer.interval = delayMs;
+-        ipApiRetryTimer.restart();
+-
++        const ttl = Number(metadata?.headers?.["x-ttl"]);
++        ipApiBlockedUntil = Date.now() + (Number.isFinite(ttl) ? Math.max(1, Math.ceil(ttl) + 1) : 61) * 1000;
+         return true;
++    }
++
++    function requestLanguage(): string {
++        const language = (GlobalConfig.general?.language || Qt.locale().name).split(/[_.@-]/)[0].toLowerCase();
++        return /^[a-z]{2,3}$/.test(language) && language !== "c" ? language : "en";
+     }
+
+     function fixCityName(cityName: string): string {
+@@ -163,132 +234,239 @@
+         citiesSaveTimer.restart();
+     }
+
++    function formatLocationName(place: var): string {
++        const names = [place.adm2, place.name].filter(name => typeof name === "string" && name.length > 0);
++        return [...new Set(names)].join(" · ");
++    }
++
+     function fetchCityFromCoords(coords: string): void {
+-        if (cachedCities.has(coords)) {
+-            city = cachedCities.get(coords);
+-            return;
+-        }
+-
+-        // Defer until cache is loaded
++        const normalized = normalizeCoordinates(coords);
++        if (!normalized)
++            return;
++        // Version the cache key: old city-only entries must not hide districts.
++        const cacheKey = `${normalized}:district`;
++        if (cachedCities.has(cacheKey)) {
++            city = cachedCities.get(cacheKey);
++            return;
++        }
+         if (!citiesLoaded) {
+-            pendingCoords = coords;
+-            return;
+-        }
+-
+-        const [lat, lon] = coords.split(",").map(s => s.trim());
 -        const lang = Qt.locale().name.split("_")[0] || "en";
--        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=${lang}&format=json`;
+-
+-        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson&accept-language=${lang}`;
+-        const nominatimHeaders = {
+-            "User-Agent": `caelestia-shell/${CUtils.version} (+https://github.com/caelestia-dots/shell)`
++            pendingCoords = normalized;
++            return;
++        }
++        const [lat, lon] = normalized.split(",");
++        const configLocation = GlobalConfig.services.weatherLocation;
++        const path = `/geo/v2/city/lookup?location=${lon},${lat}&number=1&lang=${encodeURIComponent(requestLanguage())}`;
++        requestQWeather(path, json => {
++            if (root.loc !== normalized || GlobalConfig.services.weatherLocation !== configLocation)
++                return;
++            const place = json.location?.[0];
++            if (!place)
++                return;
++            const name = root.formatLocationName(place);
++            if (name) {
++                root.city = root.fixCityName(name);
++                root.cacheCity(cacheKey, root.city);
++            }
++        }, "location name");
++    }
++
++    function searchLocations(cityName: string, districtName: string, callback: var): void {
++        const query = districtName.trim() || cityName.trim();
++        if (!query || !apiKey || !apiHost) {
++            callback({error: "unavailable", locations: []});
++            return;
++        }
++        let path = `/geo/v2/city/lookup?location=${encodeURIComponent(query)}&number=10&lang=${encodeURIComponent(requestLanguage())}`;
++        if (districtName.trim() && cityName.trim())
++            path += `&adm=${encodeURIComponent(cityName.trim())}`;
++        requestQWeather(path, json => {
++            const places = (json.location || []).filter(place => place.id && place.name
++                && root.normalizeCoordinates(`${place.lat ?? ""},${place.lon ?? ""}`));
++            callback({error: places.length ? "" : "empty", locations: places});
++        }, "district search", () => callback({error: "network", locations: []}), false);
++    }
++
++    function selectLocation(place: var): bool {
++        if (!place || !place.id || !normalizeCoordinates(`${place.lat ?? ""},${place.lon ?? ""}`))
++            return false;
++        const id = String(place.id);
++        if (GlobalConfig.services.weatherLocation === id) {
++            // Explicit selection also refreshes an unchanged district immediately.
++            lastWeatherFetchAt = 0;
++            reload();
++        } else {
++            // The config change handler clears old data and resolves this exact ID,
++            // then onLocChanged refreshes current/hourly/daily weather together.
++            GlobalConfig.services.weatherLocation = id;
++        }
++        return true;
++    }
++
++    function fetchCoordsFromCity(cityName: string): void {
 +        if (pendingCityName === cityName)
 +            return;
- 
--        Requests.get(url, text => {
--            const json = JSON.parse(text);
--            if (json.results && json.results.length > 0) {
--                const result = json.results[0];
--                loc = result.latitude + "," + result.longitude;
--                city = fixCityName(result.name);
--            } else {
--                loc = "";
--                reload();
++
 +        pendingCityName = cityName;
 +        const lang = root.requestLanguage();
 +        const path = `/geo/v2/city/lookup?location=${encodeURIComponent(cityName)}&lang=${encodeURIComponent(lang)}`;
 +        requestQWeather(path, json => {
++            if (GlobalConfig.services.weatherLocation !== cityName)
++                return;
 +            root.pendingCityName = "";
 +            const result = json.location?.[0];
-+            if (!result || !Number.isFinite(Number(result.lat)) || !Number.isFinite(Number(result.lon))) {
++            const coords = result ? root.normalizeCoordinates(`${result.lat ?? ""},${result.lon ?? ""}`) : "";
++            if (!coords) {
 +                console.warn(lc, `QWeather city lookup returned no coordinates for ${cityName}`);
 +                return;
-             }
--        });
++            }
 +
-+            const coords = `${Number(result.lat).toFixed(2)},${Number(result.lon).toFixed(2)}`;
-+            root.city = fixCityName(result.name || cityName);
++            root.city = fixCityName(root.formatLocationName(result) || cityName);
 +            root.resolvedCityName = cityName;
 +            console.info(lc, `QWeather city resolved: ${root.city} (${coords})`);
 +            if (root.loc === coords)
@@ -116,38 +336,24 @@
 +            else
 +                root.loc = coords;
 +        }, `city lookup for ${cityName}`, () => root.pendingCityName = "");
-     }
- 
-     function fetchWeatherData(): void {
--        const url = getWeatherUrl();
--        if (url === "")
++    }
++
++    function fetchWeatherData(): void {
 +        if (!apiKey || !apiHost || !loc || loc.indexOf(",") === -1)
 +            return;
 +
 +        if (Date.now() - lastWeatherFetchAt < 900000)
-             return;
++            return;
 +        lastWeatherFetchAt = Date.now();
- 
--        Requests.get(url, text => {
--            const json = JSON.parse(text);
--            if (!json.current || !json.daily)
++
 +        const [lat, lon] = normalizeCoordinates(loc).split(",");
 +        const lang = root.requestLanguage();
 +        const query = `localTime=true&lang=${encodeURIComponent(lang)}`;
 +
 +        requestQWeather(`/weather/v1/current/${lat}/${lon}?${query}`, json => {
 +            if (!json.condition || !json.temperature)
-                 return;
- 
--            cc = {
--                weatherCode: json.current.weather_code,
--                tempC: json.current.temperature_2m,
--                feelsLikeC: json.current.apparent_temperature,
--                humidity: json.current.relative_humidity_2m,
--                windSpeed: json.current.wind_speed_10m,
--                isDay: json.current.is_day,
--                sunrise: json.daily.sunrise[0].replace("T", " "),
--                sunset: json.daily.sunset[0].replace("T", " ")
++                return;
++
 +            root.cc = {
 +                weatherCode: root.qWeatherIconCode(json.condition.code),
 +                description: json.condition.text || root.getWeatherCondition(root.qWeatherIconCode(json.condition.code)),
@@ -156,24 +362,14 @@
 +                humidity: Math.round(Number(json.humidity ?? 0) * 100),
 +                windSpeed: Number(json.wind?.speed?.value ?? 0) * 3.6,
 +                isDay: true
-             };
++            };
 +            console.info(lc, "QWeather current conditions loaded");
 +        }, "current weather");
 +
 +        requestQWeather(`/weather/v1/daily/${lat}/${lon}?days=7&${query}`, json => {
 +            if (!Array.isArray(json.days))
 +                return;
- 
--            const forecastList = [];
--            for (let i = 0; i < json.daily.time.length; i++)
--                forecastList.push({
--                    date: json.daily.time[i].replace(/-/g, "/"),
--                    maxTempC: json.daily.temperature_2m_max[i],
--                    minTempC: json.daily.temperature_2m_min[i],
--                    weatherCode: json.daily.weather_code[i],
--                    icon: Icons.getWeatherIcon(json.daily.weather_code[i])
--                });
--            forecast = forecastList;
++
 +            const today = json.days[0];
 +            root.sunriseTime = today?.astro?.sunrise || "";
 +            root.sunsetTime = today?.astro?.sunset || "";
@@ -189,17 +385,11 @@
 +            });
 +            console.info(lc, `QWeather daily forecast loaded: ${root.forecast.length} days`);
 +        }, "daily forecast");
- 
--            const hourlyList = [];
--            const now = new Date();
--            for (let i = 0; i < json.hourly.time.length; i++) {
--                const time = new Date(json.hourly.time[i].replace("T", " "));
++
 +        requestQWeather(`/weather/v1/hourly/${lat}/${lon}?hours=24&${query}`, json => {
 +            if (!Array.isArray(json.hours))
 +                return;
- 
--                if (time < now)
--                    continue;
++
 +            const now = new Date();
 +            root.hourlyForecast = json.hours.filter(hour => new Date(hour.forecastTime) >= now).map(hour => {
 +                const date = new Date(hour.forecastTime);
@@ -216,7 +406,116 @@
 +            console.info(lc, `QWeather hourly forecast loaded: ${root.hourlyForecast.length} hours`);
 +        }, "hourly forecast");
 +    }
- 
++
++    function scheduleRetry(): void {
++        // A failed attempt must not consume the successful-refresh cooldown.
++        root.lastWeatherFetchAt = 0;
++        if (!weatherRetryTimer.running)
++            weatherRetryTimer.start();
++    }
++
++    function requestQWeather(path: string, onSuccess: var, label: string, onFailure = null, retryWeather = true): void {
++        const host = apiHost.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
++        const headers = {
++            "X-QW-Api-Key": apiKey
+         };
+-
+-        Requests.get(nominatimUrl, text => {
+-            let geo;
++        const requestedLoc = root.loc;
++        const requestedConfig = GlobalConfig.services.weatherLocation;
++        Requests.get(`https://${host}${path}`, text => {
++            if (GlobalConfig.services.weatherLocation !== requestedConfig
++                    || (path.indexOf("/weather/") === 0 && root.loc !== requestedLoc))
++                return;
+             try {
+-                geo = JSON.parse(text).features?.[0]?.properties.geocoding;
++                onSuccess(JSON.parse(text));
+             } catch (error) {
+-                console.warn(lc, `Unable to parse response from nominatim: ${error}`);
+-                city = Tr.trCtx("Unknown city", "weather location unavailable");
+-                return;
++                if (onFailure)
++                    onFailure(error);
++                if (retryWeather)
++                    root.scheduleRetry();
++                console.warn(lc, `Unable to parse QWeather ${label} response: ${error}`);
+             }
+-
+-            if (geo) {
+-                const geoCity = geo.type === "city" ? geo.name : geo.city;
+-                if (geoCity) {
+-                    city = fixCityName(geoCity);
+-                    cacheCity(coords, city);
+-                    return;
+-                }
+-            }
+-
+-            console.warn(lc, "No locality in nominatim response");
+-            city = Tr.trCtx("Unknown city", "weather location unavailable");
+         }, error => {
+-            console.warn(lc, `Nominatim request failed: ${error}`);
+-            city = Tr.trCtx("Unknown city", "weather location unavailable");
+-        }, nominatimHeaders);
+-    }
+-
+-    function fetchCoordsFromCity(cityName: string): void {
+-        const lang = Qt.locale().name.split("_")[0] || "en";
+-        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=${lang}&format=json`;
+-
+-        Requests.get(url, text => {
+-            const json = JSON.parse(text);
+-            if (json.results && json.results.length > 0) {
+-                const result = json.results[0];
+-                loc = result.latitude + "," + result.longitude;
+-                city = fixCityName(result.name);
+-            } else {
+-                loc = "";
+-                reload();
+-            }
+-        });
+-    }
+-
+-    function fetchWeatherData(): void {
+-        const url = getWeatherUrl();
+-        if (url === "")
+-            return;
+-
+-        Requests.get(url, text => {
+-            const json = JSON.parse(text);
+-            if (!json.current || !json.daily)
+-                return;
+-
+-            cc = {
+-                weatherCode: json.current.weather_code,
+-                tempC: json.current.temperature_2m,
+-                feelsLikeC: json.current.apparent_temperature,
+-                humidity: json.current.relative_humidity_2m,
+-                windSpeed: json.current.wind_speed_10m,
+-                isDay: json.current.is_day,
+-                sunrise: json.daily.sunrise[0].replace("T", " "),
+-                sunset: json.daily.sunset[0].replace("T", " ")
+-            };
+-
+-            const forecastList = [];
+-            for (let i = 0; i < json.daily.time.length; i++)
+-                forecastList.push({
+-                    date: json.daily.time[i].replace(/-/g, "/"),
+-                    maxTempC: json.daily.temperature_2m_max[i],
+-                    minTempC: json.daily.temperature_2m_min[i],
+-                    weatherCode: json.daily.weather_code[i],
+-                    icon: Icons.getWeatherIcon(json.daily.weather_code[i])
+-                });
+-            forecast = forecastList;
+-
+-            const hourlyList = [];
+-            const now = new Date();
+-            for (let i = 0; i < json.hourly.time.length; i++) {
+-                const time = new Date(json.hourly.time[i].replace("T", " "));
+-
+-                if (time < now)
+-                    continue;
+-
 -                hourlyList.push({
 -                    timestamp: json.hourly.time[i],
 -                    hour: time.getHours(),
@@ -225,42 +524,40 @@
 -                    weatherCode: json.hourly.weather_code[i],
 -                    icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
 -                });
-+    function requestQWeather(path: string, onSuccess: var, label: string, onFailure = null): void {
-+        const host = apiHost.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
-+        const headers = {
-+            "X-QW-Api-Key": apiKey
-+        };
-+        Requests.get(`https://${host}${path}`, text => {
-+            try {
-+                onSuccess(JSON.parse(text));
-+            } catch (error) {
-+                if (onFailure)
-+                    onFailure(error);
-+                console.warn(lc, `Unable to parse QWeather ${label} response: ${error}`);
-             }
+-            }
 -            hourlyForecast = hourlyList;
 -        });
-+        }, error => {
-+            if (onFailure)
-+                onFailure(error);
-+            console.warn(lc, `QWeather ${label} request failed: ${error}`);
-+        }, headers);
-     }
- 
+-    }
+-
 -    function getWeatherUrl(): string {
 -        if (!loc || loc.indexOf(",") === -1)
-+    function normalizeCoordinates(coords: string): string {
-+        const values = coords.split(",").map(value => Number(value.trim()));
-+        if (values.length !== 2 || !values.every(Number.isFinite))
-             return "";
-+        return `${values[0].toFixed(2)},${values[1].toFixed(2)}`;
++            if (GlobalConfig.services.weatherLocation !== requestedConfig
++                    || (path.indexOf("/weather/") === 0 && root.loc !== requestedLoc))
++                return;
++            if (onFailure)
++                onFailure(error);
++            if (retryWeather)
++                root.scheduleRetry();
++            console.warn(lc, `QWeather ${label} request failed: ${error}`);
++        }, headers);
 +    }
- 
++
++    function normalizeCoordinates(coords: string): string {
++        const parts = coords.split(",");
++        if (parts.length !== 2 || parts.some(value => !value.trim()))
+             return "";
+-
 -        const [lat, lon] = loc.split(",").map(s => s.trim());
 -        const baseUrl = "https://api.open-meteo.com/v1/forecast";
 -        const params = ["latitude=" + lat, "longitude=" + lon, "hourly=weather_code,temperature_2m,precipitation_probability", "daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset", "current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m", "timezone=auto", "forecast_days=7"];
 -
 -        return baseUrl + "?" + params.join("&");
++        const values = parts.map(value => Number(value.trim()));
++        if (!values.every(Number.isFinite) || Math.abs(values[0]) > 90 || Math.abs(values[1]) > 180)
++            return "";
++        return `${values[0].toFixed(2)},${values[1].toFixed(2)}`;
++    }
++
 +    function qWeatherIconCode(code: var): string {
 +        const value = Number(code);
 +        if ([100, 150].includes(value))
@@ -281,12 +578,12 @@
 +            return "45";
 +        return String(code ?? "");
      }
- 
+
      function getWeatherCondition(code: string): string {
-@@ -325,7 +411,10 @@
+@@ -325,7 +503,10 @@
          return conditions[code] || Tr.trCtx("Unknown", "weather condition");
      }
- 
+
 -    onLocChanged: fetchWeatherData()
 +    onLocChanged: {
 +        lastWeatherFetchAt = 0;
@@ -295,10 +592,84 @@
      onCitiesLoadedChanged: {
          if (!citiesLoaded || !pendingCoords)
              return;
-@@ -386,6 +475,30 @@
+@@ -337,6 +518,20 @@
+
+     Connections {
+         function onWeatherLocationChanged(): void {
++            root.locationRequestEpoch++;
++            root.pendingCityName = "";
++            root.resolvedCityName = "";
++            root.automaticLocationResolved = false;
++            root.automaticLocationAttempts = 0;
++            root.ipApiRequestPending = false;
++            locationTimeout.stop();
++            ipApiRetryTimer.stop();
++            root.loc = "";
++            root.city = "";
++            root.cc = null;
++            root.forecast = [];
++            root.hourlyForecast = [];
++            root.locationState = GlobalConfig.services.weatherLocation ? "manual" : "idle";
+             root.reload();
+         }
+
+@@ -347,23 +542,37 @@
+         interval: 3600000 // 1 hour
+         running: true
+         repeat: true
+-        onTriggered: fetchWeatherData()
++        onTriggered: root.reload()
++    }
++
++    Timer {
++        id: weatherRetryTimer
++
++        interval: 60000 // Retry startup/network failures without opening Dashboard.
++        repeat: false
++        onTriggered: root.reload()
      }
- 
-     FileView {
+
+     Timer {
+         id: ipApiRetryTimer
+-
+         repeat: false
+-
+-        onTriggered: {
+-            const remaining = root.ipApiBlockedUntil - Date.now();
+-
+-            if (remaining > 0) {
+-                interval = Math.ceil(remaining);
+-                restart();
+-            } else {
+-                root.reload();
+-            }
++        onTriggered: root.reload()
++    }
++
++    Timer {
++        id: locationTimeout
++        interval: 15000
++        repeat: false
++        onTriggered: root.failAutomaticLocation(root.locationRequestEpoch)
++    }
++
++    IpcHandler {
++        target: "weather"
++        function relocate(): void { root.refreshLocation(); }
++        function status(): string {
++            return JSON.stringify({city: root.city, state: root.locationState,
++                automatic: !GlobalConfig.services.weatherLocation, attempts: root.automaticLocationAttempts,
++                resolved: root.automaticLocationResolved, weatherReady: !!root.cc});
+         }
+     }
+
+@@ -381,8 +590,28 @@
+         }
+     }
+
+-    ElapsedTimer {
+-        id: timer
++    FileView {
 +        id: qweatherKeyFile
 +
 +        printErrors: false
@@ -320,9 +691,412 @@
 +            root.reload();
 +        }
 +        onLoadFailed: err => console.warn(lc, `Unable to read local QWeather API host: ${err}`)
+     }
+
+     FileView {
+--- a/modules/nexus/pages/LanguageAndRegion.qml
++++ b/modules/nexus/pages/LanguageAndRegion.qml
+@@ -112,43 +112,31 @@
+             text: Tr.tr("Weather")
+         }
+
+-        // Placeholder until the map-based location picker lands
+-        ConnectedRect {
+-            Layout.fillWidth: true
++        TextFieldRow {
+             first: true
++            label: Tr.tr("Weather location")
++            subtext: Tr.tr("Leave empty for automatic location")
++            placeholderText: Tr.tr("City, district or coordinates")
++            value: GlobalConfig.services.weatherLocation
++            onEditingFinished: value => GlobalConfig.services.weatherLocation = value.trim()
++        }
++
++        InfoRow {
++            label: Tr.tr("Current location")
++            value: Weather.city || Tr.tr("Unknown")
++            subtext: GlobalConfig.services.weatherLocation ? Tr.tr("Manual location")
++                : Weather.locationState === "failed" ? Tr.tr("Unable to locate")
++                : Weather.locationState === "locating" || Weather.locationState === "retrying" ? Tr.tr("Locating...")
++                : Tr.tr("Approximate location based on your network")
++        }
++
++        NavRow {
+             last: true
+-            implicitHeight: comingSoon.implicitHeight + Tokens.padding.extraLarge * 2
+-
+-            ColumnLayout {
+-                id: comingSoon
+-
+-                anchors.centerIn: parent
+-                width: parent.width - Tokens.padding.largeIncreased * 2
+-                spacing: Tokens.padding.extraSmall
+-
+-                MaterialIcon {
+-                    Layout.alignment: Qt.AlignHCenter
+-                    text: "map"
+-                    color: Colours.palette.m3outlineVariant
+-                    fontStyle: Tokens.font.icon.extraLarge
+-                }
+-
+-                StyledText {
+-                    Layout.alignment: Qt.AlignHCenter
+-                    text: Tr.tr("Location picker coming soon")
+-                    color: Colours.palette.m3outlineVariant
+-                    font: Tokens.font.title.small
+-                }
+-
+-                StyledText {
+-                    Layout.fillWidth: true
+-                    horizontalAlignment: Text.AlignHCenter
+-                    wrapMode: Text.WordWrap
+-                    text: Tr.tr("Choose your weather location on a map in a future update")
+-                    color: Colours.palette.m3outlineVariant
+-                    font: Tokens.font.body.small
+-                }
+-            }
++            icon: "my_location"
++            text: Tr.tr("Locate again")
++            subtext: Tr.tr("Update your current location")
++            enabled: !GlobalConfig.services.weatherLocation && !Weather.ipApiRequestPending
++            onClicked: Weather.refreshLocation()
+         }
+
+         // Units
+--- a/modules/dashboard/WeatherTab.qml
++++ b/modules/dashboard/WeatherTab.qml
+@@ -3,11 +3,14 @@
+ import Caelestia.Config
+ import Caelestia.I18n
+ import qs.components
++import qs.components.controls
+ import qs.services
+ import qs.utils
+
+ Item {
+     id: root
++
++    required property ScreenState screenState
+
+     readonly property var today: Weather.forecast && Weather.forecast.length > 0 ? Weather.forecast[0] : null
+
+@@ -25,8 +28,10 @@
+             Layout.leftMargin: Tokens.padding.large
+             Layout.rightMargin: Tokens.padding.large
+             Layout.fillWidth: true
++            spacing: Tokens.spacing.largeIncreased
+
+             Column {
++                id: locationHeading
+                 spacing: Tokens.spacing.extraSmall
+
+                 StyledText {
+@@ -63,6 +68,28 @@
+                     colour: Colours.palette.m3tertiary
+                 }
+             }
++
++            IconTextButton {
++                objectName: "weatherLocationButton"
++                Layout.alignment: Qt.AlignVCenter
++                Layout.minimumWidth: 112
++                Layout.preferredHeight: Math.max(48, locationHeading.implicitHeight)
++                horizontalPadding: Tokens.padding.large
++                font: Tokens.font.body.medium
++                icon: "location_on"
++                type: ButtonBase.Tonal
++                isToggle: true
++                checked: locationPicker.expanded
++                text: Tr.tr("Location")
++                onClicked: locationPicker.expanded = !locationPicker.expanded
++            }
++
++        }
++
++        WeatherLocationPicker {
++            id: locationPicker
++            screenState: root.screenState
++            Layout.fillWidth: true
+         }
+
+         StyledRect {
+@@ -203,6 +230,7 @@
+                 }
+             }
+         }
++
+     }
+
+     component DetailCard: StyledRect {
+--- a/modules/dashboard/Content.qml
++++ b/modules/dashboard/Content.qml
+@@ -180,7 +180,7 @@
+             Component {
+                 id: weatherComponent
+
+-                WeatherTab {}
++                WeatherTab { screenState: root.screenState }
+             }
+
+             Behavior on contentX {
+--- /dev/null
++++ b/modules/dashboard/WeatherLocationPicker.qml
+@@ -0,0 +1,258 @@
++pragma ComponentBehavior: Bound
++
++import QtQuick
++import QtQuick.Layouts
++import Caelestia.Config
++import Caelestia.I18n
++import qs.components
++import qs.components.controls
++import qs.services
++
++StyledRect {
++    id: root
++    objectName: "weatherLocationPicker"
++
++    required property ScreenState screenState
++    property bool expanded: false
++    property bool searching: false
++    property int searchEpoch: 0
++    property var locations: []
++    property string message: ""
++
++    function updateTextInputFocus(): void {
++        if (!screenState)
++            return;
++        screenState.dashboardTextInput = expanded && (cityField.activeFocus || districtField.activeFocus);
 +    }
 +
-+    FileView {
-         id: citiesStorage
- 
-         printErrors: false
++    Component.onDestruction: {
++        if (screenState)
++            screenState.dashboardTextInput = false;
++    }
++    Connections {
++        target: root.screenState
++        function onDashboardChanged(): void {
++            if (!root.screenState.dashboard)
++                root.expanded = false;
++        }
++        function onDashboardTabChanged(): void { root.expanded = false; }
++    }
++
++    function invalidateSearch(): void {
++        searchEpoch++;
++        searching = false;
++        locations = [];
++        message = "";
++        searchTimeout.stop();
++    }
++
++    function search(): void {
++        if (searching)
++            return;
++        const city = cityField.text.trim();
++        const district = districtField.text.trim();
++        if (!city && !district) {
++            message = Tr.tr("Enter a city or district first");
++            return;
++        }
++        const epoch = ++searchEpoch;
++        locations = [];
++        searching = true;
++        message = Tr.tr("Searching...");
++        searchTimeout.restart();
++        Weather.searchLocations(city, district, result => {
++            if (!root || epoch !== root.searchEpoch || !root.expanded)
++                return;
++            searchTimeout.stop();
++            root.searching = false;
++            root.locations = result.locations || [];
++            root.message = result.error === "network" || result.error === "unavailable"
++                ? Tr.tr("Search failed. Try again.")
++                : root.locations.length ? ""
++                : Tr.tr("No matching places");
++        });
++    }
++
++    visible: expanded || implicitHeight > 0
++    enabled: expanded
++    clip: true
++    opacity: expanded ? 1 : 0
++    Behavior on opacity { Anim { type: Anim.FastEffects } }
++    Behavior on implicitHeight { Anim { type: Anim.DefaultSpatial } }
++    implicitHeight: expanded ? body.implicitHeight + Tokens.padding.medium * 2 : 0
++    radius: Tokens.rounding.large
++    color: Colours.tPalette.m3surfaceContainer
++    Keys.onEscapePressed: expanded = false
++
++    onExpandedChanged: {
++        if (!expanded) {
++            invalidateSearch();
++            searchTimeout.stop();
++            cityField.focus = false;
++            districtField.focus = false;
++            if (root.screenState)
++                root.screenState.dashboardTextInput = false;
++        }
++    }
++
++    Timer {
++        id: searchTimeout
++        interval: 15000
++        onTriggered: {
++            root.searchEpoch++;
++            root.searching = false;
++            root.message = Tr.tr("Search failed. Try again.");
++        }
++    }
++
++    ColumnLayout {
++        id: body
++        anchors.left: parent.left
++        anchors.right: parent.right
++        anchors.top: parent.top
++        anchors.margins: Tokens.padding.medium
++        spacing: Tokens.spacing.small
++
++        RowLayout {
++            Layout.fillWidth: true
++            spacing: Tokens.spacing.small
++
++            StyledText {
++                Layout.fillWidth: true
++                text: Tr.tr("Choose location")
++                font: Tokens.font.body.medium
++                elide: Text.ElideRight
++            }
++
++            IconTextButton {
++                type: ButtonBase.Text
++                icon: "my_location"
++                text: Tr.tr("Auto locate")
++                disabled: Weather.ipApiRequestPending
++                onClicked: {
++                    root.invalidateSearch();
++                    if (GlobalConfig.services.weatherLocation)
++                        GlobalConfig.services.weatherLocation = "";
++                    else
++                        Weather.refreshLocation();
++                    root.expanded = false;
++                }
++            }
++
++            IconButton {
++                icon: "close"
++                type: ButtonBase.Text
++                onClicked: root.expanded = false
++            }
++        }
++
++        RowLayout {
++            Layout.fillWidth: true
++            spacing: Tokens.spacing.small
++
++            StyledTextField {
++                id: cityField
++                objectName: "weatherCityField"
++                Layout.fillWidth: true
++                Layout.preferredWidth: 1
++                verticalPadding: Tokens.padding.small
++                placeholderText: Tr.tr("City")
++                onActiveFocusChanged: root.updateTextInputFocus()
++                onTextEdited: root.invalidateSearch()
++                onAccepted: root.search()
++            }
++
++            StyledTextField {
++                id: districtField
++                objectName: "weatherDistrictField"
++                Layout.fillWidth: true
++                Layout.preferredWidth: 1
++                verticalPadding: Tokens.padding.small
++                placeholderText: Tr.tr("District (optional)")
++                onActiveFocusChanged: root.updateTextInputFocus()
++                onTextEdited: root.invalidateSearch()
++                onAccepted: root.search()
++            }
++
++            IconTextButton {
++                icon: "search"
++                type: ButtonBase.Tonal
++                text: Tr.tr("Search")
++                disabled: root.searching
++                onClicked: root.search()
++            }
++        }
++
++        StyledText {
++            Layout.fillWidth: true
++            visible: !!root.message
++            text: root.message
++            wrapMode: Text.WordWrap
++            font: Tokens.font.label.small
++            color: Colours.palette.m3onSurfaceVariant
++        }
++
++        ListView {
++            id: results
++            Layout.fillWidth: true
++            Layout.preferredHeight: Math.min(count, 3) * 56
++            Behavior on Layout.preferredHeight { Anim { type: Anim.DefaultSpatial } }
++            visible: count > 0
++            clip: true
++            boundsBehavior: Flickable.StopAtBounds
++            model: root.locations
++
++            delegate: ButtonBase {
++                id: resultButton
++                required property var modelData
++                implicitWidth: results.width
++                implicitHeight: 56
++                width: results.width
++                height: 56
++                type: ButtonBase.Text
++                activeOnColour: Colours.palette.m3primary
++                inactiveOnColour: Colours.palette.m3onSurface
++                radius: Tokens.rounding.small
++                internalChecked: GlobalConfig.services.weatherLocation === String(modelData.id)
++
++                RowLayout {
++                    anchors.fill: parent
++                    anchors.leftMargin: Tokens.padding.small
++                    anchors.rightMargin: Tokens.padding.small
++                    spacing: Tokens.spacing.small
++
++                    MaterialIcon {
++                        text: resultButton.internalChecked ? "check_circle" : "location_on"
++                        color: Colours.palette.m3primary
++                        fontStyle: Tokens.font.icon.medium
++                    }
++
++                    ColumnLayout {
++                        Layout.fillWidth: true
++                        spacing: 2
++                        StyledText {
++                            Layout.fillWidth: true
++                            text: resultButton.modelData.name
++                            elide: Text.ElideRight
++                            font: Tokens.font.body.medium
++                            color: resultButton.onColour
++                        }
++                        StyledText {
++                            Layout.fillWidth: true
++                            text: [...new Set([resultButton.modelData.country, resultButton.modelData.adm1,
++                                resultButton.modelData.adm2].filter(v => v && v !== resultButton.modelData.name))].join(" · ")
++                            elide: Text.ElideRight
++                            font: Tokens.font.label.small
++                            color: Colours.palette.m3onSurfaceVariant
++                        }
++                    }
++                }
++
++                onClicked: {
++                    if (Weather.selectLocation(modelData))
++                        root.expanded = false;
++                }
++            }
++        }
++    }
++}

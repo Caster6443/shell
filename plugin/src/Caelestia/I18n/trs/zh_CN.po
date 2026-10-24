@@ -3481,3 +3481,151 @@ msgstr "设置"
 #: plugin/src/Caelestia/Config/launcherconfig.hpp
 msgid "Configure the shell"
 msgstr ""
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Weather location"
+msgstr "天气位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Leave empty to locate once when the shell starts"
+msgstr "留空则在每次 Shell 启动时定位一次"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Automatic, district name, or latitude,longitude"
+msgstr "自动定位、区县名或纬度,经度"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Current location"
+msgstr "当前位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Unknown"
+msgstr "未知"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Manual location"
+msgstr "手动位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Location failed; retry below after connecting"
+msgstr "定位失败；联网后可在下方重试"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Locating..."
+msgstr "正在定位…"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "IP location is approximate; kept until the shell restarts"
+msgstr "IP 定位为粗略位置，保持至 Shell 重启"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Locate again"
+msgstr "重新定位"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Use after travelling; turn off your proxy before locating"
+msgstr "出差换地点后可使用；定位前请关闭代理"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Enter a city or district first"
+msgstr "请先输入城市或区县"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Searching..."
+msgstr "正在搜索…"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Unable to search; check your connection and try again"
+msgstr "搜索失败，请检查网络后重试"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Select the district to apply and refresh weather"
+msgstr "点击区县候选，应用位置并立即刷新天气"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "No match; try the city and a shorter district name"
+msgstr "没有找到匹配地区，请填写城市并尝试简短区县名"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Manual district"
+msgstr "手动指定地区"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Automatic location (approximate IP)"
+msgstr "自动定位（IP 粗略位置）"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Use automatic location"
+msgstr "恢复自动定位"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Locating now; disable your proxy for the real network location"
+msgstr "正在定位；关闭代理后可获取实际网络出口位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "City, e.g. Wuhan"
+msgstr "城市，如武汉"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "District, e.g. Hanyang"
+msgstr "区县，如汉阳"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Search"
+msgstr "搜索"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Search and select a district; typing alone does not change the location"
+msgstr "先搜索再选择具体区县，仅输入文字不会改变当前位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "District saved; refreshing current, hourly and daily weather"
+msgstr "地区已保存，正在刷新实时、逐小时和七日天气"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Location"
+msgstr "地区"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Choose location"
+msgstr "选择地区"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Auto locate"
+msgstr "自动定位"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "City"
+msgstr "城市"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "District (optional)"
+msgstr "区县（可选）"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Search failed. Try again."
+msgstr "搜索失败，请重试"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "No matching places"
+msgstr "未找到相关地区"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Leave empty for automatic location"
+msgstr "留空时自动定位"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "City, district or coordinates"
+msgstr "城市、区县或经纬度"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Unable to locate"
+msgstr "暂时无法定位"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Approximate location based on your network"
+msgstr "根据网络估算的位置"
+
+#: modules/dashboard/WeatherLocationPicker.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Update your current location"
+msgstr "更新当前位置"

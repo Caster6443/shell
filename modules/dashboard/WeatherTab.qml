@@ -3,11 +3,14 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.utils
 
 Item {
     id: root
+
+    required property ScreenState screenState
 
     readonly property var today: Weather.forecast && Weather.forecast.length > 0 ? Weather.forecast[0] : null
 
@@ -25,8 +28,10 @@ Item {
             Layout.leftMargin: Tokens.padding.large
             Layout.rightMargin: Tokens.padding.large
             Layout.fillWidth: true
+            spacing: Tokens.spacing.largeIncreased
 
             Column {
+                id: locationHeading
                 spacing: Tokens.spacing.extraSmall
 
                 StyledText {
@@ -63,6 +68,28 @@ Item {
                     colour: Colours.palette.m3tertiary
                 }
             }
+
+            IconTextButton {
+                objectName: "weatherLocationButton"
+                Layout.alignment: Qt.AlignVCenter
+                Layout.minimumWidth: 112
+                Layout.preferredHeight: Math.max(48, locationHeading.implicitHeight)
+                horizontalPadding: Tokens.padding.large
+                font: Tokens.font.body.medium
+                icon: "location_on"
+                type: ButtonBase.Tonal
+                isToggle: true
+                checked: locationPicker.expanded
+                text: Tr.tr("Location")
+                onClicked: locationPicker.expanded = !locationPicker.expanded
+            }
+
+        }
+
+        WeatherLocationPicker {
+            id: locationPicker
+            screenState: root.screenState
+            Layout.fillWidth: true
         }
 
         StyledRect {

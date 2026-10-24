@@ -35,9 +35,9 @@ RowLayout {
 	property string statusText: ""
 	property string tempPath: ""
 	property string finalPath: ""
+	property string mpdRelativePath: ""
 	property string sourceUrl: ""
 	property bool cancelRequested: false
-	readonly property bool recognitionRunning: recognitionSinkProc.running || recognitionProc.running
 	readonly property string musicRoot: "/home/caster/Music"
 	readonly property string statePath: `${Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") || "") + "/.local/state"}/caelestia/audio-import.json`
 	readonly property bool mpdActive: {
@@ -56,6 +56,8 @@ RowLayout {
 	}
 
 	function startDownload(): void {
+		if (root.phase !== "name")
+			return;
 		const title = root.cleanName(root.songTitle);
 		const url = String(Players.active?.metadata?.["xesam:url"] ?? "").trim();
 		if (!title) {
@@ -82,42 +84,6 @@ RowLayout {
 		prepareProc.running = true;
 	}
 
-	function startRecognition(device: string): void {
-		const command = ["timeout", "18s", "songrec", "recognize", "--json", "--request-interval", "5"];
-		if (device)
-			command.push("--audio-device", device);
-		recognitionProc.command = command;
-		recognitionProc.running = true;
-	}
-
-	function findRecognizedTitle(value: var): string {
-		if (!value || typeof value !== "object")
-			return "";
-		if (!Array.isArray(value)) {
-			for (const key of ["track", "song", "title", "trackTitle", "track_title", "name"]) {
-				const child = value[key];
-				if ((key === "track" || key === "song") && child && typeof child === "object") {
-					const nested = root.findRecognizedTitle(child);
-					if (nested)
-						return nested;
-				}
-				if (["title", "trackTitle", "track_title", "name"].includes(key) && typeof child === "string" && child.trim())
-					return child.trim();
-			}
-			for (const child of Object.values(value)) {
-				const nested = root.findRecognizedTitle(child);
-				if (nested)
-					return nested;
-			}
-		} else {
-			for (const child of value) {
-				const nested = root.findRecognizedTitle(child);
-				if (nested)
-					return nested;
-			}
-		}
-		return "";
-	}
 
 	function finishWithArtist(): void {
 		const value = root.cleanName(root.artist);
@@ -135,6 +101,7 @@ RowLayout {
 		];
 		tagProc.running = true;
 	}
+
 
 	FileView {
 		id: settingsFile
@@ -211,6 +178,7 @@ RowLayout {
 			color: Colours.palette.m3onSecondaryContainer
 		}
 
+
 		RowLayout {
 			anchors.fill: parent
 			anchors.leftMargin: Tokens.padding.small
@@ -277,24 +245,6 @@ RowLayout {
 				elide: Text.ElideRight
 			}
 
-			CircularIndicator {
-				implicitSize: 20
-				visible: root.phase === "name" && root.recognitionRunning
-				running: visible
-			}
-
-			IconButton {
-				id: recognizeButton
-				icon: "hearing"
-				isRound: true
-				visible: root.phase === "name" && !root.recognitionRunning
-				ToolTip.visible: hovered
-				ToolTip.text: root.statusText || "听歌识曲（读取当前扬声器输出）"
-				onClicked: {
-					root.statusText = "正在识别当前扬声器播放的声音…";
-					recognitionSinkProc.running = true;
-				}
-			}
 
 			IconButton {
 				icon: "check"
@@ -326,6 +276,7 @@ RowLayout {
 					root.cancelRequested = true;
 					prepareProc.running = false;
 					downloadProc.running = false;
+					duplicateProc.running = false;
 					root.phase = "name";
 					root.statusText = "已取消";
 				}
@@ -363,56 +314,11 @@ RowLayout {
 			}
 			root.statusText = "正在下载音频…";
 			downloadProc.command = [
-				"yt-dlp", "--extract-audio", "--audio-format", "mp3", "--no-playlist",
+				"yt-dlp", "--ignore-config", "--extract-audio", "--audio-format", "mp3", "--no-playlist",
 				"--embed-thumbnail", "--cookies-from-browser", "firefox", "--socket-timeout", "15",
-				"--no-progress", "--output", root.tempPath.slice(0, -4) + ".%(ext)s", root.sourceUrl
+				"--no-progress", "--output", root.tempPath.slice(0, -4) + ".%(ext)s", "--", root.sourceUrl
 			];
 			downloadProc.running = true;
-		}
-	}
-
-	Process {
-		id: recognitionSinkProc
-		command: ["pactl", "get-default-sink"]
-		running: false
-		stdout: StdioCollector {
-			id: recognitionSinkName
-		}
-		onExited: (code, status) => {
-			const sink = code === 0 ? String(recognitionSinkName.text).trim() : "";
-			if (!sink) {
-				root.statusText = "无法读取当前默认扬声器";
-				return;
-			}
-			root.startRecognition(`${sink}.monitor`);
-		}
-	}
-
-	Process {
-		id: recognitionProc
-		command: []
-		running: false
-		stdout: StdioCollector {
-			onStreamFinished: {
-				try {
-					const title = root.findRecognizedTitle(JSON.parse(String(this.text)));
-					if (title) {
-						root.songTitle = title;
-						titleField.text = title;
-						root.statusText = "已识别歌曲名，可修改后确认";
-					} else {
-						root.statusText = "没有识别到歌曲";
-					}
-				} catch (e) {
-					root.statusText = "识曲结果解析失败";
-				}
-			}
-		}
-		onExited: (code, status) => {
-			if (code === 124)
-				root.statusText = "识曲超时，请再试一次";
-			else if (code !== 0 && !root.statusText.startsWith("已识别"))
-				root.statusText = "识曲失败，请检查扬声器输出和网络";
 		}
 	}
 
@@ -426,13 +332,35 @@ RowLayout {
 				root.phase = "name";
 				root.statusText = "已取消";
 			} else if (code === 0) {
-				root.phase = "artist";
-				root.artist = "";
-				root.statusText = "下载完成，请输入歌手名";
+				root.statusText = "正在检查重复音频…";
+				duplicateProc.command = ["python", decodeURIComponent(Qt.resolvedUrl("AudioImportCheck.py").toString()).replace(/^file:\/\//, ""), root.tempPath, root.directory];
+				duplicateProc.running = true;
 			} else {
 				Quickshell.execDetached(["rm", "-f", root.tempPath]);
 				root.phase = "name";
 				root.statusText = `下载失败（退出码 ${code}），请检查链接、网络或 Firefox cookies`;
+			}
+		}
+	}
+
+	Process {
+		id: duplicateProc
+		running: false
+		stdout: StdioCollector { id: duplicateOutput }
+		onExited: (code, status) => {
+			if (root.cancelRequested) {
+				root.cancelRequested = false;
+				Quickshell.execDetached(["rm", "-f", root.tempPath]);
+				return;
+			}
+			if (code === 0) {
+				root.phase = "artist";
+				root.artist = "";
+				root.statusText = "下载完成，请输入歌手名";
+			} else {
+				root.phase = "name";
+				root.statusText = String(duplicateOutput.text).trim() || "重复音频检查失败，未保存歌曲";
+				Quickshell.execDetached(["rm", "-f", root.tempPath]);
 			}
 		}
 	}
@@ -450,9 +378,10 @@ RowLayout {
 			const dir = root.directory.endsWith("/") ? root.directory.slice(0, -1) : root.directory;
 			if (dir === root.musicRoot || dir.startsWith(root.musicRoot + "/")) {
 				const relative = root.finalPath.substring(root.musicRoot.length + 1);
-				mpdRefreshProc.command = ["mpc", "update", relative];
+				root.mpdRelativePath = relative;
+				mpdRefreshProc.command = ["mpc", "--wait", "update", relative];
 				mpdRefreshProc.running = true;
-				root.statusText = "已保存，正在刷新 MPD 数据库…";
+				root.statusText = "已保存，正在刷新 MPD 音乐库…";
 			} else {
 				root.phase = "idle";
 				root.statusText = "已保存；目录位于 MPD 音乐库之外，未加入数据库";
@@ -464,8 +393,23 @@ RowLayout {
 		id: mpdRefreshProc
 		running: false
 		onExited: (code, status) => {
+			if (code === 0) {
+				mpdQueueProc.command = ["mpc", "add", root.mpdRelativePath];
+				mpdQueueProc.running = true;
+				root.statusText = "音乐库已更新，正在加入当前播放队列…";
+			} else {
+				root.phase = "idle";
+				root.statusText = "已保存，但 MPD 音乐库刷新失败，未加入播放队列";
+			}
+		}
+	}
+
+	Process {
+		id: mpdQueueProc
+		running: false
+		onExited: (code, status) => {
 			root.phase = "idle";
-			root.statusText = code === 0 ? "已保存并刷新 MPD 数据库" : "已保存，但 MPD 数据库刷新失败";
+			root.statusText = code === 0 ? "已保存、刷新音乐库并加入当前队列" : "音乐库已更新，但加入当前播放队列失败";
 		}
 	}
 }

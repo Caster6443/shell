@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import Caelestia.Config
+import Caelestia.Multimedia
 import qs.services
 import Quickshell
 import Quickshell.Hyprland
@@ -158,12 +159,15 @@ Item {
         color: Colours.palette.m3surfaceContainer
         border.width: current ? 2 : 1
         border.color: current ? M3Palette.m3primary : Qt.alpha(M3Palette.m3onSurface, 0.25)
-        Image {
+        Visual {
             id: wallpaper
             x: 6; y: 6
             width: parent.width - 12
             height: parent.height - 12
             source: isSpecial ? "" : overviewRoot.currentWallpaperPath
+            // Decode a poster once; do not play one video per workspace card.
+            playing: false
+            animate: false
             fillMode: Image.PreserveAspectCrop
             opacity: workspaceContainer.matchingCount > 0 ? 0.6 : 1
             layer.enabled: true

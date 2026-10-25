@@ -1,10 +1,10 @@
 --- a/modules/session/Content.qml
 +++ b/modules/session/Content.qml
-@@ -52,7 +52,6 @@
-     AnimatedImage {
-         width: Tokens.sizes.session.button
-         height: Tokens.sizes.session.button
--        sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
+@@ -55,7 +55,6 @@
+         sourceComponent: AnimatedImage {
+             width: Tokens.sizes.session.button
+             height: Tokens.sizes.session.button
+-            sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
  
-         playing: visible
-         asynchronous: true
+             playing: visible
+             asynchronous: true

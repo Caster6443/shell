@@ -43,3 +43,7 @@
 
 ### Bar移动存储（2026-10-23）
 `bar/removable-devices.patch`连接Bar与popout到`removable/`外挂；插入设备时托盘旁显示USB图标。普通sync只同步外挂，重铺底座由deploy-upgrade恢复两个连接点。后端与测试范围见`removable/README.md`。
+
+
+### 2026-10-25 原生壁纸试用部署
+上游已合并至2e1c51fa，当前正式用户配置使用新Visual/Shader底座及~/.local/lib/caelestia-shell-native/qml插件（shell.qml的Env pragma指定），系统caelestia-shell-git包仍为旧版。当前不应用awww补丁，旧wallpaperbackend源码仅保留供回退。不要直接用旧系统包重铺当前用户目录；将来正式打包安装新底座后再切换部署来源。桌面时钟GIF补丁已重基并移除AnimatedImage.sourceSize，部署后必须运行 `python tests/background/check_gif_source_size.py`，以防Qt 6.12已知递归崩溃复发。当前维护patch已按新底座调整，尚未把旧deploy-upgrade脚本当作本次用户级插件试用的一键重建入口。

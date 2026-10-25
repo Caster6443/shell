@@ -20,3 +20,6 @@ patch -d "$HOME/.config/quickshell/caelestia" -p1 < patches/awww/native-backend.
 检查 `qs -c caelestia ipc call wallpaperbackend status` 与 `awww query`。此补丁尚不由 deploy-upgrade.sh 自动应用。
 
 回退须同时恢复三个底座文件、旧 cli.json postHook 及 wallpaperEnabled=false；不能只恢复旧 hook，否则会重复切壁纸。
+
+
+更正（2026-10-25）：合并上游原生壁纸后，当前运行配置不再应用本补丁，awww-daemon已停止；本目录保留供旧方案回退。当前播放和过渡由Caelestia.Multimedia/Shader提供。

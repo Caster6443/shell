@@ -1,15 +1,20 @@
 --- a/modules/lock/LockSurface.qml
 +++ b/modules/lock/LockSurface.qml
-@@ -7,6 +7,8 @@
+@@ -4,10 +4,11 @@
+ import QtQuick.Effects
+ import Quickshell.Wayland
+ import Caelestia.Config
+-import Caelestia.Multimedia
+-import Caelestia.State
  import qs.components
- import qs.components.images
++import qs.components.images
  import qs.services
 +import qs.lockcosmos
 +import qs.services as CaelestiaServices
  
  WlSessionLockSurface {
      id: root
-@@ -16,66 +18,31 @@
+@@ -17,66 +18,31 @@
  
      readonly property alias unlocking: unlockAnim.running
  
@@ -89,7 +94,7 @@
              }
          }
          PropertyAction {
-@@ -85,162 +52,59 @@
+@@ -86,163 +52,59 @@
          }
      }
  
@@ -234,8 +239,9 @@
 -    Component {
 -        id: wallpaperBackground
 -
--        CachingImage {
--            path: Wallpapers.current
+-        Visual {
+-            source: Wallpapers.current
+-            playing: PersistentState.wallpaperPlaying
 -        }
 -    }
 -

@@ -1,6 +1,6 @@
 --- a/modules/background/DesktopClock.qml
 +++ b/modules/background/DesktopClock.qml
-@@ -3,10 +3,16 @@
+@@ -3,11 +3,17 @@
  import QtQuick
  import QtQuick.Effects
  import QtQuick.Layouts
@@ -8,6 +8,7 @@
 +import Quickshell.Io
  import Caelestia.Config
  import Caelestia.I18n
+ import Caelestia.State
  import qs.components
 +import qs.components.controls
 +import qs.components.effects
@@ -17,8 +18,8 @@
  
  Item {
      id: root
-@@ -20,9 +26,107 @@
-     readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.enabled
+@@ -21,9 +27,107 @@
+     readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !RuntimeState.gameMode
      readonly property bool invertColors: Config.background.desktopClock.invertColors
      readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
 -    readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
@@ -128,7 +129,7 @@
  
      implicitWidth: layout.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
      implicitHeight: layout.implicitHeight + (Tokens.padding.extraLargeIncreased * root.clockScale)
-@@ -67,6 +171,10 @@
+@@ -68,6 +172,10 @@
              radius: Tokens.rounding.extraLarge * root.clockScale
              opacity: Config.background.desktopClock.background.opacity
              color: Colours.palette.m3surface
@@ -139,7 +140,7 @@
  
              layer.enabled: root.blurEnabled
          }
-@@ -75,81 +183,505 @@
+@@ -76,78 +184,503 @@
              id: layout
  
              anchors.centerIn: parent
@@ -157,11 +158,7 @@
 +            Behavior on scale {
 +                NumberAnimation { duration: 280; easing.type: root.showingTodos || root.showingAlarmSettings || root.reminderActive ? Easing.InCubic : Easing.OutCubic }
 +            }
- 
--                StyledText {
--                    text: Time.hourStr
--                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
--                    color: root.safePrimary
++
 +            ColumnLayout {
 +                Layout.alignment: Qt.AlignTop
 +                spacing: Tokens.spacing.large * root.clockScale
@@ -224,14 +221,8 @@
 +                            color: root.safeSecondary
 +                        }
 +                    }
-                 }
- 
--                StyledText {
--                    text: ":"
--                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).build()
--                    color: root.safeTertiary
--                    opacity: 0.8
--                    Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
++                }
++
 +                RowLayout {
 +                    Layout.alignment: Qt.AlignLeft
 +
@@ -339,25 +330,8 @@
 +                            }
 +                        }
 +                    }
-                 }
- 
--                StyledText {
--                    text: Time.minuteStr
--                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
--                    color: root.safeSecondary
--                }
--
--                Loader {
--                    asynchronous: true
--                    Layout.alignment: Qt.AlignTop
--                    Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
--
--                    active: Units.twelveHourClock
--                    visible: active
--
--                    sourceComponent: StyledText {
--                        text: Time.amPmStr
--                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).build()
++                }
++
 +            }
 +
 +            ColumnLayout {
@@ -371,8 +345,8 @@
 +                        Layout.fillWidth: true
 +                        text: Time.format("MMMM").toUpperCase()
 +                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).letterSpacing(3).weight(Font.Bold).build()
-                         color: root.safeSecondary
-                     }
++                        color: root.safeSecondary
++                    }
 +
 +                    StyledText {
 +                        text: Time.format("yyyy")
@@ -481,18 +455,10 @@
 +
 +                        }
 +                    }
-                 }
-             }
++                }
++            }
 +        }
- 
--            StyledRect {
--                Layout.fillHeight: true
--                Layout.preferredWidth: 4 * root.clockScale
--                Layout.topMargin: Tokens.spacing.large * root.clockScale
--                Layout.bottomMargin: Tokens.spacing.large * root.clockScale
--                radius: Tokens.rounding.full
--                color: root.safePrimary
--                opacity: 0.8
++
 +        Item {
 +            id: todoScene
 +            anchors.fill: parent
@@ -512,11 +478,9 @@
 +                scaleFactor: root.clockScale
 +                onBackRequested: root.showingTodos = false
 +                onPointerLeft: root.showingTodos = false
-             }
++            }
 +        }
- 
--            ColumnLayout {
--                spacing: 0
++
 +        Item {
 +            id: reminderScene
 +            anchors.fill: parent
@@ -538,14 +502,11 @@
 +                visible: false
 +                layer.enabled: true
 +            }
- 
--                StyledText {
--                    text: Time.format("MMMM").toUpperCase()
--                    font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).letterSpacing(4).weight(Font.Bold).build()
--                    color: root.safeSecondary
++
 +            AnimatedImage {
 +                id: reminderImage
 +                anchors.fill: parent
++                // Qt 6.12: sourceSize on AnimatedImage can recurse until SIGSEGV.
 +                asynchronous: true
 +                cache: true
 +                playing: root.reminderActive
@@ -554,13 +515,9 @@
 +                layer.enabled: true
 +                layer.effect: Mask {
 +                    maskSource: reminderRoundedMask
-                 }
++                }
 +            }
- 
--                StyledText {
--                    text: Time.format("dd")
--                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * root.clockScale).letterSpacing(2).weight(Font.Medium).build()
--                    color: root.safePrimary
++
 +            StyledRect {
 +                anchors.fill: parent
 +                radius: Tokens.rounding.extraLarge * root.clockScale
@@ -594,12 +551,75 @@
 +                        style: Text.Outline
 +                        styleColor: Qt.rgba(0, 0, 0, 0.82)
 +                    }
-                 }
++                }
  
                  StyledText {
+-                    text: Time.hourStr
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
+-                    color: root.safePrimary
+-                }
+-
+-                StyledText {
+-                    text: ":"
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).build()
+-                    color: root.safeTertiary
+-                    opacity: 0.8
+-                    Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
+-                }
+-
+-                StyledText {
+-                    text: Time.minuteStr
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * 3 * root.clockScale).weight(Font.Bold).build()
+-                    color: root.safeSecondary
+-                }
+-
+-                Loader {
+-                    asynchronous: true
+-                    Layout.alignment: Qt.AlignTop
+-                    Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
+-
+-                    active: Units.twelveHourClock
+-                    visible: active
+-
+-                    sourceComponent: StyledText {
+-                        text: Time.amPmStr
+-                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).build()
+-                        color: root.safeSecondary
+-                    }
+-                }
+-            }
+-
+-            StyledRect {
+-                Layout.fillHeight: true
+-                Layout.preferredWidth: 4 * root.clockScale
+-                Layout.topMargin: Tokens.spacing.large * root.clockScale
+-                Layout.bottomMargin: Tokens.spacing.large * root.clockScale
+-                radius: Tokens.rounding.full
+-                color: root.safePrimary
+-                opacity: 0.8
+-            }
+-
+-            ColumnLayout {
+-                spacing: 0
+-
+-                StyledText {
+-                    text: Time.format("MMMM").toUpperCase()
+-                    font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize * root.clockScale).letterSpacing(4).weight(Font.Bold).build()
+-                    color: root.safeSecondary
+-                }
+-
+-                StyledText {
+-                    text: Time.format("dd")
+-                    font: Tokens.font.clock.size(Tokens.font.headline.medium.pointSize * root.clockScale).letterSpacing(2).weight(Font.Medium).build()
+-                    color: root.safePrimary
+-                }
+-
+-                StyledText {
 -                    text: Time.format("dddd")
 -                    font: Tokens.font.clock.size(Tokens.font.body.large.pointSize * root.clockScale).letterSpacing(2).build()
 -                    color: root.safeSecondary
+-                }
+-            }
 +                    anchors.top: parent.top
 +                    anchors.right: parent.right
 +                    width: parent.width * 0.52
@@ -610,7 +630,7 @@
 +                    horizontalAlignment: Text.AlignRight
 +                    style: Text.Outline
 +                    styleColor: Qt.rgba(0, 0, 0, 0.82)
-                 }
++                }
 +
 +                RowLayout {
 +                    anchors.horizontalCenter: parent.horizontalCenter
@@ -680,18 +700,15 @@
 +                visible: alarmScene.visible
 +                scaleFactor: root.clockScale
 +                onBackRequested: root.showingAlarmSettings = false
-             }
-         }
-     }
- 
++            }
++        }
++    }
++
 +    Connections {
 +        target: Weather
 +
 +        function onHourlyForecastChanged(): void {
 +            root.forecastStartIndex = Math.min(root.forecastStartIndex, root.forecastMaxStartIndex);
-+        }
-+    }
-+
-     Behavior on clockScale {
-         Anim {}
+         }
      }
+ 

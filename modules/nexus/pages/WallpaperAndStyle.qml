@@ -10,6 +10,7 @@ import qs.components.controls
 import qs.components.widgets
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.wallandstyle
 
 PageBase {
     id: root
@@ -116,6 +117,10 @@ PageBase {
             text: Tr.tr("Display wallpaper")
             checked: Config.background.wallpaperEnabled
             onToggled: GlobalConfig.background.wallpaperEnabled = checked
+        }
+
+        WallpaperTransitions {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
         }
 
         ToggleRow {

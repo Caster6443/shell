@@ -55,6 +55,7 @@ ENUM(WallpaperTransition,
     SoftWarpFade,
     VoronoiShatter,
     ZoomBlurPull,
+    Random,
     // clang-format on
 )
 

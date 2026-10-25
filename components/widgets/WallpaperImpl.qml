@@ -5,18 +5,18 @@ import Caelestia.Multimedia
 import Caelestia.Shaders
 import Caelestia.State
 import qs.services
+import "WallpaperTransitionPolicy.js" as TransitionPolicy
 
 Item {
     id: root
 
-    readonly property transitionShader shader: {
-        CUtils.dependency(Config.background.wallpaperTransition);
-        let transition = CUtils.enumToString(Config.background, "wallpaperTransition");
-        if (!transition)
-            return Shaders.crossfade;
+    readonly property var transitionNames: TransitionPolicy.names(Shaders)
+    property string activeTransition: "crossfade"
+    readonly property transitionShader shader: Shaders[activeTransition] ?? Shaders.crossfade
 
-        transition = transition[0].toLowerCase() + transition.slice(1);
-        return Shaders[transition] ?? Shaders.crossfade;
+    function selectTransition(): void {
+        const configured = CUtils.enumToString(Config.background, "wallpaperTransition");
+        activeTransition = TransitionPolicy.pick(configured, transitionNames, activeTransition, Math.random(), Config.background.wallpaperTransitionRandomEffects);
     }
 
     property string source: Wallpapers.current
@@ -37,7 +37,13 @@ Item {
         currentCapture.scheduleUpdate();
     }
 
-    Component.onCompleted: live.source = source
+    Component.onCompleted: {
+        // The initial frame is not a wallpaper change; do not consume a random pick.
+        const configured = CUtils.enumToString(Config.background, "wallpaperTransition");
+        if (configured !== "Random")
+            selectTransition();
+        live.source = source;
+    }
 
     NumberAnimation on transitionProgress {
         id: transitionAnim
@@ -59,6 +65,8 @@ Item {
             visible = false;
             transition.from = this;
             root.transitionProgress = 0;
+            // Capture an in-flight transition with its original shader first.
+            root.selectTransition();
             live.source = root.source;
             if (live.ready)
                 transitionAnim.start();
@@ -76,6 +84,8 @@ Item {
             visible = false;
             transition.from = this;
             root.transitionProgress = 0;
+            // Capture an in-flight transition with its original shader first.
+            root.selectTransition();
             live.source = root.source;
             if (live.ready)
                 transitionAnim.start();

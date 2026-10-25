@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qstring.h>
+#include <qstringlist.h>
 
 #include "settings/objectnode.hpp"
 #include "common.hpp"
@@ -55,6 +56,8 @@ class BackgroundConfig : public settings::ObjectNode {
     CONFIG_ENUM_PROPERTY(WallpaperTransition, wallpaperTransition, WallpaperTransition::Crossfade)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
+    // Empty means all compiled effects. Append to preserve existing member offsets.
+    CONFIG_PROPERTY(QStringList, wallpaperTransitionRandomEffects, {})
 };
 
 } // namespace caelestia::shell::config

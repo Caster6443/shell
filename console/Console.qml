@@ -12,7 +12,7 @@ FloatingWindow {
     id: root
 
     title: "caelestia-console"
-    color: ConsoleStyle.background
+    color: ConsoleMaterialStyle.background
     visible: ConsoleState.active
     implicitWidth: Math.min(1080, Math.max(900, Math.round(Screen.width * 0.48)), Screen.width - 64)
     implicitHeight: Math.min(760, Math.max(640, Math.round(Screen.height * 0.54)), Screen.height - 80)
@@ -48,6 +48,18 @@ FloatingWindow {
             ConsoleState.active = true;
         }
 
+        function closeSelected(): void {
+            if (ConsoleState.active)
+                panel.closeOverviewWindow();
+        }
+        function fullscreenSelected(mode: string): void {
+            if (ConsoleState.active)
+                panel.fullscreenOverview(mode);
+        }
+        function launch(command: string): void {
+            if (ConsoleState.active)
+                panel.launchShortcut(command);
+        }
         function isOpen(): bool {
             return ConsoleState.active;
         }

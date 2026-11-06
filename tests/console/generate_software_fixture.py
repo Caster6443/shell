@@ -21,6 +21,8 @@ QtObject {
 (out / 'qmldir').write_text('singleton M3Palette 1.0 M3Palette.qml\n')
 for name in ['CommandPage.qml', 'SoftwareButton.qml', 'SoftwarePage.qml', 'RaisedButtonSurface.qml']:
     s = (base / 'console' / name).read_text().replace('import qs.overview', 'import "."').replace('import qs.aibackend', 'import "."')
+    s = s.replace('ConsoleMaterialStyle.', 'ConsoleStyle.')
+    s = s.replace('ConsoleStyle.accent', 'M3Palette.m3tertiary').replace('ConsoleStyle.onAccent', 'M3Palette.m3onPrimaryContainer')
     s = s.replace('ConsoleStyle.selection', 'M3Palette.m3primaryContainer').replace('ConsoleStyle.selectedText', 'M3Palette.m3onPrimaryContainer')
     s = s.replace('ConsoleStyle.content', 'M3Palette.m3surface').replace('import qs.services', '').replace('Colours.light', 'true').replace('Colours.palette.m3surfaceContainerHigh', 'M3Palette.m3surface')
     if name == 'SoftwarePage.qml':

@@ -29,7 +29,7 @@ menu = menu.replace("import qs.overview", "").replace("import qs.components", ""
 menu = menu.replace("Colours.palette.m3error", "root.testPalette.m3error").replace("Tokens.font.body.large.family", '"Sans Serif"').replace("Tokens.font.icon.medium", "({})")
 (out / "MaterialIcon.qml").write_text('import QtQuick\nText {property var fontStyle: ({}); font.family: "Material Symbols Rounded"; font.pixelSize:20}\n')
 menu = menu.replace("M3Palette.", "root.testPalette.").replace("id: root", """id: root
-    property var testPalette: ({m3surfaceContainerHigh:'#eeeeee', m3surfaceContainerHighest:'#e6e6e6', m3onSurface:'#111111', m3onSurfaceVariant:'#444444', m3outline:'#777777', m3outlineVariant:'#bbbbbb', m3primary:'#5555aa', m3error:'#ba1a1a'})""", 1)
+    property var testPalette: ({m3surfaceContainerHigh:'#eeeeee', m3surfaceContainerHighest:'#e6e6e6', m3onSurface:'#111111', m3onSurfaceVariant:'#444444', m3outline:'#777777', m3outlineVariant:'#bbbbbb', m3tertiary:'#775588', m3primary:'#5555aa', m3error:'#ba1a1a'})""", 1)
 (out / "WindowContextMenu.qml").write_text(menu)
 
 functions = "\n".join(block(panel, "function " + name + "(") for name in
@@ -78,11 +78,13 @@ Item {
  @@FUNCTIONS@@
  QtObject {id:dispatch; property var calls:[]
   function addressArg(address) {return address.startsWith('0x')?address:'0x'+address}
-  function call(legacy,lua) {calls=calls.concat([{legacy:legacy,lua:lua}])}
+  function call(legacy,lua) {calls=calls.concat([{legacy:legacy,lua:lua,protectedFocus:false}])}
+  function callKeepingConsoleFocus(legacy,lua) {calls=calls.concat([{legacy:legacy,lua:lua,protectedFocus:true}])}
  }
  MouseArea {anchors.fill:parent; onClicked:root.backgroundClicks++; onWheel:root.backgroundWheels++}
  TextField {id:input; width:200; height:40; @@KEYS@@ }
  Item {x:300; width:100; height:50; @@STAR@@ }
+ Item {id:previewAnchor; x:40; y:160; width:120; height:140}
  OverviewFixture {id:overviewContent}
  WindowContextMenu {id:windowContextMenu; parent:root
   targetWindow:overviewContent.windowForAddress(address)
@@ -92,14 +94,14 @@ Item {
  }
  TestCase {
   name:'ConsoleNavigationAndWindowMenu'; when:windowShown
-  function init() {windowContextMenu.close();root.visible=true;root.mode='apps';root.navigationLayer='tabs';root.appCategory='favorite';root.appMenuVisible=false;root.tiledPresentation=false;input.text='';input.forceActiveFocus();dispatch.calls=[];root.backgroundClicks=0;root.backgroundWheels=0;overviewContent.restore();wait(10)}
+  function init() {windowContextMenu.close();tryVerify(()=>!windowContextMenu.visible);windowContextMenu.targetPreview=null;root.visible=true;root.mode='apps';root.navigationLayer='tabs';root.appCategory='favorite';root.appMenuVisible=false;root.tiledPresentation=false;input.text='';input.forceActiveFocus();dispatch.calls=[];root.backgroundClicks=0;root.backgroundWheels=0;overviewContent.restore();wait(10)}
   function test_default_arrows_cycle_all_tabs() {keyClick(Qt.Key_Right);compare(root.mode,'wallpaper');keyClick(Qt.Key_Right);compare(root.mode,'clipboard');keyClick(Qt.Key_Right);compare(root.mode,'emoji');keyClick(Qt.Key_Right);compare(root.mode,'software');keyClick(Qt.Key_Right);compare(root.mode,'software');root.mode='apps';keyClick(Qt.Key_Left);compare(root.mode,'software')}
   function test_tab_categories_and_back() {keyClick(Qt.Key_Tab);compare(root.navigationLayer,'categories');verify(input.activeFocus);keyClick(Qt.Key_Right);compare(root.appCategory,'all');compare(root.mode,'apps');keyClick(Qt.Key_Left);compare(root.appCategory,'favorite');keyClick(Qt.Key_Left);compare(root.appCategory,'tools');keyClick(Qt.Key_Tab);compare(root.navigationLayer,'tabs');keyClick(Qt.Key_Right);compare(root.mode,'wallpaper')}
   function test_other_tabs_have_no_category_layer() {root.mode='clipboard';keyClick(Qt.Key_Tab);compare(root.navigationLayer,'tabs');keyClick(Qt.Key_Right);compare(root.mode,'emoji')}
   function test_shift_tab_and_reopen_reset() {keyClick(Qt.Key_Tab,Qt.ShiftModifier);compare(root.navigationLayer,'categories');root.visible=false;root.visible=true;compare(root.navigationLayer,'tabs')}
   function test_wallpaper_views_layer() {root.mode='wallpaper';root.wallView='strip';keyClick(Qt.Key_Tab);compare(root.navigationLayer,'views');keyClick(Qt.Key_Right);compare(root.wallView,'online');compare(root.mode,'wallpaper');keyClick(Qt.Key_Right);compare(root.wallView,'carousel');keyClick(Qt.Key_Left);compare(root.wallView,'online');keyClick(Qt.Key_Tab);compare(root.navigationLayer,'tabs');keyClick(Qt.Key_Right);compare(root.mode,'clipboard')}
   function test_mode_change_resets_layer() {keyClick(Qt.Key_Tab);root.mode='wallpaper';compare(root.navigationLayer,'tabs');keyClick(Qt.Key_Tab);compare(root.navigationLayer,'views');root.mode='apps';compare(root.navigationLayer,'tabs')}
-  function test_menu_colour_and_render() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);compare(windowContextMenu.destructiveColour.toString(),'#ba1a1a');grabImage(windowContextMenu.contentItem.parent).save('/tmp/console-menu-light.png');windowContextMenu.testPalette=({m3surfaceContainerHighest:'#2b2527',m3onSurface:'#f1dee3',m3onSurfaceVariant:'#d5c2c7',m3outline:'#9e8c92',m3outlineVariant:'#514348',m3primary:'#ffb0ca',m3error:'#ffb4ab'});compare(windowContextMenu.destructiveColour.toString(),'#ffb4ab');wait(20);grabImage(windowContextMenu.contentItem.parent).save('/tmp/console-menu-dark.png')}
+  function test_menu_colour_and_render() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);compare(windowContextMenu.destructiveColour.toString(),'#ba1a1a');grabImage(windowContextMenu.contentItem.parent).save('/tmp/console-menu-light.png');windowContextMenu.testPalette=({m3surfaceContainerHigh:'#241f21',m3surfaceContainerHighest:'#2b2527',m3onSurface:'#f1dee3',m3onSurfaceVariant:'#d5c2c7',m3outline:'#9e8c92',m3outlineVariant:'#514348',m3tertiary:'#efb8df',m3primary:'#ffb0ca',m3error:'#ffb4ab'});compare(windowContextMenu.destructiveColour.toString(),'#ffb4ab');wait(20);grabImage(windowContextMenu.contentItem.parent).save('/tmp/console-menu-dark.png')}
   function test_search_stays_editable() {keyClick(Qt.Key_K);keyClick(Qt.Key_I);keyClick(Qt.Key_T);keyClick(Qt.Key_T);keyClick(Qt.Key_Y);keyClick(Qt.Key_Tab);keyClick(Qt.Key_Right);compare(input.text,'kitty');verify(input.activeFocus);keyClick(Qt.Key_X);compare(input.text,'kittyx')}
   function test_menu_blocks_navigation() {root.appMenuVisible=true;keyClick(Qt.Key_Tab);keyClick(Qt.Key_Right);compare(root.navigationLayer,'tabs');compare(root.mode,'apps')}
   function test_star_center() {compare(star.y+star.height/2,25);root.tiledPresentation=true;compare(star.y,8)}
@@ -107,11 +109,14 @@ Item {
   function test_popup_keyboard_isolated() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);keyClick(Qt.Key_Right);keyClick(Qt.Key_Tab);keyClick(Qt.Key_Down);compare(root.mode,'apps');compare(root.navigationLayer,'tabs');keyClick(Qt.Key_Escape);tryVerify(()=>!windowContextMenu.visible);compare(dispatch.calls.length,0)}
   function test_popup_background_wheel_blocked() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);mouseWheel(root,570,470,0,-120);compare(root.backgroundWheels,0);verify(windowContextMenu.visible)}
   function test_emoji_category_keyboard() {root.mode="emoji";root.emojiCategory="全部";input.forceActiveFocus();keyClick(Qt.Key_Tab);compare(root.navigationLayer,"emojiCategories");keyClick(Qt.Key_Right);compare(root.emojiCategory,"表情");keyClick(Qt.Key_Left);compare(root.emojiCategory,"全部");keyClick(Qt.Key_Left);compare(root.emojiCategory,"人物");keyClick(Qt.Key_Backtab);compare(root.navigationLayer,"tabs")}
-  function test_float_targets_selected_address() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);windowContextMenu.activate(1);compare(dispatch.calls.length,1);verify(dispatch.calls[0].lua.includes('address:0xaaa'));verify(dispatch.calls[0].lua.includes('window.float'));verify(!windowContextMenu.visible)}
+  function test_float_targets_selected_address() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);windowContextMenu.activate(1);compare(dispatch.calls.length,1);verify(dispatch.calls[0].lua.includes('address:0xaaa'));verify(dispatch.calls[0].lua.includes('window.float'));verify(dispatch.calls[0].protectedFocus);tryVerify(()=>!windowContextMenu.visible)}
   function test_move_special_and_current_disabled() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));windowContextMenu.activate(0);compare(windowContextMenu.choosingWorkspace,true);windowContextMenu.activate(1);compare(dispatch.calls.length,0);verify(windowContextMenu.visible);windowContextMenu.activate(11);compare(dispatch.calls.length,1);verify(dispatch.calls[0].lua.includes('special:special'));verify(dispatch.calls[0].lua.includes('follow = false'))}
   function test_close_window_by_address() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));windowContextMenu.activate(2);compare(dispatch.calls.length,1);verify(dispatch.calls[0].lua.includes('window.close'));verify(dispatch.calls[0].lua.includes('address:0xaaa'))}
   function test_disappeared_target_closes_without_action() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));overviewContent.removeTarget();tryVerify(()=>!windowContextMenu.visible);root.executeWindowMenuAction('close','');compare(dispatch.calls.length,0)}
   function test_workspace_page_escape_returns_then_closes() {windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened);keyClick(Qt.Key_Return);compare(windowContextMenu.choosingWorkspace,true);keyClick(Qt.Key_Escape);compare(windowContextMenu.choosingWorkspace,false);verify(windowContextMenu.visible);keyClick(Qt.Key_Escape);tryVerify(()=>!windowContextMenu.visible)}
+  function test_attached_right_and_tracks_scale() {previewAnchor.x=40;previewAnchor.y=160;previewAnchor.width=120;previewAnchor.height=140;previewAnchor.scale=1;windowContextMenu.targetPreview=previewAnchor;windowContextMenu.showFor('0xaaa',Qt.point(500,400));tryVerify(()=>windowContextMenu.opened);compare(windowContextMenu.attachmentSide,'right');compare(windowContextMenu.x,168);previewAnchor.scale=1.18;compare(windowContextMenu.x,178.8);verify(windowContextMenu.y>=6);verify(windowContextMenu.y+windowContextMenu.height<=494)}
+  function test_attached_left() {previewAnchor.scale=1;previewAnchor.x=430;previewAnchor.width=120;windowContextMenu.targetPreview=previewAnchor;windowContextMenu.showFor('0xaaa',Qt.point(500,400));compare(windowContextMenu.attachmentSide,'left');compare(windowContextMenu.x,158)}
+  function test_attached_above_and_workspace_page_fits() {previewAnchor.scale=1;previewAnchor.x=20;previewAnchor.y=300;previewAnchor.width=560;previewAnchor.height=140;windowContextMenu.targetPreview=previewAnchor;windowContextMenu.showFor('0xaaa',Qt.point(500,400));compare(windowContextMenu.attachmentSide,'above');compare(windowContextMenu.y,102);windowContextMenu.activate(0);verify(windowContextMenu.x>=6);verify(windowContextMenu.x+windowContextMenu.width<=594);verify(windowContextMenu.y>=6);verify(windowContextMenu.y+windowContextMenu.height<=494)}
   function test_invalid_destination_rejected() {windowContextMenu.address='0xaaa';root.executeWindowMenuAction('move','special:missing');compare(dispatch.calls.length,0)}
  }
 }
@@ -137,7 +142,7 @@ preview = (repo / "overview/WindowPreview.qml").read_text()
 handlers = "\n".join(block(preview, name + ":") for name in ["onEntered", "onExited", "onPressed", "onReleased"])
 handlers = handlers.replace("HyprDispatch.", "dispatch.").replace("Hyprland.", "hyprStub.")
 # Inline fixtures do not have the production component's required-property scope.
-for name in ["overviewRoot", "m_address", "windowAddress", "currentWsId", "scaleRatio", "m_floating", "wsWindowCount", "m_atX", "m_atY", "clampedX", "clampedY"]:
+for name in ["overviewRoot", "m_wsId", "m_wsName", "m_address", "windowAddress", "currentWsId", "scaleRatio", "m_floating", "wsWindowCount", "m_atX", "m_atY", "clampedX", "clampedY"]:
     handlers = re.sub(r"(?<![.\w])" + name + r"\b", "windowItem." + name, handlers)
 drag_target = re.search(r"drag.target: ([^\n]+)", preview)[0]
 (out / "tst_preview.qml").write_text("""import QtQuick
@@ -148,8 +153,10 @@ Item {
  property int drops:0
  DropArea {z:200;x:250;y:0;width:150;height:200;keys:["window"];onDropped:drop=>{root.drops++;drop.accept(Qt.MoveAction)}}
  Item {id:context; property bool interactionBlocked:false; property string hoveredWindowAddress:''; property bool dragFromSpecialSection:false; property int requests:0
+  property Item menuPreview: null
   signal windowMenuRequested(string address, point position)
   onWindowMenuRequested:(address,position)=> {requests++;}
+  function selectWorkspace(workspace) {}
   function restartSyncTimer() {}
  }
  QtObject {id:hyprStub; property var focusedMonitor:null}
@@ -158,6 +165,8 @@ Item {
  Rectangle {
   id:windowItem; x:20; y:20; width:100; height:100
   property var overviewRoot:context
+  property int m_wsId:1
+  property string m_wsName:'1'
   property string m_address:'0xaaa'
   property string windowAddress:m_address
   property bool isHovered:context.hoveredWindowAddress===m_address
@@ -293,3 +302,41 @@ Item {
  }
 }
 """)
+
+# Real modal overlay + production leave policy; no compositor or window actions.
+leave_policy = '\n'.join([
+    block(panel, 'HoverHandler {\n\t\tid: panelHover'),
+    block(panel, 'Timer {\n\t\tid: pointerLeaveTimer')])
+inside = panel.split('readonly property bool pointerInsideConsole:', 1)[1].split('\n\n', 1)[0]
+(out / 'tst_menu_leave.qml').write_text('''import QtQuick
+import QtQuick.Controls
+import QtTest
+Item {
+ id: stage; width: 800; height: 650
+ Item {
+  id: root; x:40; y:40; width:600; height:500
+  property bool pointerHasEntered:false
+  property bool appMenuVisible:false
+  property bool ghostVisible:false
+  property bool softwareInteractionBusy:false
+  property int closeCount:0
+  readonly property bool windowMenuVisible:windowContextMenu.visible
+  readonly property bool pointerInsideConsole: @@INSIDE@@
+  function closeRequested() {closeCount++;windowContextMenu.close();root.visible=false}
+  @@POLICY@@
+  WindowContextMenu {id:windowContextMenu;parent:root
+   targetWindow:({title:'Probe',floating:false,workspace:'1'})
+   workspaces:[{workspace:'1',label:'工作区1'},{workspace:'2',label:'工作区2'}]
+  }
+ }
+ TestCase {
+  name:'WindowMenuAnimationAndLeave';when:windowShown
+  function init() {windowContextMenu.close();tryVerify(()=>!windowContextMenu.visible);root.visible=false;mouseMove(stage,760,600);wait(20);root.pointerHasEntered=false;root.closeCount=0;root.visible=true;wait(20)}
+  function openMenu() {mouseMove(root,300,250);tryVerify(()=>root.pointerHasEntered);windowContextMenu.showFor('0xaaa',Qt.point(200,100));tryVerify(()=>windowContextMenu.opened)}
+  function test_menu_and_overlay_keep_console_open() {openMenu();mouseMove(root,250,150);wait(380);compare(root.closeCount,0);mouseMove(root,10,440);wait(380);compare(root.closeCount,0);verify(windowContextMenu.pointerInsideHost)}
+  function test_leave_closes_menu_and_console() {openMenu();mouseMove(stage,760,600);wait(150);compare(root.closeCount,0);tryCompare(root,'closeCount',1,700);tryVerify(()=>!windowContextMenu.visible)}
+  function test_return_cancels_close() {openMenu();mouseMove(stage,760,600);wait(120);mouseMove(root,10,440);wait(380);compare(root.closeCount,0)}
+  function test_page_transition_has_intermediate_state_and_reverses() {openMenu();windowContextMenu.activate(0);wait(60);verify(windowContextMenu.height>190&&windowContextMenu.height<380);verify(windowContextMenu.pageOffset>0);verify(windowContextMenu.pageOpacity>0&&windowContextMenu.pageOpacity<1);wait(250);compare(windowContextMenu.height,380);compare(windowContextMenu.pageOffset,0);windowContextMenu.activate(0);wait(60);verify(windowContextMenu.pageOffset<0);verify(windowContextMenu.height>190&&windowContextMenu.height<380);wait(250);compare(windowContextMenu.height,190);compare(windowContextMenu.pageOpacity,1)}
+ }
+}
+'''.replace('@@INSIDE@@', inside).replace('@@POLICY@@', leave_policy))

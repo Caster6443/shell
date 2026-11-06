@@ -24,7 +24,7 @@ ToolButton {
         hovered: root.hovered
         interactive: root.enabled
         radius: 8
-        color: Qt.tint(ConsoleStyle.content, Qt.alpha(root.destructive ? Colours.palette.m3error : Colours.palette.m3onSurface, root.down ? 0.16 : root.hovered ? 0.09 : 0.035))
+        color: Qt.tint(ConsoleMaterialStyle.content, Qt.alpha(root.destructive ? Colours.palette.m3error : Colours.palette.m3onSurface, root.down ? 0.16 : root.hovered ? 0.09 : 0.035))
         border.width: 1
         border.color: Qt.alpha(Colours.palette.m3onSurface, root.activeFocus ? 0.5 : 0.12)
     }

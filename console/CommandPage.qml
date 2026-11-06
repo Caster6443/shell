@@ -33,12 +33,12 @@ Item {
                 width: list.width
                 height: 76
                 radius: 12
-                color: row.index === root.currentIndex ? ConsoleStyle.selection : Qt.alpha(M3Palette.m3onSurface, 0.04)
+                color: row.index === root.currentIndex ? ConsoleMaterialStyle.selection : Qt.alpha(M3Palette.m3onSurface, 0.04)
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 15
                     spacing: 14
-                    ConsoleText { text: ">_"; color: ConsoleStyle.selectedText; textRole: "title"; strong: true }
+                    ConsoleText { text: ">_"; color: ConsoleMaterialStyle.selectedText; textRole: "title"; strong: true }
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 5

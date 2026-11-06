@@ -189,8 +189,8 @@ Rectangle {
 
 	radius: 6
 	color: M3Palette.m3surfaceContainerHigh
-	border.color: mouseArea.containsMouse ? M3Palette.m3tertiary : M3Palette.m3primaryContainer
-	border.width: 1
+	border.color: isHovered ? M3Palette.m3tertiary : M3Palette.m3primaryContainer
+	border.width: isHovered ? 2 : 1
 	clip: true
 
 	Rectangle {
@@ -200,7 +200,7 @@ Rectangle {
 		height: titleText.implicitHeight + 6
 		radius: 5
 		color: Qt.alpha(M3Palette.m3surface, 0.85)
-		visible: mouseArea.containsMouse && m_title !== ""
+		visible: isHovered && m_title !== ""
 		z: 10
 
 		Text {
@@ -341,8 +341,10 @@ Rectangle {
 			acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
 
 		onEntered: {
-			if (!overviewRoot.interactionBlocked)
-				overviewRoot.hoveredWindowAddress = m_address;
+            if (!overviewRoot.interactionBlocked) {
+                overviewRoot.selectWorkspace(m_wsId > 0 ? String(m_wsId) : m_wsName);
+                overviewRoot.hoveredWindowAddress = m_address;
+            }
 		}
 		// 另一个预览可能已经先收到 entered；旧预览只能清除自己的悬停状态。
 		onExited: {
@@ -353,6 +355,7 @@ Rectangle {
 		onPressed: mouse => {
 			if (mouse.button === Qt.RightButton) {
 				overviewRoot.hoveredWindowAddress = m_address;
+				overviewRoot.menuPreview = windowItem;
 				overviewRoot.windowMenuRequested(windowAddress, mouseArea.mapToItem(overviewRoot, mouse.x, mouse.y));
 				return;
 			}

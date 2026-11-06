@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <!-- Halo glow gradient -->
+    <linearGradient id="haloCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0066cc"/>
+      <stop offset="35%" stop-color="#0099e6"/>
+      <stop offset="70%" stop-color="#00d8f6"/>
+      <stop offset="100%" stop-color="#0077b6"/>
+    </linearGradient>
+    <linearGradient id="haloRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="50%" stop-color="#242b3d"/>
+      <stop offset="100%" stop-color="#141824"/>
+    </linearGradient>
+  </defs>
+
+  <g id="YuukaCharacterGroup">
+    <!-- ============================================== -->
+    <!-- 1. HEAD BASE & HAIR MASS (Under layer) -->
+    <!-- ============================================== -->
+    <!-- Full Hair Dome / Crown of Head -->
+    <path id="HairDome" fill="#5c4a90" d="
+      M 1060 170
+      C 1140 140, 1260 150, 1340 210
+      C 1390 250, 1420 300, 1420 370
+      C 1420 440, 1390 510, 1350 560
+      L 1250 560
+      C 1200 480, 1160 380, 1120 300
+      L 1060 270 Z
+    "/>
+
+    <!-- High Ponytail Volume (Voluminous anime bunch with angular locks) -->
+    <path id="HighPonytailVolume" fill="#584589" d="
+      M 1060 170
+      C 980 150, 890 170, 810 220
+      C 760 250, 710 300, 670 360
+      L 710 350
+      C 660 400, 610 460, 570 530
+      L 610 510
+      C 550 580, 480 660, 420 740
+      C 320 830, 200 920, 90 990
+      C 40 1025, 10 1055, 0 1080
+      L 60 1080
+      C 140 1020, 250 940, 360 850
+      C 460 770, 560 670, 640 570
+      C 710 490, 780 400, 840 330
+      C 900 270, 970 230, 1040 200 Z
+    "/>
+
+    <!-- Left Ponytail Lower Sweep Volume (Deep silhouette shadow) -->
+    <path id="PonytailLowerSweep" fill="#4a3776" d="
+      M 750 490
+      C 660 590, 560 700, 450 800
+      C 330 900, 190 990, 60 1055
+      L 0 1080
+      L 120 1080
+      C 240 1010, 370 915, 480 815
+      C 580 720, 680 610, 760 510 Z
+    "/>
+
+    <!-- Right Dropping Twin-Tail -->
+    <path id="RightTwinTail" fill="#503e7e" d="
+      M 1340 240
+      C 1390 310, 1435 400, 1470 490
+      C 1520 610, 1570 740, 1590 850
+      C 1600 920, 1585 1010, 1545 1080
+      L 1480 1080
+      C 1520 1015, 1535 940, 1525 870
+      C 1505 770, 1460 650, 1405 540
+      C 1370 470, 1330 390, 1290 330 Z
+    "/>
+
+    <!-- ============================================== -->
+    <!-- 2. BODY & SUIT (Black suit, white collar, blue tie) -->
+    <!-- ============================================== -->
+    <!-- Suit Main Body -->
+    <path id="SuitCoat" fill="#181e26" d="
+      M 1120 520
+      L 1245 490
+      L 1330 520
+      L 1420 620
+      L 1550 780
+      L 1450 1080
+      L 920 1080
+      L 960 760
+      L 1040 600 Z
+    "/>
+
+    <!-- White Shirt Collar -->
+    <path id="ShirtCollar" fill="#f4f5f7" d="
+      M 1245 490
+      L 1290 565
+      L 1255 585
+      L 1205 500 Z
+    "/>
+    <path id="ShirtCollarRight" fill="#e6e8ec" d="
+      M 1255 585
+      L 1290 565
+      L 1330 630
+      L 1295 640 Z
+    "/>
+
+    <!-- Blue Tie -->
+    <path id="BlueTie" fill="#008ad8" d="
+      M 1285 570
+      L 1305 570
+      L 1320 660
+      L 1335 760
+      L 1300 830
+      L 1270 750
+      L 1285 650 Z
+    "/>
+
+    <!-- ============================================== -->
+    <!-- 3. HEAD & FACE SILHOUETTE -->
+    <!-- ============================================== -->
+    <!-- Face (Faceless Constructivist Flat Skin Tone) -->
+    <path id="FaceSkin" fill="#ece3db" d="
+      M 1280 340
+      C 1330 360, 1365 390, 1370 420
+      C 1365 440, 1330 470, 1295 495
+      L 1270 515
+      L 1245 490
+      C 1230 460, 1220 430, 1225 410
+      C 1230 395, 1255 365, 1280 340 Z
+    "/>
+
+    <!-- Front Bangs & Side Strands (Purple) -->
+    <path id="FrontBangs" fill="#5d4990" d="
+      M 1200 240
+      C 1260 230, 1340 260, 1375 320
+      C 1390 350, 1400 400, 1410 440
+      L 1380 430
+      C 1375 390, 1350 360, 1330 345
+      C 1340 375, 1345 415, 1345 460
+      L 1320 430
+      C 1315 390, 1290 360, 1280 345
+      C 1285 385, 1285 435, 1270 480
+      C 1260 450, 1245 420, 1240 380
+      C 1220 410, 1205 450, 1195 500
+      C 1185 450, 1180 380, 1185 320 Z
+    "/>
+
+    <!-- Hair Accessory: Millenium Clip & Cyan Antenna -->
+    <path id="HairClipBase" fill="#141822" d="
+      M 1075 180
+      L 1105 185
+      L 1060 290
+      L 1030 280 Z
+    "/>
+    <path id="HairClipCyanLight" fill="#00d2ff" d="
+      M 1083 190
+      L 1095 192
+      L 1075 250
+      L 1063 248 Z
+    "/>
+
+    <!-- ============================================== -->
+    <!-- 4. HALO (Top Constructivist Halo Ring) -->
+    <!-- ============================================== -->
+    <!-- Halo Base Ring (Outer Perspective Ellipse) -->
+    <path id="HaloOuterRing" fill="url(#haloRimGrad)" d="
+      M 1205 26
+      C 1325 26, 1435 50, 1435 84
+      C 1435 118, 1325 142, 1205 142
+      C 1085 142, 975 118, 975 84
+      C 975 50, 1085 26, 1205 26 Z
+      M 1205 38
+      C 1095 38, 995 59, 995 84
+      C 995 109, 1095 130, 1205 130
+      C 1315 130, 1415 109, 1415 84
+      C 1415 59, 1315 38, 1205 38 Z
+    " fill-rule="evenodd"/>
+
+    <!-- Halo Inner Cyan Glowing Edge -->
+    <path id="HaloCyanEdge" fill="url(#haloCyanGrad)" d="
+      M 1205 40
+      C 1310 40, 1405 60, 1405 84
+      C 1405 92, 1390 100, 1365 107
+      C 1350 97, 1280 82, 1205 82
+      C 1130 82, 1060 97, 1045 107
+      C 1020 100, 1005 92, 1005 84
+      C 1005 60, 1100 40, 1205 40 Z
+    "/>
+  </g>
+</svg>

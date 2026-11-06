@@ -344,9 +344,9 @@ Item {
             Rectangle {
                 Layout.preferredWidth: Math.round(root.width * 0.41)
                 Layout.fillHeight: true
-                radius: 12
-                color: Qt.alpha(ConsoleStyle.content, 0.35)
-                border.width: 1
+                radius: 20
+                color: ConsoleMaterialStyle.content
+                border.width: 0
                 border.color: Qt.alpha(M3Palette.m3onSurface, 0.08)
                 ListView {
                     id: packageList
@@ -544,7 +544,7 @@ Item {
         closePolicy: Popup.CloseOnEscape
         padding: 20
         onClosed: root.focusSearchRequested()
-        background: Rectangle { radius: 16; color: ConsoleStyle.content; border.width: 1; border.color: M3Palette.m3outlineVariant }
+        background: Rectangle { radius: 16; color: ConsoleMaterialStyle.content; border.width: 1; border.color: M3Palette.m3outlineVariant }
         contentItem: ColumnLayout {
             spacing: 16
             ConsoleText { Layout.fillWidth: true; text: "确认操作"; color: M3Palette.m3onSurface; textRole: "body"; strong: true }

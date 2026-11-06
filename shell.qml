@@ -1,3 +1,7 @@
+//@ pragma Env QT_FFMPEG_ENCODING_HW_DEVICE_TYPES=vaapi
+//@ pragma Env QT_FFMPEG_DECODING_HW_DEVICE_TYPES=vaapi
+//@ pragma Env VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json
+//@ pragma Env VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.json
 //@ pragma Env QS_CRASHREPORT_URL=https://github.com/caelestia-dots/shell/issues/new?template=crash.yml
 //@ pragma DefaultEnv QS_NO_RELOAD_POPUP=1
 //@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1

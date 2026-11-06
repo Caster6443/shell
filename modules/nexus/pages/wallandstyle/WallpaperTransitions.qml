@@ -60,8 +60,23 @@ ColumnLayout {
     }
     ConnectedRect {
         Layout.fillWidth: true
-        visible: root.effectsOpen
-        implicitHeight: effectGrid.implicitHeight + Tokens.padding.medium * 2
+        objectName: "effectGridExpansion"
+        readonly property bool expanded: root.effectsOpen
+        visible: implicitHeight > 0
+        enabled: expanded
+        clip: true
+        implicitHeight: expanded ? effectGrid.implicitHeight + Tokens.padding.medium * 2 : 0
+        opacity: expanded ? 1 : 0
+
+        Behavior on implicitHeight {
+            Anim {}
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
         GridLayout {
             id: effectGrid
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -96,8 +111,23 @@ ColumnLayout {
     }
     ConnectedRect {
         Layout.fillWidth: true
-        visible: root.selectedKey === "random" && root.rangeOpen
-        implicitHeight: rangeContent.implicitHeight + Tokens.padding.medium * 2
+        objectName: "rangeContentExpansion"
+        readonly property bool expanded: root.selectedKey === "random" && root.rangeOpen
+        visible: implicitHeight > 0
+        enabled: expanded
+        clip: true
+        implicitHeight: expanded ? rangeContent.implicitHeight + Tokens.padding.medium * 2 : 0
+        opacity: expanded ? 1 : 0
+
+        Behavior on implicitHeight {
+            Anim {}
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
         ColumnLayout {
             id: rangeContent
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top

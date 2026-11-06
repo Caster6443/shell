@@ -10,7 +10,11 @@ import qs.overview
 
 Item {
     id: root
-    property alias query: search.text
+    property string query: ""
+    property bool showSearch: true
+    signal focusSearchRequested()
+    onQueryChanged: resetClipSelection()
+    onVisibleChanged: if (!visible) { clipConfirm = ""; cancelEdit(); }
     property string clipConfirm: ""
     readonly property bool editing: clipEditor.dirty || clipEditor.hasFocus
     property bool savedSelectionPending: false
@@ -19,7 +23,10 @@ Item {
     readonly property color accent: Colours.palette.m3primary
     readonly property var entry: root.editing && clipEditor.documentEntry ? clipEditor.documentEntry : selectedClipEntry()
     function cancelEdit(): void { clipEditor.cancel(); }
-    function focusSearch(): void { search.forceActiveFocus(); }
+    function focusSearch(): void {
+        if (showSearch) search.forceActiveFocus();
+        else focusSearchRequested();
+    }
     signal closeRequested()
 	function resetClipSelection(): void {
 		if (clipList.count > 0) {
@@ -59,7 +66,7 @@ Item {
     }
     Connections {
         target: ClipboardData
-        function onPasteReady(): void { root.closeRequested(); }
+        function onPasteReady(): void { if (root.visible) root.closeRequested(); }
     }
 
 	// ---------------- 剪贴板：置顶 / 删除 / 清空 ----------------
@@ -158,6 +165,8 @@ Item {
             }
             TextField {
                 id: search
+                visible: root.showSearch
+                text: root.query
                 Layout.fillWidth: true
                 Layout.preferredHeight: 52
                 font: Tokens.font.body.small
@@ -169,11 +178,11 @@ Item {
                 selectByMouse: true
                 background: Rectangle {
                     radius: 12
-                    color: ConsoleStyle.field
+                    color: ConsoleMaterialStyle.field
                     border.width: 1
                     border.color: search.activeFocus ? Qt.alpha(root.accent, 0.55) : "transparent"
                 }
-                onTextChanged: root.resetClipSelection()
+                onTextEdited: root.query = text
                 onAccepted: { if (root.clipConfirm) root.confirmClipAction(); else root.pasteSelectedClip(); }
                 Keys.onDownPressed: root.moveClipSelection(1)
                 Keys.onUpPressed: root.moveClipSelection(-1)
@@ -201,7 +210,7 @@ Item {
                     width: clipList.width
                     height: 60
                     radius: 12
-                    color: selected ? ConsoleStyle.selection : (clipRowMouse.containsMouse ? Qt.alpha(root.fg, 0.06) : "transparent")
+                    color: selected ? ConsoleMaterialStyle.selection : (clipRowMouse.containsMouse ? Qt.alpha(root.fg, 0.06) : "transparent")
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 10; anchors.rightMargin: 12
@@ -212,7 +221,7 @@ Item {
                                 anchors.centerIn: parent
                                 visible: !clipRow.modelData.isImage
                                 text: "description"
-                                color: clipRow.selected ? ConsoleStyle.selectedText : root.accent
+                                color: clipRow.selected ? ConsoleMaterialStyle.selectedText : root.accent
                             }
                             Image {
                                 anchors.fill: parent
@@ -231,7 +240,7 @@ Item {
                                 Layout.fillWidth: true
                                 text: clipRow.modelData.isImage ? "图片" : clipRow.modelData.preview
                                 font: Tokens.font.body.small
-                                color: clipRow.selected ? ConsoleStyle.selectedText : root.fg
+                                color: clipRow.selected ? ConsoleMaterialStyle.selectedText : root.fg
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                             }
@@ -239,14 +248,14 @@ Item {
                                 Layout.fillWidth: true
                                 text: clipRow.modelData.meta
                                 font: Tokens.font.label.builders.medium.weight(Font.Normal).build()
-                                color: clipRow.selected ? Qt.alpha(ConsoleStyle.selectedText, 0.75) : root.muted
+                                color: clipRow.selected ? Qt.alpha(ConsoleMaterialStyle.selectedText, 0.75) : root.muted
                                 elide: Text.ElideRight
                             }
                         }
                         MaterialIcon {
                             visible: ClipboardData.isPinned(clipRow.modelData)
                             text: "keep"
-                            color: clipRow.selected ? ConsoleStyle.selectedText : root.accent
+                            color: clipRow.selected ? ConsoleMaterialStyle.selectedText : root.accent
                         }
                     }
                     MouseArea {
@@ -293,7 +302,7 @@ Item {
         }
         ColumnLayout {
             id: clipPreviewPane
-            property var entry: root.entry
+            property var entry: root.visible ? root.entry : null
             property bool loading: !!entry && (entry.isImage
                 ? ClipboardData.previewBusyId === entry.id && ClipboardData.previewFor(entry.id) === ""
                 : ClipboardData.textBusyId === entry.id && ClipboardData.textFor(entry) === "")
@@ -334,10 +343,10 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: ConsoleStyle.content
+                color: ConsoleMaterialStyle.content
                 radius: 20
                 border.width: 1
-                border.color: ConsoleStyle.outline
+                border.color: ConsoleMaterialStyle.outline
                 Item {
                     id: clipPreviewBody
                     anchors.fill: parent
@@ -345,7 +354,7 @@ Item {
                     ClipboardTextEditor {
                         id: clipEditor
                         visible: !!root.entry && !root.entry.isImage
-                        entry: root.entry
+                        entry: root.visible ? root.entry : null
                         onFocusSearchRequested: root.focusSearch()
                         onCopied: {}
                         onSaved: {

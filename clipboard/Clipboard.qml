@@ -57,8 +57,8 @@ Item {
             id: surface
             anchors.fill: parent
             radius: 28
-            color: ConsoleStyle.background
-            border.color: ConsoleStyle.outline
+            color: ConsoleMaterialStyle.background
+            border.color: ConsoleMaterialStyle.outline
             border.width: 1
             HoverHandler {
                 id: panelHover

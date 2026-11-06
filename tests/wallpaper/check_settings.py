@@ -82,15 +82,37 @@ ShellRoot {
    GlobalConfig.background.wallpaperTransition=WallpaperTransition.Random;
    fixture.find(settings,"wallpaperRandomRangeSelector").clicked(null);
    fixture.require(settings.rangeOpen,"Range row did not open");
-   capture.start();
+   animationStep.start();
   } catch(e) { console.error("SETTINGS_FAIL",e);Qt.exit(1); }
  }}
- Timer {id:capture;interval:550;onTriggered:{
-  settings.grabToImage(result=>{
-   if (DESTINATION && !result.saveToFile(DESTINATION)) {Qt.exit(1);return;}
-   console.log("SETTINGS_PASS",settings.chosen.length,settings.selectedKey);
-   Qt.quit();
-  });
+ Timer {id:animationStep;interval:50;property int stage:0;onTriggered:{
+  try {
+   const panel=fixture.find(settings,"rangeContentExpansion");
+   const effects=fixture.find(settings,"effectGridExpansion");
+   if(stage===0) {
+    fixture.require(panel.implicitHeight>0 && panel.implicitHeight<panel.children[0].implicitHeight+Tokens.padding.medium*2,"Range did not animate open");
+    interval=800;
+   } else if(stage===1) {
+    fixture.require(panel.visible && panel.opacity===1,"Range did not finish opening");
+    settings.rangeOpen=false;interval=50;
+   } else if(stage===2) {
+    fixture.require(panel.visible && panel.implicitHeight>0 && !panel.enabled,"Range vanished before close animation");
+    settings.rangeOpen=true;settings.effectsOpen=true;interval=50;
+   } else if(stage===3) {
+    fixture.require(effects.implicitHeight>0 && effects.opacity<1,"Effects did not animate open");
+    settings.effectsOpen=false;interval=800;
+   } else if(stage===4) {
+    fixture.require(!effects.visible && effects.implicitHeight===0,"Effects did not collapse");
+    fixture.require(panel.visible && panel.opacity===1,"Interrupted close did not reopen");
+    settings.grabToImage(result=>{
+     if (DESTINATION && !result.saveToFile(DESTINATION)) {Qt.exit(1);return;}
+     console.log("SETTINGS_PASS",settings.chosen.length,settings.selectedKey);
+     Qt.quit();
+    });
+    return;
+   }
+   stage++;restart();
+  } catch(e) {console.error("SETTINGS_FAIL",e);Qt.exit(1);}
  }}
  Timer {interval:8000;running:true;onTriggered:{console.error("TIMEOUT");Qt.exit(1)}}
 }
@@ -107,4 +129,4 @@ ShellRoot {
     assert saved['wallpaperTransition'] == 'Random', saved
     assert saved['wallpaperTransitionRandomEffects'] == ['iris','smoke'], saved
     assert not re.search(r'(ReferenceError|TypeError|Unable to assign|Binding loop|SETTINGS_FAIL)',result.stdout+result.stderr)
-    print('PASS: fixed/random visibility, subset retention, last-choice protection, all, and disk persistence')
+    print('PASS: fixed/random visibility, subset retention, last-choice protection, all, disk persistence, animated expansion/collapse and interrupted reopening')

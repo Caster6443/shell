@@ -2,7 +2,8 @@
 from pathlib import Path
 import tempfile, subprocess, os
 base = Path(__file__).resolve().parents[2]
-for relative in ['clipboard/ClipboardContent.qml', 'console/ConsolePanel.qml']:
+# Both hosts instantiate this implementation; exercise its actual row handler once.
+for relative in ['clipboard/ClipboardContent.qml']:
     source = (base / relative).read_text()
     marker = source.index('id: clipRowMouse')
     start = source.rfind('MouseArea {', 0, marker)

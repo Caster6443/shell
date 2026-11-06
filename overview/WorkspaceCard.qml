@@ -155,7 +155,7 @@ Item {
 		radius: 14
 		clip: true
 
-        readonly property bool current: !isSpecial && Hyprland.focusedMonitor?.activeWorkspace?.id === wsId
+        readonly property bool current: overviewRoot.selectedWorkspace !== "" ? overviewRoot.selectedWorkspace === layerKey : (!isSpecial && Hyprland.focusedMonitor?.activeWorkspace?.id === wsId)
         color: Colours.palette.m3surfaceContainer
         border.width: current ? 2 : 1
         border.color: current ? M3Palette.m3primary : Qt.alpha(M3Palette.m3onSurface, 0.25)
@@ -182,6 +182,11 @@ Item {
             color: "white"
         }
 
+        HoverHandler {
+            enabled: !overviewRoot.interactionBlocked
+            onHoveredChanged: if (hovered) overviewRoot.selectWorkspace(workspaceContainer.layerKey)
+            onPointChanged: if (hovered) overviewRoot.selectWorkspace(workspaceContainer.layerKey)
+        }
 		MouseArea {
 			anchors.fill: parent
 			onClicked: {

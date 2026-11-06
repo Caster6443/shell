@@ -21,8 +21,7 @@ import qs.clipboard as ClipboardUi
 // 由 Console 独立居中 FloatingWindow 实例化。
 Item {
 	id: root
-    readonly property bool clipEditing: clipEditor.dirty || clipEditor.hasFocus
-    property bool savedClipSelectionPending: false
+    readonly property bool clipEditing: clipboardBody.editing
 
 	required property var screenState
 	signal closeRequested()
@@ -48,6 +47,8 @@ Item {
 	Timer { interval: 1000; repeat: true; running: root.visible; triggeredOnStart: true; onTriggered: root.refreshDesktopLayout() }
 	onTiledPresentationChanged: Qt.callLater(() => { appList.positionViewAtIndex(appList.currentIndex, GridView.Contain); overviewContent.settleToActive(); })
 	property bool pointerHasEntered: false
+    readonly property bool pointerInsideConsole: panelHover.hovered
+        || (root.windowMenuVisible && windowContextMenu.pointerInsideHost)
 
 	HoverHandler {
 		id: panelHover
@@ -60,12 +61,15 @@ Item {
 	Timer {
 		id: pointerLeaveTimer
 		interval: 300
-		running: root.visible && root.pointerHasEntered && !panelHover.hovered
-			&& !root.appMenuVisible && !root.windowMenuVisible && !root.ghostVisible && !root.softwareInteractionBusy
+		running: root.visible && root.pointerHasEntered && !root.pointerInsideConsole
+			&& !root.appMenuVisible && !root.ghostVisible && !root.softwareInteractionBusy
 		onTriggered: {
-			if (root.visible && root.pointerHasEntered && !panelHover.hovered
-					&& !root.appMenuVisible && !root.windowMenuVisible && !root.ghostVisible && !root.softwareInteractionBusy)
-				root.closeRequested();
+			if (root.visible && root.pointerHasEntered && !root.pointerInsideConsole
+					&& !root.appMenuVisible && !root.ghostVisible && !root.softwareInteractionBusy)
+				{
+                windowContextMenu.close();
+                root.closeRequested();
+            }
 		}
 	}
 
@@ -132,7 +136,7 @@ Item {
 			HyprDispatch.call(`movetoworkspacesilent ${workspace},${selector}`,
 				`hl.dsp.window.move({ window = ${JSON.stringify(selector)}, workspace = ${JSON.stringify(workspace)}, follow = false })`);
 		} else if (action === "float") {
-			HyprDispatch.call(`togglefloating ${selector}`,
+			HyprDispatch.callKeepingConsoleFocus(`togglefloating ${selector}`,
 				`hl.dsp.window.float({ window = ${JSON.stringify(selector)}, action = "toggle" })`);
 		} else if (action === "close") {
 			HyprDispatch.call(`closewindow ${selector}`,
@@ -274,8 +278,6 @@ Item {
 	// 无本地结果时回车回退到浏览器搜索（?q= 后由 openWebSearch 自动拼接查询词）
 	readonly property string webSearchBase: "https://www.bing.com/search?q="
 	property real maxHeight: 900
-	// 剪贴板 tab：二次确认状态（"" | "delete" | "clearUnpinned" | "clearAll"）
-	property string clipConfirm: ""
 
 	// ---------------- 壁纸结果缓存（三个视图共用一份） ----------------
 	// 2026-09-14 用户反馈"壁纸动不动就要加载画面"的根因：三个视图原来各自绑定 wallpaperResults(input.text)，
@@ -688,6 +690,22 @@ Item {
 		return "'" + String(s).replace(/'/g, "'\\''") + "'";
 	}
 
+    function closeOverviewWindow(): void {
+        if (root.mode === "apps" && !root.commandMode)
+            overviewContent.closeSelected();
+    }
+    function fullscreenOverview(mode: string): void {
+        if (root.mode === "apps" && !root.commandMode)
+            overviewContent.fullscreenSelected(mode);
+    }
+    function launchShortcut(command: string): void {
+        const ws = root.mode === "apps" && !root.commandMode ? overviewContent.selectedWorkspace : "";
+        if (ws && !overviewContent.interactionBlocked)
+            HyprDispatch.call(`exec [workspace ${ws} silent] ${command}`,
+                `hl.dsp.exec_cmd(${JSON.stringify(command)}, { workspace = ${JSON.stringify(ws + " silent")} })`);
+        else if (!overviewContent.interactionBlocked)
+            HyprDispatch.call(`exec ${command}`, `hl.dsp.exec_cmd(${JSON.stringify(command)})`);
+    }
 	function buildLaunchArgv(entry: var): var {
 		if (entry?.runInTerminal)
 			return [...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...(entry.command ?? [])];
@@ -847,17 +865,6 @@ Item {
 		}
 	}
 
-    Connections {
-        target: ClipboardData
-        function onEntriesChanged(): void {
-            if (!root.savedClipSelectionPending) {
-                if (root.clipEditing && clipEditor.documentEntry) Qt.callLater(() => root.selectClipById(clipEditor.documentEntry.id));
-                return;
-            }
-            root.savedClipSelectionPending = false;
-            Qt.callLater(root.resetClipSelection);
-        }
-    }
 	// ---------------- UI ----------------
 	Rectangle {
 		id: shell
@@ -866,8 +873,8 @@ Item {
 		anchors.margins: 0
 		radius: 0
 		// Fill the native window; the compositor owns its outer rounding and border.
-		color: ConsoleStyle.background
-		border.color: ConsoleStyle.outline
+		color: ConsoleMaterialStyle.background
+		border.color: ConsoleMaterialStyle.outline
 		border.width: 0
 		clip: true
 
@@ -912,15 +919,15 @@ Item {
                     fontStyle: Tokens.font.icon.medium
                 }
                 background: Rectangle {
-                    radius: 26
-                    color: ConsoleStyle.field
+                    radius: 28
+                    color: ConsoleMaterialStyle.field
                     border.color: Qt.alpha(M3Palette.m3primary, 0.55)
-                    border.width: input.activeFocus ? 1 : 0
+                    border.width: input.activeFocus ? 2 : 0
                     Behavior on border.width { NumberAnimation { duration: 120 } }
                 }
 
 				Keys.onEscapePressed: event => {
-					if (root.commandMode) input.text = ""; else if (root.mode === "software") root.escapeSoftware(); else if (root.appMenuVisible) root.closeAppMenu(); else if (root.clipEditing) clipEditor.cancel(); else root.closeRequested();
+					if (root.commandMode) input.text = ""; else if (root.mode === "software") root.escapeSoftware(); else if (root.appMenuVisible) root.closeAppMenu(); else if (root.clipEditing) clipboardBody.cancelEdit(); else root.closeRequested();
 					event.accepted = true;
 				}
 				Keys.onDownPressed: event => {
@@ -1062,18 +1069,18 @@ Item {
                 Rectangle {
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                     height: 1
-                    color: ConsoleStyle.outline
+                    color: ConsoleMaterialStyle.outline
                 }
-				// 滑块胶囊：单一元素在标签之间滑过去（按 modeIndex 定位）
+				// Tonal navigation capsule; existing mode index and motion are preserved.
 				Rectangle {
 					id: modePill
 
-					y: modeHeader.height - 3
-					width: 40
-					height: 3
-					radius: 1
-					// m3tertiary 在暖色/浅色方案下是奶白色，配白字直接看不见（用户截图）；primary 更稳
-					color: M3Palette.m3primary
+					y: 4
+					width: modeHeader.cellWidth - 12
+					height: modeHeader.height - 8
+					radius: 18
+					// Paired secondary container colours preserve contrast in both schemes.
+					color: ConsoleMaterialStyle.selection
 					border.width: 0
 					border.color: root.contrastOn(M3Palette.m3primary)
 					x: (modeHeader.cellWidth - width) / 2 + root.modeIndex * modeHeader.cellWidth
@@ -1112,12 +1119,12 @@ Item {
                                 MaterialIcon {
                                     Layout.alignment: Qt.AlignVCenter
                                     text: ({apps: "apps", wallpaper: "image", clipboard: "content_paste", emoji: "mood", software: "deployed_code"})[modeTab.modelData] || "apps"
-                                    color: root.mode === modeTab.modelData ? M3Palette.m3primary : M3Palette.m3onSurfaceVariant
+                                    color: root.mode === modeTab.modelData ? ConsoleMaterialStyle.selectedText : M3Palette.m3onSurfaceVariant
                                     fontStyle: Tokens.font.icon.small
                                 }
                                 ConsoleText {
                                     text: root.modeLabel(modeTab.modelData)
-                                    color: root.mode === modeTab.modelData ? M3Palette.m3primary : M3Palette.m3onSurfaceVariant
+                                    color: root.mode === modeTab.modelData ? ConsoleMaterialStyle.selectedText : M3Palette.m3onSurfaceVariant
                                     textRole: "body"
                                     strong: root.mode === modeTab.modelData
                                 }
@@ -1185,6 +1192,7 @@ Item {
 							id: overviewContent
 							anchors.fill: parent
 							surfaceState: ConsoleState
+                            preserveConsoleFocus: true
 							horizontalCards: root.tiledPresentation
 							spatialWindows: root.tiledPresentation
 							visibleCards: 2
@@ -1213,7 +1221,7 @@ Item {
 
 					Rectangle {
 						id: appZone
-                        color: ConsoleStyle.content
+                        color: ConsoleMaterialStyle.content
                         radius: 20
 
 						visible: root.mode === "apps" && !root.commandMode
@@ -1286,15 +1294,15 @@ Item {
 
 										width: catLabel.implicitWidth + 24
 										height: appCatRow.height
-										radius: 8
+										radius: 16
 										// Slightly raised surfaces; keyboard focus retains its primary outline.
-										readonly property color buttonSurface: catPill.selected ? ConsoleStyle.selection : PanelColours.blend(ConsoleStyle.content, M3Palette.m3onSurface, categoryMouse.containsMouse ? 0.04 : 0)
+										readonly property color buttonSurface: catPill.selected ? ConsoleMaterialStyle.selection : PanelColours.blend(ConsoleMaterialStyle.content, M3Palette.m3onSurface, categoryMouse.containsMouse ? 0.04 : 0)
                                         color: buttonSurface
                                         pressed: categoryMouse.pressed
                                         hovered: categoryMouse.containsMouse
 
-										border.color: catPill.selected && root.navigationLayer === "categories" ? M3Palette.m3primary : ConsoleStyle.chipOutline
-										border.width: 1
+										border.color: catPill.selected && root.navigationLayer === "categories" ? M3Palette.m3primary : ConsoleMaterialStyle.chipOutline
+										border.width: catPill.selected && root.navigationLayer !== "categories" ? 0 : 1
 										// 空分类压暗（数量仍参与判断，只是不显示）
 										opacity: (catPill.catCount === 0 && !catPill.selected) ? 0.45 : 1
 
@@ -1305,7 +1313,7 @@ Item {
 
 											anchors.centerIn: parent
 											text: catPill.modelData.label
-											color: catPill.selected ? ConsoleStyle.selectedText : M3Palette.m3onSurfaceVariant
+											color: catPill.selected ? ConsoleMaterialStyle.selectedText : M3Palette.m3onSurfaceVariant
 											textRole: "caption"
 											strong: catPill.selected
 										}
@@ -1416,7 +1424,7 @@ Item {
 								x: (appList.currentItem?.x ?? 0) + 2
 								y: (appList.currentItem?.y ?? 0) + 2
 								radius: 12
-								color: ConsoleStyle.selection
+								color: ConsoleMaterialStyle.selection
 								border.color: "transparent"
 								border.width: 0
 
@@ -1481,7 +1489,7 @@ Item {
 											y: root.tiledPresentation ? 52 : (parent.height - height) / 2
 											width: root.tiledPresentation ? parent.width : parent.width - 38 - 24
 											text: appCell.modelData.name ?? ""
-											color: appList.currentIndex === appCell.index ? ConsoleStyle.selectedText : M3Palette.m3onSurface
+											color: appList.currentIndex === appCell.index ? ConsoleMaterialStyle.selectedText : M3Palette.m3onSurface
 																						textRole: "body"
 											strong: false
 											elide: Text.ElideRight
@@ -1493,7 +1501,7 @@ Item {
 											y: root.tiledPresentation ? 8 : (parent.height - height) / 2
 											visible: root.appCategory !== "favorite" && AppCategories.isFavorite(appCell.modelData)
 											text: "★"
-											color: appList.currentIndex === appCell.index ? ConsoleStyle.selectedText : M3Palette.m3primary
+											color: appList.currentIndex === appCell.index ? ConsoleMaterialStyle.selectedText : M3Palette.m3primary
 											textRole: "body"
 										}
 									}
@@ -1556,7 +1564,7 @@ Item {
 						radius: 9
 						color: BooruWallpaper.busy
 							? Qt.alpha(M3Palette.m3tertiary, 0.5)
-							: (booruArea.containsMouse ? Qt.alpha(M3Palette.m3tertiary, 0.35) : Qt.alpha(ConsoleStyle.content, 0.6))
+							: (booruArea.containsMouse ? Qt.alpha(M3Palette.m3tertiary, 0.35) : Qt.alpha(ConsoleMaterialStyle.content, 0.6))
 
 						ConsoleText {
 							id: booruLabel
@@ -1599,8 +1607,8 @@ Item {
 						height: parent.height
 						radius: 9
 						color: !OnlineWallpapers.canGoBack
-							? Qt.alpha(ConsoleStyle.content, 0.35)
-							: (onlinePreviousArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(ConsoleStyle.content, 0.72))
+							? Qt.alpha(ConsoleMaterialStyle.content, 0.35)
+							: (onlinePreviousArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(ConsoleMaterialStyle.content, 0.72))
 						ConsoleText {
 							anchors.centerIn: parent
 							text: "← 上一组"
@@ -1625,8 +1633,8 @@ Item {
 						height: parent.height
 						radius: 9
 						color: OnlineWallpapers.loading
-							? Qt.alpha(ConsoleStyle.field, 0.55)
-							: (onlineRefreshArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(ConsoleStyle.content, 0.72))
+							? Qt.alpha(ConsoleMaterialStyle.field, 0.55)
+							: (onlineRefreshArea.containsMouse ? Qt.alpha(M3Palette.m3primary, 0.32) : Qt.alpha(ConsoleMaterialStyle.content, 0.72))
 						ConsoleText {
 							anchors.centerIn: parent
 							text: OnlineWallpapers.loading ? "加载中…" : "↻ 下一组"
@@ -1650,7 +1658,7 @@ Item {
 						height: parent.height
 						radius: 9
 						// 底色加深 + 描边：0.6 透明度在浅色配色方案下几乎糊在面板上（2026-09-14 用户反馈"配色是淡的"）
-						color: Qt.alpha(ConsoleStyle.content, 0.9)
+						color: Qt.alpha(ConsoleMaterialStyle.content, 0.9)
 						border.color: Qt.alpha(M3Palette.m3onSurface, 0.16)
 						border.width: 1
 						// 格子宽度统一由总宽推算，滑块绝不可能超出轨道
@@ -1866,7 +1874,7 @@ Item {
 								anchors.centerIn: parent
 								radius: 16
 								clip: true
-								color: ConsoleStyle.content
+								color: ConsoleMaterialStyle.content
 								border.color: (wallHover.containsMouse || wallCard.isSelected || wallCard.isCurrent)
 									? M3Palette.m3tertiary
 									: Qt.alpha(M3Palette.m3onSurface, 0.12)
@@ -1877,7 +1885,7 @@ Item {
 								property real pressScale: 1
 								scale: wallFrame.pressScale
 
-								Image {
+								WallpaperStillPreview {
 									id: wallImage
 
 									anchors.top: parent.top
@@ -2009,7 +2017,7 @@ Item {
 								anchors.margins: 4
 								radius: 12
 								clip: true
-								color: ConsoleStyle.content
+								color: ConsoleMaterialStyle.content
 								border.color: (gridHover.containsMouse || gridCard.isCurrent)
 									? M3Palette.m3tertiary
 									: Qt.alpha(M3Palette.m3onSurface, 0.12)
@@ -2020,7 +2028,7 @@ Item {
 								property real pressScale: 1
 								scale: gridFrame.pressScale
 
-								Image {
+								WallpaperStillPreview {
 									anchors.fill: parent
 									source: modelData?.path ? "file://" + modelData.path : ""
 									fillMode: Image.PreserveAspectCrop
@@ -2177,7 +2185,7 @@ Item {
 								anchors.margins: 4
 								radius: 12
 								clip: true
-								color: ConsoleStyle.content
+								color: ConsoleMaterialStyle.content
 								border.color: (onlineHover.containsMouse || onlineGrid.currentIndex === onlineCard.index)
 									? M3Palette.m3tertiary : Qt.alpha(M3Palette.m3onSurface, 0.12)
 								border.width: (onlineHover.containsMouse || onlineGrid.currentIndex === onlineCard.index) ? 2 : 1
@@ -2205,7 +2213,7 @@ Item {
 								Rectangle {
 									anchors.fill: parent
 									visible: previewImage.status !== Image.Ready
-									color: Qt.alpha(ConsoleStyle.content, 0.96)
+									color: Qt.alpha(ConsoleMaterialStyle.content, 0.96)
 									ConsoleText {
 										anchors.centerIn: parent
 										visible: previewImage.status === Image.Error
@@ -2335,7 +2343,7 @@ Item {
 						width: Math.min(parent.width - 16, 560)
 						height: 30
 						radius: 15
-						color: Qt.alpha(ConsoleStyle.content, 0.72)
+						color: Qt.alpha(ConsoleMaterialStyle.content, 0.72)
 						border.color: Qt.alpha(M3Palette.m3onSurface, 0.12)
 						border.width: 1
 						ConsoleText {
@@ -2516,7 +2524,7 @@ Item {
 											easing.type: Easing.OutCubic
 										}
 									}
-									color: ConsoleStyle.content
+									color: ConsoleMaterialStyle.content
 									border.color: (stripHover.containsMouse || stripCard.isSelected || stripCard.isCurrent)
 										? M3Palette.m3tertiary
 										: Qt.alpha(M3Palette.m3onSurface, 0.12)
@@ -2527,7 +2535,7 @@ Item {
 									property real applyPulse: 0
 									scale: stripFrame.pressScale
 
-										Image {
+										WallpaperStillPreview {
 											anchors.fill: parent
 											source: modelData?.path ? "file://" + modelData.path : ""
 											fillMode: Image.PreserveAspectCrop
@@ -2667,7 +2675,7 @@ Item {
 							width: Math.min(parent.width - 16, 560)
 							height: 40
 							radius: 20
-							color: Qt.alpha(ConsoleStyle.content, 0.85)
+							color: Qt.alpha(ConsoleMaterialStyle.content, 0.85)
 							border.color: Qt.alpha(M3Palette.m3onSurface, 0.14)
 							border.width: 1
 							clip: true
@@ -2706,441 +2714,17 @@ Item {
 					}
 			}
 
-			// ---------------- 剪贴板历史（cliphist） ----------------
-			// 2026-09-14 重构（对齐 noctalia 面板的交互，数据源仍是 cliphist）：
-			//   左列 = 清空工具条 + 紧凑列表（图片行内 40×40 缩略图、置顶项显示 📌），
-			//   右侧 = 预览栏（完整文本 / 大图 + 元信息 + 置顶/复制/删除），
-			//   删除与清空走二次确认；中键删除保持即时（沿用旧习惯），右键 = 置顶开关。
-			// 字号（2026-09-14 用户反馈"有点小"后统一上调）：列表行 16、预览正文 15、
-			// 标题/元信息 13–15、按钮 13–14 —— 要整体再调，改这一段里的 font.pixelSize 即可。
-			Item {
-				id: clipboardBody
-
-				visible: root.mode === "clipboard" && !root.commandMode
-				width: parent.width
-				height: parent.height - topControls.height - parent.spacing
-
-				// 切走或关面板时清掉未决确认框，避免下次打开还挂着旧弹窗
-				onVisibleChanged: {
-                    if (!visible) clipEditor.cancel();
-					if (!visible)
-						root.clipConfirm = "";
-				}
-
-				ConsoleText {
-					anchors.centerIn: parent
-					visible: clipList.count === 0
-					text: ClipboardData.busy
-						? "读取剪贴板历史…"
-						: (ClipboardData.entries.length === 0
-							? "剪贴板历史为空（需要 cliphist + wl-paste --watch cliphist store）"
-							: "没有匹配的条目")
-					color: Qt.alpha(M3Palette.m3onSurface, 0.5)
-					textRole: "body"
-				}
-
-				Row {
-					id: clipColumns
-
-					visible: clipList.count > 0
-					anchors.fill: parent
-					spacing: 12
-
-					// ---- 左：清空工具条 + 列表 ----
-					Item {
-						id: clipListPane
-                        enabled: !clipEditor.saving
-
-						width: Math.round((clipColumns.width - clipColumns.spacing) * 0.38)
-						height: clipColumns.height
-
-						Row {
-							id: clipToolbar
-                            enabled: !clipEditor.dirty && !clipEditor.saving
-
-							width: parent.width
-							height: 26
-							spacing: 8
-
-							Repeater {
-								model: [
-									{ kind: "clearUnpinned", label: "清空未置顶" },
-									{ kind: "clearAll", label: "清空全部" }
-								]
-
-								RaisedButtonSurface {
-									id: clipClearButton
-                            pressed: clipClearArea.pressed
-                            hovered: clipClearArea.containsMouse
-
-									required property var modelData
-
-									width: clipClearText.implicitWidth + 22
-									height: clipToolbar.height
-									radius: 8
-									color: clipClearArea.containsMouse
-										? PanelColours.blend(ConsoleStyle.content, M3Palette.m3error, 0.16)
-										: Qt.alpha(ConsoleStyle.content, 0.5)
-
-									ConsoleText {
-										id: clipClearText
-
-										anchors.centerIn: parent
-										text: clipClearButton.modelData.label
-										color: M3Palette.m3onSurface
-										textRole: "body"
-									}
-
-									MouseArea {
-										id: clipClearArea
-
-										anchors.fill: parent
-										hoverEnabled: true
-										onClicked: root.requestClipConfirm(clipClearButton.modelData.kind)
-									}
-								}
-							}
-
-							ConsoleText {
-								id: clipCountLabel
-
-								anchors.verticalCenter: parent.verticalCenter
-								text: `共 ${clipList.count} 条`
-								color: Qt.alpha(M3Palette.m3onSurface, 0.5)
-								textRole: "caption"
-							}
-						}
-
-						ListView {
-							id: clipList
-
-							anchors.top: clipToolbar.bottom
-							anchors.topMargin: 6
-							anchors.left: parent.left
-							anchors.right: parent.right
-							anchors.bottom: parent.bottom
-							clip: true
-							spacing: 4
-							model: ClipboardData.query(input.text)
-							currentIndex: -1
-
-							onCountChanged: {
-								if (currentIndex < 0 && count > 0)
-									currentIndex = 0;
-								Qt.callLater(() => ClipboardData.ensurePreview(root.selectedClipEntry()));
-							}
-
-							// 选中项变了就按需解码预览（图片解大图、文本解完整内容）；解码请求不在绑定里发
-							onCurrentIndexChanged: Qt.callLater(() => ClipboardData.ensurePreview(root.selectedClipEntry()))
-
-							delegate: Rectangle {
-								id: clipRow
-								required property var modelData
-								required property int index
-
-								width: clipList.width
-								height: 56
-								radius: 10
-								color: clipList.currentIndex === clipRow.index ? ConsoleStyle.selection : "transparent"
-
-								ConsoleText {
-									id: clipIcon
-
-									anchors.left: parent.left
-									anchors.leftMargin: 12
-									anchors.verticalCenter: parent.verticalCenter
-									visible: !clipRow.modelData.isImage
-									text: "description"
-                                    font.family: Tokens.font.icon.medium.family
-                                    color: clipList.currentIndex === clipRow.index ? ConsoleStyle.selectedText : M3Palette.m3primary
-									font.pixelSize: 18
-								}
-
-								// 图片条目：40×40 缩略图（大图看右侧预览栏；解码缓存见 ClipboardData.thumbs）
-								Image {
-									id: clipThumb
-
-									anchors.left: parent.left
-									anchors.leftMargin: 8
-									anchors.verticalCenter: parent.verticalCenter
-									visible: clipRow.modelData.isImage
-									width: 40
-									height: 40
-									source: clipRow.modelData.isImage ? ClipboardData.thumbFor(clipRow.modelData.id) : ""
-									sourceSize: Qt.size(128, 128)
-									fillMode: Image.PreserveAspectCrop
-									asynchronous: true
-									cache: false
-
-									Component.onCompleted: {
-										if (clipRow.modelData.isImage)
-											ClipboardData.requestThumb(clipRow.modelData);
-									}
-								}
-
-								ConsoleText {
-									id: clipRowLabel
-
-									anchors.left: clipRow.modelData.isImage ? clipThumb.right : clipIcon.right
-									anchors.leftMargin: 10
-									anchors.right: clipPinnedMark.visible ? clipPinnedMark.left : parent.right
-									anchors.rightMargin: 8
-									anchors.verticalCenter: parent.verticalCenter
-									text: clipRow.modelData.isImage ? clipRow.modelData.info : clipRow.modelData.preview
-									textFormat: Text.PlainText
-									elide: Text.ElideRight
-									maximumLineCount: 1
-									color: clipList.currentIndex === clipRow.index ? ConsoleStyle.selectedText : M3Palette.m3onSurface
-									textRole: "body"
-								}
-
-								ConsoleText {
-									id: clipPinnedMark
-
-									anchors.right: parent.right
-									anchors.rightMargin: 10
-									anchors.verticalCenter: parent.verticalCenter
-									visible: ClipboardData.isPinned(clipRow.modelData)
-									text: "keep"
-                                    font.family: Tokens.font.icon.medium.family
-                                    color: clipList.currentIndex === clipRow.index ? ConsoleStyle.selectedText : M3Palette.m3primary
-									font.pixelSize: 14
-								}
-
-								MouseArea {
-									id: clipRowMouse
-
-									anchors.fill: parent
-									hoverEnabled: true
-									acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-									onEntered: if (!root.clipEditing) clipList.currentIndex = clipRow.index
-									onClicked: mouse => {
-                                        if (clipEditor.saving) return;
-                                        if (mouse.button === Qt.LeftButton) {
-                                            if (root.clipEditing) clipEditor.cancel();
-                                            // Compare before changing selection: another row previews,
-                                            // the row already shown in the details pane pastes.
-                                            if (clipList.currentIndex === clipRow.index) {
-                                                root.pasteSelectedClip();
-                                                return;
-                                            }
-                                            clipList.currentIndex = clipRow.index;
-                                            ClipboardData.ensurePreview(clipRow.modelData);
-                                            return;
-                                        }
-                                        if (root.clipEditing) return;
-                                        clipList.currentIndex = clipRow.index;
-                                        if (mouse.button === Qt.MiddleButton)
-                                            ClipboardData.remove(clipRow.modelData);
-                                        else if (mouse.button === Qt.RightButton)
-                                            root.toggleSelectedClipPin();
-                                    }
-								}
-							}
-						}
-					}
-
-					// ---- 右：预览栏（内容 + 元信息 + 操作；布局对齐 noctalia 面板） ----
-					Rectangle {
-						id: clipPreviewPane
-
-						property var entry: root.clipEditing && clipEditor.documentEntry ? clipEditor.documentEntry : root.selectedClipEntry()
-						property bool loading: !!entry
-							&& (entry.isImage
-								? (ClipboardData.previewBusyId === entry.id && ClipboardData.previewFor(entry.id) === "")
-								: (ClipboardData.textBusyId === entry.id && ClipboardData.textFor(entry) === ""))
-
-						width: clipColumns.width - clipListPane.width - clipColumns.spacing
-						height: clipColumns.height
-						radius: 12
-						color: ConsoleStyle.content
-						border.color: Qt.alpha(M3Palette.m3onSurface, 0.12)
-						border.width: 1
-
-						Column {
-							id: clipPreviewColumn
-
-							anchors.fill: parent
-							anchors.margins: 12
-							spacing: 8
-
-							ConsoleText {
-								id: clipPreviewTitle
-
-								width: parent.width
-								height: 20
-								text: clipPreviewPane.entry
-									? (clipPreviewPane.entry.isImage ? "图片" : "文本")
-										+ (ClipboardData.isPinned(clipPreviewPane.entry) ? " · 已置顶 📌" : "")
-									: "未选择条目"
-								color: Qt.alpha(M3Palette.m3onSurface, 0.75)
-								textRole: "body"
-								elide: Text.ElideRight
-								verticalAlignment: Text.AlignVCenter
-							}
-
-							Item {
-                                id: clipPreviewBody
-                                width: parent.width
-                                height: Math.max(0, clipPreviewPane.height - 118)
-                                ClipboardUi.ClipboardTextEditor {
-                                    id: clipEditor
-                                    visible: clipboardBody.visible && !!clipPreviewPane.entry && !clipPreviewPane.entry.isImage
-                                    entry: clipboardBody.visible ? clipPreviewPane.entry : null
-                                    onFocusSearchRequested: if (root.visible) input.forceActiveFocus()
-                                    onCopied: {}
-                                    onSaved: { root.savedClipSelectionPending = true; ClipboardData.refresh(); }
-                                }
-                                Image {
-                                    anchors.fill: parent
-                                    visible: !!clipPreviewPane.entry && clipPreviewPane.entry.isImage
-                                    source: visible ? ClipboardData.previewFor(clipPreviewPane.entry.id) : ""
-                                    sourceSize: Qt.size(1024, 1024)
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true
-                                    cache: false
-                                }
-                                ConsoleText {
-                                    anchors.centerIn: parent
-                                    visible: !!clipPreviewPane.entry && (clipPreviewPane.entry.isImage ? clipPreviewPane.loading : clipEditor.loading)
-                                    text: "读取中…"
-                                    color: Qt.alpha(M3Palette.m3onSurface, 0.65)
-                                }
-                            }
-
-							ConsoleText {
-								id: clipPreviewMeta
-
-								width: parent.width
-								height: 18
-								text: clipEditor.error || (clipPreviewPane.entry
-                                    ? (clipPreviewPane.entry.isImage ? clipPreviewPane.entry.info : `文本 · ${clipEditor.textLength} 字符`) + (clipEditor.dirty ? " · 未保存" : "")
-                                    : "")
-								color: Qt.alpha(M3Palette.m3onSurface, 0.55)
-								textRole: "body"
-								elide: Text.ElideRight
-								verticalAlignment: Text.AlignVCenter
-							}
-
-							Row {
-                                id: clipActionRow
-                                width: parent.width
-                                height: 34
-                                spacing: 8
-                                ClipboardUi.ClipIconButton { symbol: "keep"; label: "置顶"; enabled: !!clipPreviewPane.entry && !clipEditor.saving; emphasized: ClipboardData.isPinned(clipPreviewPane.entry); onClicked: root.toggleSelectedClipPin() }
-                                ClipboardUi.ClipIconButton { symbol: "content_copy"; label: "复制"; enabled: !!clipPreviewPane.entry && !clipEditor.saving; onClicked: root.copySelectedClip() }
-                                ClipboardUi.ClipIconButton { symbol: "check"; label: "保存并复制 · Ctrl+Enter"; enabled: clipEditor.canSave; onClicked: clipEditor.save() }
-                                ClipboardUi.ClipIconButton { symbol: "undo"; label: "撤销修改"; enabled: clipEditor.dirty && !clipEditor.saving; onClicked: clipEditor.cancel() }
-                                ClipboardUi.ClipIconButton { symbol: "delete"; label: "删除"; destructive: true; enabled: !!clipPreviewPane.entry && !clipEditor.saving; onClicked: root.requestClipConfirm("delete") }
-                            }
-						}
-					}
-				}
-
-				// ---- 二次确认浮层（删除单条 / 清空未置顶 / 清空全部） ----
-				Rectangle {
-					id: clipConfirmCard
-
-					visible: root.clipConfirm !== ""
-					anchors.centerIn: parent
-					width: Math.min(parent.width - 40, 380)
-					height: 116
-					radius: 14
-					color: Qt.alpha(ConsoleStyle.content, 0.97)
-					border.color: Qt.alpha(M3Palette.m3onSurface, 0.2)
-					border.width: 1
-					z: 10
-
-					ConsoleText {
-						id: clipConfirmLabel
-
-						anchors.horizontalCenter: parent.horizontalCenter
-						anchors.top: parent.top
-						anchors.topMargin: 18
-						width: parent.width - 32
-						horizontalAlignment: Text.AlignHCenter
-						wrapMode: Text.WordWrap
-						text: {
-							if (root.clipConfirm === "delete")
-								return "删除这条记录？";
-							if (root.clipConfirm === "clearUnpinned")
-								return `清空 ${ClipboardData.unpinnedCount()} 条未置顶记录？（置顶的会保留）`;
-							if (root.clipConfirm === "clearAll")
-								return `清空全部 ${ClipboardData.entries.length} 条记录（含置顶）？`;
-							return "";
-						}
-						color: M3Palette.m3onSurface
-						textRole: "body"
-					}
-
-					Row {
-						id: clipConfirmButtons
-
-						anchors.horizontalCenter: parent.horizontalCenter
-						anchors.bottom: parent.bottom
-						anchors.bottomMargin: 14
-						spacing: 10
-
-						RaisedButtonSurface {
-                            pressed: clipCancelArea.pressed
-                            hovered: clipCancelArea.containsMouse
-                            interactive: clipCancelArea.enabled
-							id: clipConfirmCancel
-
-							width: 92
-							height: 30
-							radius: 9
-							color: clipCancelArea.containsMouse
-								? Qt.alpha(M3Palette.m3onSurface, 0.18)
-								: Qt.alpha(ConsoleStyle.content, 0.6)
-
-							ConsoleText {
-								anchors.centerIn: parent
-								text: "取消"
-								color: M3Palette.m3onSurface
-								textRole: "body"
-							}
-
-							MouseArea {
-								id: clipCancelArea
-
-								anchors.fill: parent
-								hoverEnabled: true
-								onClicked: root.clipConfirm = ""
-							}
-						}
-
-						RaisedButtonSurface {
-                            pressed: clipOkArea.pressed
-                            hovered: clipOkArea.containsMouse
-                            interactive: clipOkArea.enabled
-							id: clipConfirmOk
-
-							width: 92
-							height: 30
-							radius: 9
-							color: clipOkArea.containsMouse
-								? Qt.alpha(M3Palette.m3error, 0.55)
-								: Qt.alpha(M3Palette.m3error, 0.35)
-
-							ConsoleText {
-								anchors.centerIn: parent
-								text: "确认"
-								color: "#FFFFFF"
-								textRole: "body"
-							}
-
-							MouseArea {
-								id: clipOkArea
-
-								anchors.fill: parent
-								hoverEnabled: true
-								onClicked: root.confirmClipAction()
-							}
-						}
-					}
-				}
-			}
+            // Same content and interactions as Super+V; the host owns search and closing.
+            ClipboardUi.ClipboardContent {
+                id: clipboardBody
+                visible: root.mode === "clipboard" && !root.commandMode
+                width: parent.width
+                height: parent.height - topControls.height - parent.spacing
+                showSearch: false
+                query: input.text
+                onFocusSearchRequested: if (root.visible) input.forceActiveFocus()
+                onCloseRequested: root.closeRequested()
+            }
 
 			// ---------------- Emoji 选择器 ----------------
 			Item {
@@ -3174,14 +2758,14 @@ Item {
                             width: (emojiCategories.width - 4 * (EmojiData.categories.length - 1)) / EmojiData.categories.length
                             height: 34
                             radius: 12
-                            color: selected ? ConsoleStyle.selection : PanelColours.blend(ConsoleStyle.content, M3Palette.m3onSurface, categoryMouse.containsMouse ? 0.04 : 0)
+                            color: selected ? ConsoleMaterialStyle.selection : PanelColours.blend(ConsoleMaterialStyle.content, M3Palette.m3onSurface, categoryMouse.containsMouse ? 0.04 : 0)
                             border.width: 1
-                            border.color: selected && root.navigationLayer === "emojiCategories" ? M3Palette.m3primary : ConsoleStyle.chipOutline
+                            border.color: selected && root.navigationLayer === "emojiCategories" ? M3Palette.m3primary : ConsoleMaterialStyle.chipOutline
                             ConsoleText {
                                 anchors.centerIn: parent
                                 text: emojiCategoryChip.modelData
                                 textRole: "caption"
-                                color: emojiCategoryChip.selected ? ConsoleStyle.selectedText : M3Palette.m3onSurface
+                                color: emojiCategoryChip.selected ? ConsoleMaterialStyle.selectedText : M3Palette.m3onSurface
                             }
                             MouseArea {
                                 id: categoryMouse
@@ -3263,7 +2847,7 @@ Item {
 			Rectangle {
 				anchors.fill: parent
 				radius: 14
-				color: Qt.alpha(ConsoleStyle.content, 0.96)
+				color: Qt.alpha(ConsoleMaterialStyle.content, 0.96)
 				border.color: M3Palette.m3tertiary
 				border.width: 1
 
@@ -3277,12 +2861,14 @@ Item {
 
 		WindowContextMenu {
 			id: windowContextMenu
+            targetPreview: overviewContent.menuPreview
 			parent: shell
 			targetWindow: overviewContent.windowForAddress(address)
 			workspaces: overviewContent.windowMenuWorkspaces()
 			onActionRequested: (action, workspace) => root.executeWindowMenuAction(action, workspace)
 			onClosed: {
 				overviewContent.hoveredWindowAddress = "";
+                overviewContent.menuPreview = null;
 				if (root.visible) input.forceActiveFocus();
 			}
 		}
@@ -3296,7 +2882,7 @@ Item {
 			width: 210
 			height: appMenuCol.implicitHeight + 16
 			radius: 12
-			color: Qt.alpha(ConsoleStyle.content, 0.98)
+			color: Qt.alpha(ConsoleMaterialStyle.content, 0.98)
 			border.color: Qt.alpha(M3Palette.m3onSurface, 0.18)
 			border.width: 1
 			x: Math.max(6, Math.min(root.appMenuX, shell.width - width - 6))
@@ -3576,104 +3162,12 @@ Item {
 			OnlineWallpapers.startDownload(entry, "apply");
 	}
 
-	// ---------------- 剪贴板历史（cliphist） ----------------
-	function resetClipSelection(): void {
-		if (clipList.count > 0) {
-			clipList.currentIndex = 0;
-			clipList.positionViewAtIndex(0, ListView.Beginning);
-		} else {
-			clipList.currentIndex = -1;
-		}
-	}
-
-	function moveClipSelection(delta: int): void {
-		if (clipList.count === 0)
-			return;
-		if (clipList.currentIndex < 0) {
-			clipList.currentIndex = 0;
-			return;
-		}
-		const idx = Math.max(0, Math.min(clipList.currentIndex + delta, clipList.count - 1));
-		clipList.currentIndex = idx;
-		clipList.positionViewAtIndex(idx, ListView.Contain);
-	}
-
-	function copyClipEntry(entry: var): void {
-		if (!entry)
-			return;
-		ClipboardData.copy(entry);
-	}
-
-	function copySelectedClip(): void {
-		if (clipEditor.dirty) clipEditor.copy();
-        else root.copyClipEntry(clipList.currentItem?.modelData ?? clipList.model?.[clipList.currentIndex]);
-	}
-
-    function pasteSelectedClip(): void {
-        if (clipEditor.dirty || clipEditor.saving) return;
-        ClipboardData.paste(root.selectedClipEntry());
-    }
-    Connections {
-        target: ClipboardData
-        function onPasteReady(): void { root.closeRequested(); }
-    }
-
-	// ---------------- 剪贴板：置顶 / 删除 / 清空 ----------------
-	// 统一取「当前选中条目」：委托被回收时 itemAtIndex 会返回 null，退回到 model 下标取数据
-	function selectedClipEntry(): var {
-		const idx = clipList.currentIndex;
-		if (idx < 0 || idx >= clipList.count)
-			return null;
-		return clipList.itemAtIndex(idx)?.modelData ?? clipList.model?.[idx] ?? null;
-	}
-
-	function requestClipConfirm(kind: string): void {
-		if (kind === "delete" && !root.selectedClipEntry())
-			return;
-		root.clipConfirm = kind;
-	}
-
-	function confirmClipAction(): void {
-		const kind = root.clipConfirm;
-		const entry = root.selectedClipEntry();
-		root.clipConfirm = "";
-		if (kind === "delete") {
-			if (!entry)
-				return;
-			const id = entry.id;
-			ClipboardData.remove(entry);
-			// 删除后列表整体上移，尽量把相邻的那条继续选中
-			Qt.callLater(() => root.selectClipById(id));
-		} else if (kind === "clearUnpinned") {
-			ClipboardData.clearUnpinned();
-			Qt.callLater(root.resetClipSelection);
-		} else if (kind === "clearAll") {
-			ClipboardData.clearAll();
-		}
-	}
-
-	function toggleSelectedClipPin(): void {
-		const entry = root.selectedClipEntry();
-		if (!entry)
-			return;
-		const id = entry.id;
-		const pinned = ClipboardData.togglePin(entry);
-		// 置顶会让列表重排（置顶块在最前），让同一条尽量保持在选中状态
-		Qt.callLater(() => root.selectClipById(id));
-	}
-
-	function selectClipById(id: string): void {
-		const model = clipList.model;
-		if (!model || id === "")
-			return;
-		for (let i = 0; i < model.length; i++) {
-			if (model[i] && model[i].id === id) {
-				clipList.currentIndex = i;
-				clipList.positionViewAtIndex(i, ListView.Contain);
-				return;
-			}
-		}
-	}
+    // Host keyboard shortcuts delegate to the shared clipboard component.
+    function resetClipSelection(): void { clipboardBody.resetClipSelection(); }
+    function moveClipSelection(delta: int): void { clipboardBody.moveClipSelection(delta); }
+    function pasteSelectedClip(): void { clipboardBody.pasteSelectedClip(); }
+    function toggleSelectedClipPin(): void { clipboardBody.toggleSelectedClipPin(); }
+    function requestClipConfirm(kind: string): void { clipboardBody.requestClipConfirm(kind); }
 
 	// ---------------- Emoji ----------------
     function cycleEmojiCategory(step: int): void {

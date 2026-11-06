@@ -70,3 +70,11 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunn
 
 ### 更正（2026-10-25，用户要求撤回按钮流动）
 用户认为没有配套玻璃材质，彩色流动显得突兀，明确要求回退。核对试用前快照后，恢复RaisedButtonSurface、SoftwareButton、ConsolePanel（仓库与运行三文件）到20261025-002019-button-flow备份，撤回两轮渐变/遮罩/色相派生/动画及本次新增hoverEnabled。当前文件差异仅属于本次试用，无其他变更被覆盖。回退前当前状态再次按绝对路径镜像备份，后缀rollback-flow。移除专属flow测试和生成器新增映射/入口；历史记录保留但以本更正为准。控制台Console改名、软件更新状态提示及其他已有功能保留。
+
+
+## 2026-10-26 Overview快捷键目标
+`QT_QUICK_BACKEND=software python3 tests/console/check_overview_actions.py` 提取生产函数，13 passed（含初始化/收尾），覆盖虚拟选择、空/消失窗口、菜单门控、按地址两种全屏、静默工作区启动与命令转义。导航组间距5项断言在本次修改前备份上同样失败，不据此宣称全套通过；详见开发日志。
+
+2026-10-26焦点保护回归：check_overview_actions.py增四项，当前22 passed。实际Super+F同工作区最大化/恢复后等待0.8秒仍保留Console焦点；移出后0.5秒关闭。legacy只回退原操作，非完整焦点支持。
+
+更正（2026-10-26）：焦点保护还须在目标fullscreen前pin当前Console，保持至本次面板隐藏，立即unset无效。夹具22 passed增加pin顺序及不立即unset断言；隔离真实测试4次生产Lua+2次按键、画面检查通过，重新打开pinned=false。

@@ -23,6 +23,37 @@ Item {
 	property bool settleTopAlign: false
 	property bool showPanel: true
 	property bool interactionBlocked: false
+    property bool preserveConsoleFocus: false
+    property string selectedWorkspace: ""
+    function selectWorkspace(workspace: string): void {
+        if (!root.interactionBlocked && root.visible)
+            root.selectedWorkspace = workspace;
+    }
+    function closeSelected(): void {
+        if (root.interactionBlocked || !root.visible)
+            return;
+        const target = root.windowForAddress(root.hoveredWindowAddress);
+        if (!target)
+            return;
+        const selector = "address:" + HyprDispatch.addressArg(target.address);
+        HyprDispatch.call(`closewindow ${selector}`,
+            `hl.dsp.window.close({ window = ${JSON.stringify(selector)} })`);
+    }
+    function fullscreenSelected(mode: string): void {
+        if (root.interactionBlocked || !root.visible)
+            return;
+        const target = root.windowForAddress(root.hoveredWindowAddress);
+        if (!target)
+            return;
+        const selector = "address:" + HyprDispatch.addressArg(target.address);
+        const legacy = `fullscreenwindow ${mode === "maximized" ? 1 : 0},${selector}`;
+        const lua = `hl.dsp.window.fullscreen({ window = ${JSON.stringify(selector)}, mode = ${JSON.stringify(mode === "maximized" ? "maximized" : "fullscreen")}, action = "toggle" })`;
+        if (root.preserveConsoleFocus)
+            HyprDispatch.callKeepingConsoleFocus(legacy, lua);
+        else
+            HyprDispatch.call(legacy, lua);
+    }
+	property Item menuPreview: null
 	signal windowMenuRequested(string address, point position)
 	property int windowRevision: 0
 
@@ -669,6 +700,8 @@ Item {
 	}
 
 	onVisibleChanged: {
+		root.selectedWorkspace = "";
+		root.hoveredWindowAddress = "";
 		if (visible) {
 			localHyprData.updateAll();
 			root.syncWindows(localHyprData.windowList);
